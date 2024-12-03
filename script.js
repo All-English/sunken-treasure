@@ -45,7 +45,7 @@ function createBubbles() {
 
   if (!gameBoard) return
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 15; i++) {
     const bubble = document.createElement("div")
     bubble.classList.add("bubble")
     bubble.style.width = `${Math.random() * 30 + 10}px`
@@ -60,6 +60,34 @@ function createBubbles() {
       bubble.remove()
     })
   }
+}
+
+function createBubble() {
+  const gameBoard = document.getElementById("game-board")
+
+  if (!gameBoard) return
+
+  const bubble = document.createElement("div")
+  bubble.classList.add("bubble")
+
+  // Randomize size
+  const size = Math.random() * 30 + 10
+  bubble.style.width = `${size}px`
+  bubble.style.height = `${size}px`
+
+  // Position near the clicked area
+  bubble.style.left = `${Math.random() * 100}%`
+  bubble.style.top = `${Math.random() * 100}%`
+
+  // Randomize animation duration
+  bubble.style.animationDuration = `${Math.random() * 3 + 2}s`
+
+  gameBoard.appendChild(bubble)
+
+  // Remove bubble after animation
+  bubble.addEventListener("animationend", () => {
+    bubble.remove()
+  })
 }
 
 function initializeGame() {
@@ -77,18 +105,37 @@ function initializeGame() {
   const usedCells = new Set()
 
   // Randomly select treasure location
-  treasureIndex = Math.floor(Math.random() * vocabularyWords.length)
+  const treasureCell = Math.floor(Math.random() * (gridColumns * gridRows))
+  usedCells.add(treasureCell)
+  usedCells.add(treasureCell + 1)
+
+  // Create treasure div
+  const treasureDiv = document.createElement("div")
+  treasureDiv.className = "treasure-div"
+  treasureDiv.textContent = "💎"
+  treasureDiv.style.gridColumn = `${(treasureCell % gridColumns) + 1} / span 2`
+  treasureDiv.style.gridRow = `${Math.floor(treasureCell / gridColumns) + 1}`
+  gameBoard.appendChild(treasureDiv)
+
+  // Find a word to place on the treasure cell
+  const treasureWordIndex = Math.floor(Math.random() * vocabularyWords.length)
 
   // Create and place word cards
   vocabularyWords.forEach((word, index) => {
     let cell
-    do {
-      cell = Math.floor(Math.random() * (gridColumns * gridRows))
-    } while (
-      usedCells.has(cell) ||
-      usedCells.has(cell + 1) ||
-      cell % gridColumns === gridColumns - 1
-    )
+
+    // If this is the chosen treasure word, place it on the treasure cell
+    if (index === treasureWordIndex) {
+      cell = treasureCell
+    } else {
+      do {
+        cell = Math.floor(Math.random() * (gridColumns * gridRows))
+      } while (
+        usedCells.has(cell) ||
+        usedCells.has(cell + 1) ||
+        cell % gridColumns === gridColumns - 1
+      )
+    }
 
     usedCells.add(cell)
     usedCells.add(cell + 1)
@@ -101,15 +148,22 @@ function initializeGame() {
     wordCard.style.gridColumn = `${(cell % gridColumns) + 1} / span 2`
     wordCard.style.gridRow = `${Math.floor(cell / gridColumns) + 1}`
 
-    wordCard.addEventListener("click", () => handleWordClick(wordCard, index))
+    wordCard.addEventListener("click", () =>
+      handleWordClick(wordCard, treasureCell, cell)
+    )
     gameBoard.appendChild(wordCard)
   })
-    
+
   createBubbles()
 }
 
-function handleWordClick(wordCard, index) {
+function handleWordClick(wordCard, treasureCell, currentCell) {
   if (!gameActive || wordCard.classList.contains("clicked")) return
+
+  // Create multiple bubbles on click
+  for (let i = 0; i < 3; i++) {
+    createBubble()
+  }
 
   // Add ripple effect
   const ripple = document.createElement("div")
@@ -120,17 +174,20 @@ function handleWordClick(wordCard, index) {
 
   wordCard.classList.add("clicked")
 
-  if (index === treasureIndex) {
+  // Check if clicked cell is near treasure cell
+  if (currentCell === treasureCell) {
     // Found the treasure!
     gameActive = false
     playSoundSafely(winSound)
 
-    const treasureIcon = document.createElement("div")
-    treasureIcon.className = "treasure-icon"
-    treasureIcon.textContent = "💎"
-    wordCard.appendChild(treasureIcon)
+    // Fade out the word card
+    wordCard.style.opacity = "0"
 
-    wordCard.classList.add("treasure")
+    // Reveal treasure
+    const treasureDiv = document.querySelector(".treasure-div")
+    if (treasureDiv) {
+      treasureDiv.style.display = "flex"
+    }
 
     const restartBtn = document.getElementById("restart-btn")
     if (restartBtn) {
