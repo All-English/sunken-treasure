@@ -1,187 +1,388 @@
+/* ///////////////
+  Custom Properties
+  ////////////// */
 :root {
-    --ocean-blue: #1e90ff;
-    --deep-blue: #00008b;
+  /* @link https://utopia.fyi/type/calculator?c=320,16,1.2,1240,18,1.25,6,2,&s=0.75|0.5|0.25,1.5|2|3|4|6|8,s-l&g=s,l,xl,12 */
+
+  /* Step -2: 11.1111px → 11.52px
+  Step -1: 13.3333px → 14.4px
+  Step 0: 16px → 18px
+  Step 1: 19.2px → 22.5px
+  Step 2: 23.04px → 28.125px
+  Step 3: 27.648px → 35.1563px
+  Step 4: 33.1776px → 43.9453px
+  Step 5: 39.8131px → 54.9316px
+  Step 6: 47.7757px → 68.6646px */
+  --fs-step--2: clamp(0.6944rem, 0.6856rem + 0.0444vw, 0.72rem);
+  --fs-step--1: clamp(0.8333rem, 0.8101rem + 0.1159vw, 0.9rem);
+  --fs-step-0: clamp(1rem, 0.9565rem + 0.2174vw, 1.125rem);
+  --fs-step-1: clamp(1.2rem, 1.1283rem + 0.3587vw, 1.4063rem);
+  --fs-step-2: clamp(1.44rem, 1.3295rem + 0.5527vw, 1.7578rem);
+  --fs-step-3: clamp(1.728rem, 1.5648rem + 0.8161vw, 2.1973rem);
+  --fs-step-4: clamp(2.0736rem, 1.8395rem + 1.1704vw, 2.7466rem);
+  --fs-step-5: clamp(2.4883rem, 2.1597rem + 1.6433vw, 3.4332rem);
+  --fs-step-6: clamp(2.986rem, 2.5319rem + 2.2705vw, 4.2915rem);
+
+  /* Space 3xs: 4px → 5px
+  Space 2xs: 8px → 9px
+  Space xs: 12px → 14px
+  Space s: 16px → 18px
+  Space m: 24px → 27px
+  Space l: 32px → 36px
+  Space xl: 48px → 54px
+  Space 2xl: 64px → 72px
+  Space 3xl: 96px → 108px
+  Space 4xl: 128px → 144px */
+  --space-3xs: clamp(0.25rem, 0.2283rem + 0.1087vw, 0.3125rem);
+  --space-2xs: clamp(0.5rem, 0.4783rem + 0.1087vw, 0.5625rem);
+  --space-xs: clamp(0.75rem, 0.7065rem + 0.2174vw, 0.875rem);
+  --space-s: clamp(1rem, 0.9565rem + 0.2174vw, 1.125rem);
+  --space-m: clamp(1.5rem, 1.4348rem + 0.3261vw, 1.6875rem);
+  --space-l: clamp(2rem, 1.913rem + 0.4348vw, 2.25rem);
+  --space-xl: clamp(3rem, 2.8696rem + 0.6522vw, 3.375rem);
+  --space-2xl: clamp(4rem, 3.8261rem + 0.8696vw, 4.5rem);
+  --space-3xl: clamp(6rem, 5.7391rem + 1.3043vw, 6.75rem);
+  --space-4xl: clamp(8rem, 7.6522rem + 1.7391vw, 9rem);
+
+  /* Space 3xs-2xs: 4px → 9px
+  Space 2xs-xs: 8px → 14px
+  Space xs-s: 12px → 18px
+  Space s-m: 16px → 27px
+  Space m-l: 24px → 36px
+  Space l-xl: 32px → 54px
+  Space xl-2xl: 48px → 72px
+  Space 2xl-3xl: 64px → 108px
+  Space 3xl-4xl: 96px → 144px */
+  --space-3xs-2xs: clamp(0.25rem, 0.1413rem + 0.5435vw, 0.5625rem);
+  --space-2xs-xs: clamp(0.5rem, 0.3696rem + 0.6522vw, 0.875rem);
+  --space-xs-s: clamp(0.75rem, 0.6196rem + 0.6522vw, 1.125rem);
+  --space-s-m: clamp(1rem, 0.7609rem + 1.1957vw, 1.6875rem);
+  --space-m-l: clamp(1.5rem, 1.2391rem + 1.3043vw, 2.25rem);
+  --space-l-xl: clamp(2rem, 1.5217rem + 2.3913vw, 3.375rem);
+  --space-xl-2xl: clamp(3rem, 2.4783rem + 2.6087vw, 4.5rem);
+  --space-2xl-3xl: clamp(4rem, 3.0435rem + 4.7826vw, 6.75rem);
+  --space-3xl-4xl: clamp(6rem, 4.9565rem + 5.2174vw, 9rem);
+
+  --ocean-blue: #1e90ff;
+  --deep-blue: #00008b;
 }
 
+/* ///////////////
+  Reset
+  ////////////// */
+
+/* Box sizing rules */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* set default to dark mode and follows the user preference */
+html {
+  color-scheme: dark light;
+}
+
+/* set minimal height on the body */
 body {
-    margin: 0;
-    padding: 0;
-    min-height: 100vh;
-    background: linear-gradient(var(--ocean-blue), var(--deep-blue));
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  min-height: 100vh;
+}
+
+/* Remove default margin */
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+  padding: 0;
+  font: inherit;
+}
+
+/* Remove defaults for ul with a class */
+ul[class],
+ol[class] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Make images and videos responsive */
+img,
+picture,
+svg,
+video {
+  max-width: 100%;
+  display: block;
+}
+
+input,
+textarea,
+button,
+select {
+  font: inherit;
+}
+
+/* Baseline for default links */
+a:not([class]) {
+  /* Relatively sized thickness and offset */
+  text-decoration-thickness: max(0.08em, 1px);
+  text-underline-offset: 0.15em;
+}
+
+/* Scroll padding allowance below focused elements
+  to ensure they are clearly in view */
+:focus {
+  scroll-padding-block-end: 8vh;
+}
+/* a keyboard user who accesses elements through tabbing will see a visible focus style. */
+:is(a, button, input, textarea, summary):focus-visible {
+  --outline-size: max(2px, 0.08em);
+
+  outline: var(--outline-width, var(--outline-size)) var(--outline-style, solid)
+    var(--outline-color, currentColor);
+  outline-offset: var(--outline-offset, var(--outline-size));
+}
+
+:is(a, button, input, textarea, summary):focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Focus customizations */
+input {
+  --outline-style: dashed;
+}
+
+/* ///////////////
+  Utility Classes
+  ////////////// */
+
+.wrapper {
+  --container-max: 100rem;
+  width: min(100% - 3rem, var(--container-max, 60ch));
+  margin-inline: auto;
+}
+
+/* ///////////////
+  General Layout
+  ////////////// */
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: linear-gradient(var(--ocean-blue), var(--deep-blue));
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .game-container {
-    text-align: center;
-    color: white;
-    padding: 20px;
-    max-width: 800px;
-    width: 100%;
+  text-align: center;
+  color: white;
+  padding: 20px;
 }
 
 h1 {
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    margin-bottom: 1rem;
-    font-size: 2.5em;
-    animation: float 3s ease-in-out infinite;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  margin-bottom: 1rem;
+  font-size: 2.5em;
+  animation: float 3s ease-in-out infinite;
 }
 
-.instructions {
-    color: white;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    line-height: 1.5;
-    font-size: 1.1em;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.guesses {
-    color: white;
-    font-size: 1.2em;
-    margin-bottom: 20px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-#game-board {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: center;
-    max-width: 800px;
-    padding: 20px;
-    min-height: 400px;
-    position: relative;
+.game-board {
+  display: grid;
+  grid-template-columns: repeat(var(--gridColumns, 16), 1fr);
+  grid-template-rows: repeat(var(--gridRows, 12), 1fr);
+  gap: 10px;
+  /* height: 600px; */
+  width: 100%;
+  border: #00008b solid 2px;
 }
 
 .word-card {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 15px 25px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-    color: #333;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    font-size: 1.1em;
+  padding: 15px 25px;
+  /* transition: all 0.3s ease; */
+  /* position: relative; */
+  color: #333;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  font-size: 1.1em;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f0f0f0;
+  border: 2px solid #333;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
 }
 
 .word-card:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-    background: rgba(255, 255, 255, 1);
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 1);
 }
 
 .word-card.clicked {
-    animation: fadeOut 1s forwards;
+  animation: fadeOut 1s forwards;
 }
 
 .word-card.treasure {
-    background: gold;
-    animation: treasureFound 1.5s infinite;
-    transform: scale(1.2);
-    z-index: 10;
+  background: gold;
+  animation: treasureFound 1.5s infinite;
+  transform: scale(1.2);
+  z-index: 10;
 }
 
 @keyframes fadeOut {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(0.9);
-    }
-    100% {
-        transform: scale(0.8);
-        opacity: 0;
-    }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
 }
 
 @keyframes treasureFound {
-    0% { 
-        transform: scale(1.2);
-        box-shadow: 0 0 0 0 rgba(255, 223, 0, 0.7);
-    }
-    50% { 
-        transform: scale(1.3);
-        box-shadow: 0 0 20px 10px rgba(255, 223, 0, 0.5);
-    }
-    100% { 
-        transform: scale(1.2);
-        box-shadow: 0 0 0 0 rgba(255, 223, 0, 0.7);
-    }
+  0% {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 0 rgba(255, 223, 0, 0.7);
+  }
+  50% {
+    transform: scale(1.3);
+    box-shadow: 0 0 20px 10px rgba(255, 223, 0, 0.5);
+  }
+  100% {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 0 rgba(255, 223, 0, 0.7);
+  }
 }
 
 @keyframes float {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-    100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
 }
 
-#restart-btn {
-    background: #ffd700;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 1.2rem;
-    margin-top: 20px;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    color: #333;
-    font-weight: bold;
+.restart-btn {
+  background: #ffd700;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  margin-top: 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  color: #333;
+  font-weight: bold;
 }
 
-#restart-btn:hover {
-    background: #ffed4a;
-    transform: scale(1.05);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+.restart-btn:hover {
+  background: #ffed4a;
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .hidden {
-    display: none;
-}
-
-#message {
-    margin-top: 20px;
-    font-size: 1.4rem;
-    min-height: 30px;
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    font-weight: bold;
+  display: none;
 }
 
 .treasure-icon {
-    font-size: 2rem;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    animation: sparkle 1s infinite;
+  font-size: 2rem;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: sparkle 1s infinite;
 }
 
 @keyframes sparkle {
-    0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
-    50% { transform: translate(-50%, -50%) scale(1.2) rotate(180deg); }
-    100% { transform: translate(-50%, -50%) scale(1) rotate(360deg); }
+  0% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2) rotate(180deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1) rotate(360deg);
+  }
 }
 
 .click-ripple {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.4);
-    transform: scale(0);
-    animation: ripple 0.6s linear;
-    pointer-events: none;
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(0);
+  animation: ripple 0.6s linear;
+  pointer-events: none;
 }
 
 @keyframes ripple {
-    to {
-        transform: scale(4);
-        opacity: 0;
-    }
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.bubble {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: floatUp 3s linear infinite;
+  z-index: -1;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-100vh);
+    opacity: 0;
+  }
+}
+
+/* ///////////////
+  Media Queries (Mobile First)
+  ////////////// */
+
+/* Larger mobile devices/small tablets - 600px and up*/
+@media (width >= 37.5rem) {
+}
+
+/* Tablets - 768px and up */
+@media (width >= 48rem) {
+}
+
+/* Laptops/small desktops - 992px and up */
+@media (width >= 62rem) {
+}
+
+/* Large desktops - 1200px and up */
+@media (width >= 75rem) {
+}
+
+/* XL desktops - 1800px and up */
+@media (width >= 112.5rem) {
 }

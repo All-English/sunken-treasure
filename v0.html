@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sea Treasure Vocabulary Game</title>
+  <title>Sea Treasure Vocabulary Grid Game</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -26,16 +26,26 @@
       border-radius: 20px;
       position: relative;
       overflow: hidden;
+      display: grid;
+      grid-template-columns: repeat(16, 1fr);
+      grid-template-rows: repeat(12, 1fr);
+      gap: 5px;
+      padding: 10px;
     }
 
     .word {
-      position: absolute;
+      /* grid-column: span 2; */
       background-color: #ffffff;
-      padding: 10px;
       border-radius: 5px;
       cursor: pointer;
       user-select: none;
       transition: opacity 0.5s ease-out, transform 0.2s ease-in-out;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 14px;
+      padding: 5px;
     }
 
     .word:hover {
@@ -54,9 +64,10 @@
     }
 
     .treasure {
-      position: absolute;
       font-size: 40px;
       display: none;
+      position: absolute;
+      z-index: 10;
     }
 
     #restart-button {
@@ -72,6 +83,7 @@
       border-radius: 5px;
       cursor: pointer;
       display: none;
+      z-index: 20;
     }
 
     .bubble {
@@ -100,9 +112,11 @@
   <div id="game-container"></div>
 
   <script>
-    const words = ['Seashell', 'Wave', 'Coral', 'Dolphin', 'Shark', 'Jellyfish', 'Octopus', 'Starfish', 'Crab', 'Seaweed'];
+    const words = ['Seashell', 'Wave', 'Coral', 'Dolphin', 'Shark', 'Jellyfish', 'Octopus', 'Starfish', 'Crab', 'Seaweed',
+      'Seahorse', 'Turtle', 'Whale', 'Seagull', 'Mermaid', 'Anchor', 'Pearl', 'Shell', 'Island', 'Reef'];
     const gameContainer = document.getElementById('game-container');
     let treasureWord;
+    const gridSize = { columns: 16, rows: 12 };
 
     function createBubbles() {
       for (let i = 0; i < 20; i++) {
@@ -118,12 +132,25 @@
     }
 
     function placeWords() {
+      const cells = new Set();
       words.forEach(word => {
+        let cell;
+        do {
+          cell = Math.floor(Math.random() * (gridSize.columns * gridSize.rows));
+        } while (
+          cells.has(cell) ||
+          cells.has(cell + 1) ||
+          // prevent choosing a cell that is the last column of the grid
+          (cell % gridSize.columns) === (gridSize.columns - 1)
+        );
+
+        cells.add(cell);
+        cells.add(cell + 1);
         const wordElement = document.createElement('div');
         wordElement.textContent = word;
         wordElement.classList.add('word');
-        wordElement.style.left = `${Math.random() * 80}%`;
-        wordElement.style.top = `${Math.random() * 80}%`;
+        wordElement.style.gridColumn = `${(cell % gridSize.columns) + 1} / span 2`;
+        wordElement.style.gridRow = Math.floor(cell / gridSize.columns) + 1;
         wordElement.addEventListener('click', handleWordClick);
         gameContainer.appendChild(wordElement);
       });
@@ -142,10 +169,12 @@
           const treasure = document.createElement('div');
           treasure.textContent = '⚓';
           treasure.classList.add('treasure');
-          treasure.style.left = clickedWord.style.left;
-          treasure.style.top = clickedWord.style.top;
+          treasure.style.gridColumn = clickedWord.style.gridColumn;
+          treasure.style.gridRow = clickedWord.style.gridRow;
           gameContainer.appendChild(treasure);
-          treasure.style.display = 'block';
+          treasure.style.display = 'flex';
+          treasure.style.justifyContent = 'center';
+          treasure.style.alignItems = 'center';
           playSound('treasure.mp3');
           showRestartButton();
         }, 1000);
