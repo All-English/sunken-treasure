@@ -1,20 +1,35 @@
 // Sample vocabulary words - can be modified as needed
 const vocabularyWords = [
-  "ocean",
-  "island",
-  "beach",
-  "wave",
-  "shell",
-  "coral",
-  "shark",
-  "whale",
-  "ship",
   "anchor",
+  "beach",
+  "coral",
   "dolphin",
-  "turtle",
-  "reef",
-  "sand",
+  "eel",
+  "fish",
+  "gull",
+  "harbor",
+  "island",
+  "jellyfish",
+  "kelp",
+  "lighthouse",
+  "mermaid",
+  "narwhal",
+  "ocean",
   "pearl",
+  "quay",
+  "reef",
+  "shell",
+  "tide",
+  "umbrella",
+  "vessel",
+  "wave",
+  "xiphosura",
+  "yacht",
+  "zebra fish",
+  "seaweed",
+  "turtle",
+  "starfish",
+  "seahorse",
 ]
 
 let treasureIndex
@@ -90,7 +105,60 @@ function createBubble() {
   })
 }
 
-function initializeGame() {
+function addUnavailableCells(cell, unavailableCells, gridColumns, gridRows) {
+  const offsets = [
+    -gridColumns, // directly above
+    gridColumns, // directly below
+    1, // to the right
+  ]
+
+  const gameBoard = document.getElementById("game-board")
+
+  offsets.forEach((offset) => {
+    const surroundingCell = cell + offset
+
+    // Check if the surrounding cell is within grid bounds
+    if (
+      surroundingCell >= 0 &&
+      surroundingCell < gridColumns * gridRows &&
+      !unavailableCells.has(surroundingCell) && // prevent multiple divs being created
+      // Ensure we don't wrap around rows
+      Math.abs((surroundingCell % gridColumns) - (cell % gridColumns)) <= 1
+    ) {
+      unavailableCells.add(surroundingCell)
+
+      // Create visual element for used cell
+      const usedCellDiv = document.createElement("div")
+      usedCellDiv.className = "unavailable-cell"
+      usedCellDiv.style.gridColumn = `${(surroundingCell % gridColumns) + 1}`
+      usedCellDiv.style.gridRow = `${
+        Math.floor(surroundingCell / gridColumns) + 1
+      }`
+      gameBoard.appendChild(usedCellDiv)
+    }
+  })
+
+  unavailableCells.add(cell)
+}
+function setupGridColumnControl() {
+  const gridColumnsInput = document.getElementById("grid-columns")
+
+  if (gridColumnsInput) {
+    gridColumnsInput.addEventListener("change", () => {
+      const newGridColumns = parseInt(gridColumnsInput.value)
+      initializeGame(newGridColumns)
+    })
+  }
+}
+
+function updateWordCardCount(count) {
+  const wordCardCountElement = document.getElementById("word-card-count")
+  if (wordCardCountElement) {
+    wordCardCountElement.textContent = `Total Word Cards: ${count}`
+  }
+}
+
+function initializeGame(gridColumns = 18) {
   const gameBoard = document.getElementById("game-board")
   const restartBtn = document.getElementById("restart-btn")
 
@@ -100,14 +168,31 @@ function initializeGame() {
   restartBtn.classList.add("hidden")
   gameActive = true
 
-  const gridColumns = 16
-  const gridRows = 12
-  const usedCells = new Set()
+  //   const gridColumns = 18
 
-  // Randomly select treasure location
-  const treasureCell = Math.floor(Math.random() * (gridColumns * gridRows))
-  usedCells.add(treasureCell)
-  usedCells.add(treasureCell + 1)
+  // For 16:10
+  //   const gridRows = Math.round(gridColumns * (10 / 16))
+
+  // For 4:3
+  //   const gridRows = Math.round(gridColumns * (3 / 4))
+
+  // For golden ratio
+  const gridRows = Math.round(gridColumns / 1.618)
+
+  const unavailableCells = new Set()
+
+  // Set CSS custom properties
+  gameBoard.style.setProperty("--gridColumns", gridColumns)
+  gameBoard.style.setProperty("--gridRows", gridRows)
+
+  let treasureCell
+  do {
+    treasureCell = Math.floor(Math.random() * (gridColumns * gridRows)) // Randomly select treasure location
+  } while (treasureCell % gridColumns >= gridColumns - 1) // Prevent placement in the last column
+
+  addUnavailableCells(treasureCell, unavailableCells, gridColumns, gridRows)
+  //   unavailableCells.add(treasureCell)
+  //   unavailableCells.add(treasureCell + 1)
 
   // Create treasure div
   const treasureDiv = document.createElement("div")
@@ -120,7 +205,6 @@ function initializeGame() {
   // Find a word to place on the treasure cell
   const treasureWordIndex = Math.floor(Math.random() * vocabularyWords.length)
 
-  // Create and place word cards
   vocabularyWords.forEach((word, index) => {
     let cell
 
@@ -128,17 +212,29 @@ function initializeGame() {
     if (index === treasureWordIndex) {
       cell = treasureCell
     } else {
+      let attempts = 0
+      const maxAttempts = 2000 // Adjust this number as needed
+
       do {
         cell = Math.floor(Math.random() * (gridColumns * gridRows))
+        attempts++
+
+        if (attempts >= maxAttempts) {
+          console.log(
+            `Could not place word: ${word} after ${maxAttempts} attempts`
+          )
+          return // Skip this word
+        }
       } while (
-        usedCells.has(cell) ||
-        usedCells.has(cell + 1) ||
-        cell % gridColumns === gridColumns - 1
+        unavailableCells.has(cell) ||
+        unavailableCells.has(cell + 1) || // Prevent 2-cell words from overlapping
+        // Prevent placement in the last column
+        cell % gridColumns >= gridColumns - 1
       )
     }
-
-    usedCells.add(cell)
-    usedCells.add(cell + 1)
+    // unavailableCells.add(cell)
+    // unavailableCells.add(cell + 1)
+    addUnavailableCells(cell, unavailableCells, gridColumns, gridRows)
 
     const wordCard = document.createElement("div")
     wordCard.className = "word-card"
@@ -153,6 +249,9 @@ function initializeGame() {
     )
     gameBoard.appendChild(wordCard)
   })
+  // After creating word cards, update the count
+  const wordCards = document.querySelectorAll(".word-card")
+  updateWordCardCount(wordCards.length)
 
   createBubbles()
 }
@@ -229,7 +328,8 @@ if (restartBtn) {
   })
 }
 
-// Initialize the game when the page loads
-window.addEventListener("load", () => {
+// Call this when the page loads
+document.addEventListener("DOMContentLoaded", () => {
+  setupGridColumnControl()
   initializeGame()
 })

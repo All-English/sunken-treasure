@@ -65,6 +65,15 @@
 
   --ocean-blue: #1e90ff;
   --deep-blue: #00008b;
+  --sky-blue: #87ceeb;
+
+  --background-gradient: linear-gradient(
+    to bottom,
+    var(--sky-blue),
+    var(--ocean-blue)
+  );
+
+  --container-max: 1000rem;
 }
 
 /* ///////////////
@@ -163,7 +172,6 @@ input {
   ////////////// */
 
 .wrapper {
-  --container-max: 100rem;
   width: min(100% - 3rem, var(--container-max, 60ch));
   margin-inline: auto;
 }
@@ -173,10 +181,8 @@ input {
   ////////////// */
 
 body {
-  margin: 0;
-  padding: 0;
   min-height: 100vh;
-  background: linear-gradient(var(--ocean-blue), var(--deep-blue));
+  background: var(--background-gradient);
   font-family: Arial, sans-serif;
   display: flex;
   justify-content: center;
@@ -186,33 +192,41 @@ body {
 .game-container {
   text-align: center;
   color: white;
-  padding: 20px;
+  border: lime solid 2px;
 }
 
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
 h1 {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
   margin-bottom: 1rem;
-  font-size: 2.5em;
+  font-size: var(--fs-step-5);
   animation: float 3s ease-in-out infinite;
 }
 
 .game-board {
   display: grid;
   grid-template-columns: repeat(var(--gridColumns, 16), 1fr);
-  grid-template-rows: repeat(var(--gridRows, 12), 1fr);
-  gap: 10px;
+  grid-template-rows: repeat(var(--gridRows, 10), 1fr);
+  gap: var(--space-m);
   /* height: 600px; */
   width: 100%;
-  border: #00008b solid 2px;
+  border: lime solid 2px;
 }
 
 .word-card {
-  padding: 15px 25px;
-  /* transition: all 0.3s ease; */
-  /* position: relative; */
   color: #333;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  font-size: 1.1em;
+  font-size: var(--fs-step-2);
 
   display: flex;
   justify-content: center;
@@ -230,17 +244,6 @@ h1 {
   background: rgba(255, 255, 255, 1);
 }
 
-.word-card.clicked {
-  animation: fadeOut 1s forwards;
-}
-
-.word-card.treasure {
-  background: gold;
-  animation: treasureFound 1.5s infinite;
-  transform: scale(1.2);
-  z-index: 10;
-}
-
 @keyframes fadeOut {
   0% {
     transform: scale(1);
@@ -253,6 +256,10 @@ h1 {
     transform: scale(0.8);
     opacity: 0;
   }
+}
+
+.word-card.clicked {
+  animation: fadeOut 1s forwards;
 }
 
 @keyframes treasureFound {
@@ -270,16 +277,11 @@ h1 {
   }
 }
 
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
+.word-card.treasure {
+  background: gold;
+  animation: treasureFound 1.5s infinite;
+  transform: scale(1.2);
+  z-index: 10;
 }
 
 .restart-btn {
@@ -316,18 +318,6 @@ h1 {
   z-index: -1;
 }
 
-@keyframes sparkle {
-  0% {
-    transform: translate(-50%, -50%) scale(1) rotate(0deg);
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.2) rotate(180deg);
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1) rotate(360deg);
-  }
-}
-
 .click-ripple {
   position: absolute;
   border-radius: 50%;
@@ -362,6 +352,29 @@ h1 {
     transform: translateY(-100vh) scale(0.5);
     opacity: 0;
   }
+}
+
+.game-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+#grid-columns {
+  width: 60px;
+  padding: 5px;
+  text-align: center;
+}
+
+#word-card-count {
+  margin-left: 10px;
+}
+
+.unavailable-cell {
+  display: none; /* used for debugging javascript */
+  background-color: rgba(255, 0, 0, 0.2); /* semi-transparent red */
+  z-index: -1;
 }
 
 /* ///////////////
