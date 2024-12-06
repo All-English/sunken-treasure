@@ -67,10 +67,16 @@
   --deep-blue: #00008b;
   --sky-blue: #87ceeb;
 
-  --background-gradient: linear-gradient(
+  /* --background-gradient: linear-gradient(
     to bottom,
     var(--sky-blue),
     var(--ocean-blue)
+  ); */
+  --background-gradient: radial-gradient(
+    circle at center,
+    #00ffff,
+    #0080ff,
+    #0000ff
   );
 
   --container-max: 1000rem;
@@ -94,7 +100,7 @@ html {
 
 /* set minimal height on the body */
 body {
-  min-height: 100vh;
+  min-height: 100svh;
 }
 
 /* Remove default margin */
@@ -173,6 +179,7 @@ input {
 
 .wrapper {
   width: min(100% - 3rem, var(--container-max, 60ch));
+
   margin-inline: auto;
 }
 
@@ -181,18 +188,19 @@ input {
   ////////////// */
 
 body {
-  min-height: 100vh;
   background: var(--background-gradient);
   font-family: Arial, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .game-container {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+  overflow: auto;
+
   text-align: center;
   color: white;
-  border: lime solid 2px;
+  /* border: rgb(255, 136, 0) solid 3px; */
 }
 
 @keyframes float {
@@ -206,31 +214,67 @@ body {
     transform: translateY(0px);
   }
 }
+
 h1 {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  margin-bottom: 1rem;
+  margin-block: var(--space-s);
   font-size: var(--fs-step-5);
   animation: float 3s ease-in-out infinite;
+  text-align: center;
 }
 
 .game-board {
+  --grid-ratio: 1.618; /* Golden ratio */
+  --grid-columns: 45;
+  --grid-rows: round(calc(var(--grid-columns) / var(--grid-ratio)));
+
+  flex: 1;
+  overflow: auto;
+
   display: grid;
-  grid-template-columns: repeat(var(--gridColumns, 16), 1fr);
-  grid-template-rows: repeat(var(--gridRows, 10), 1fr);
-  gap: var(--space-m);
-  /* height: 600px; */
+  grid-template-columns: repeat(var(--grid-columns), 1fr);
+  grid-template-rows: repeat(var(--grid-rows), 1fr);
+  gap: var(--space-xs);
   width: 100%;
-  border: lime solid 2px;
+  height: 100%;
+  /* border: lime solid 2px; */
+  margin-bottom: var(--space-s);
 }
 
-.word-card {
-  color: #333;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  font-size: var(--fs-step-2);
+.word-card,
+.treasure-div {
+  --grid-column-span: round(calc(var(--grid-columns) / 10));
+  --grid-row-span: round(calc(var(--grid-column-span) / (var(--grid-ratio))));
+  --grid-row-start: round(down, calc(var(--cell) / var(--grid-columns) + 1));
+
+  /* --grid-column-start: calc((var(--cell) % var(--grid-columns)) + 1); */
+  /* sincd css can't calculate moudulo, we need to use a workaround */
+  --floor: round(
+    down,
+    calc(var(--cell) / var(--grid-columns))
+  ); /* computes the integer part of a/b (floor division). */
+  --modulo: calc(
+    calc(var(--cell) - var(--grid-columns) * var(--floor))
+  ); /* subtracts b x floor(a/b) from a, yielding a%b. */
+  --result: calc(
+    var(--modulo) + 1
+  ); /* add 1 to get the correct column number */
+  --grid-column-start: var(--result);
+
+  grid-area: var(--grid-row-start) / var(--grid-column-start) / span
+    var(--grid-row-span) / span var(--grid-column-span);
 
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.word-card {
+  font-size: var(--fs-step-1);
+
+  /* padding: 10% 5%; */
+  color: #333;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   background-color: #f0f0f0;
   border: 2px solid #333;
   border-radius: 8px;
@@ -242,6 +286,12 @@ h1 {
   transform: scale(1.05);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
   background: rgba(255, 255, 255, 1);
+}
+
+.treasure-div {
+  font-size: var(--fs-step-6);
+  z-index: -1;
+  overflow: hidden;
 }
 
 @keyframes fadeOut {
@@ -277,13 +327,6 @@ h1 {
   }
 }
 
-.word-card.treasure {
-  background: gold;
-  animation: treasureFound 1.5s infinite;
-  transform: scale(1.2);
-  z-index: 10;
-}
-
 .restart-btn {
   background: #ffd700;
   border: none;
@@ -306,16 +349,6 @@ h1 {
 
 .hidden {
   display: none;
-}
-
-.treasure-div {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  /* background-color: gold; */
-  border-radius: 8px;
-  font-size: 3rem;
-  z-index: -1;
 }
 
 .click-ripple {
@@ -355,28 +388,42 @@ h1 {
 }
 
 .game-controls {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  margin-bottom: 15px;
+  z-index: 100; /* Ensure it stays on top of other elements */
+  font-size: var(--fs-step-2);
+  color: black;
+  background-color: white;
 }
 
 #grid-columns {
-  width: 60px;
+  width: 70px;
   padding: 5px;
   text-align: center;
+  font-size: inherit;
 }
 
 #word-card-count {
   margin-left: 10px;
+  font-size: inherit;
 }
 
+/* used for debugging javascript */
 .unavailable-cell {
-  display: none; /* used for debugging javascript */
   background-color: rgba(255, 0, 0, 0.2); /* semi-transparent red */
-  z-index: -1;
+  z-index: 1;
 }
 
+.unavailable-cell-main {
+  background-color: rgba(0, 255, 21, 0.5); /* semi-transparent green */
+  z-index: 1;
+}
 /* ///////////////
   Media Queries (Mobile First)
   ////////////// */
