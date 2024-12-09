@@ -1,39 +1,60 @@
 // Sample vocabulary words - can be modified as needed
-const vocabularyWords = [
-  "anchor",
-  "beach",
-  "coral",
-  "dolphin",
-  "eel",
-  "fish",
-  "gull",
-  "harbor",
-  "island",
-  "jellyfish",
-  "kelp",
-  "lighthouse",
-  "mermaid",
-  "narwhal",
-  "ocean",
-  "pearl",
-  "quay",
-  "reef",
-  "shell",
-  "tide",
-  "umbrella",
-  "vessel",
-  "wave",
-  "xiphosura",
-  "yacht",
-  "zebra fish",
-  "seaweed",
-  "turtle",
-  "starfish",
-  "seahorse",
-]
+// const selectedWordSet = [
+//   "anchor",
+//   "beach",
+//   "coral",
+//   "dolphin",
+//   "eel",
+//   "fish",
+//   "gull",
+//   "harbor",
+//   "island",
+//   "jellyfish",
+//   "kelp",
+//   "lighthouse",
+//   "mermaid",
+//   "narwhal",
+//   "ocean",
+//   "pearl",
+//   "quay",
+//   "reef",
+//   "shell",
+//   "tide",
+//   "umbrella",
+//   "vessel",
+//   "wave",
+//   "xiphosura",
+//   "yacht",
+//   "zebra fish",
+//   "seaweed",
+//   "turtle",
+//   "starfish",
+//   "seahorse",
+// ]
 const showUsedCellsCheckbox = document.getElementById("show-used-cells") // used for debugging
 let treasureIndex
 let gameActive = true
+
+// used for debugging - updates the grid columns using the input
+function setupGridColumnControl() {
+  const gridColumnsInput = document.getElementById("grid-columns")
+  const gameBoard = document.getElementById("game-board")
+
+  if (gridColumnsInput && gameBoard) {
+    gridColumnsInput.addEventListener("change", () => {
+      const newGridColumns = parseInt(gridColumnsInput.value)
+      gameBoard.style.setProperty("--grid-columns", newGridColumns)
+    })
+  }
+}
+
+// used for debugging - counts the number of cards used in the grid
+function updateWordCardCount(count) {
+  const wordCardCountElement = document.getElementById("word-card-count")
+  if (wordCardCountElement) {
+    wordCardCountElement.textContent = `Total Word Cards: ${count}`
+  }
+}
 
 // Create audio elements programmatically
 // const clickSound = new Audio(
@@ -55,54 +76,34 @@ function playSoundSafely(sound) {
   }
 }
 
-function createBubbles() {
+function createBubbles(numBubbles = 15) {
   const gameBoard = document.getElementById("game-board")
 
   if (!gameBoard) return
 
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < numBubbles; i++) {
     const bubble = document.createElement("div")
     bubble.classList.add("bubble")
-    bubble.style.width = `${Math.random() * 30 + 10}px`
-    bubble.style.height = bubble.style.width
+
+    // Randomize size
+    const size = Math.random() * 30 + 10
+    bubble.style.width = `${size}px`
+    bubble.style.height = `${size}px`
+
+    // Position near the clicked area
     bubble.style.left = `${Math.random() * 100}%`
     bubble.style.top = `${Math.random() * 100}%`
-    bubble.style.animationDuration = `${Math.random() * 2 + 2}s`
+
+    // Randomize animation duration
+    bubble.style.animationDuration = `${Math.random() * 3 + 2}s`
+
     gameBoard.appendChild(bubble)
 
-    // Optional: Remove bubble after animation
+    // Remove bubble after animation
     bubble.addEventListener("animationend", () => {
       bubble.remove()
     })
   }
-}
-
-function createBubble() {
-  const gameBoard = document.getElementById("game-board")
-
-  if (!gameBoard) return
-
-  const bubble = document.createElement("div")
-  bubble.classList.add("bubble")
-
-  // Randomize size
-  const size = Math.random() * 30 + 10
-  bubble.style.width = `${size}px`
-  bubble.style.height = `${size}px`
-
-  // Position near the clicked area
-  bubble.style.left = `${Math.random() * 100}%`
-  bubble.style.top = `${Math.random() * 100}%`
-
-  // Randomize animation duration
-  bubble.style.animationDuration = `${Math.random() * 3 + 2}s`
-
-  gameBoard.appendChild(bubble)
-
-  // Remove bubble after animation
-  bubble.addEventListener("animationend", () => {
-    bubble.remove()
-  })
 }
 
 function addUnavailableCells(cell, unavailableCells, gridColumns, gridRows) {
@@ -196,7 +197,7 @@ function addUnavailableCells(cell, unavailableCells, gridColumns, gridRows) {
       unavailableCells.add(surroundingCell)
 
       // Create visual element for used cell for debugging
-      if (showUsedCellsCheckbox.checked) {
+      if (showUsedCellsCheckbox && showUsedCellsCheckbox.checked) {
         const usedCellDiv = document.createElement("div")
         usedCellDiv.className = "unavailable-cell"
         usedCellDiv.style.gridColumn = `${(surroundingCell % gridColumns) + 1}`
@@ -208,7 +209,7 @@ function addUnavailableCells(cell, unavailableCells, gridColumns, gridRows) {
     }
   })
   // Create visual element for used cell for debugging
-  if (showUsedCellsCheckbox.checked) {
+  if (showUsedCellsCheckbox && showUsedCellsCheckbox.checked) {
     const usedCellDiv = document.createElement("div")
     usedCellDiv.className = "unavailable-cell-main"
     usedCellDiv.style.gridColumn = `${(cell % gridColumns) + 1}`
@@ -218,26 +219,117 @@ function addUnavailableCells(cell, unavailableCells, gridColumns, gridRows) {
   unavailableCells.add(cell)
 }
 
-// used for debugging - updates the grid columns using the input
-function setupGridColumnControl() {
-  const gridColumnsInput = document.getElementById("grid-columns")
-  const gameBoard = document.getElementById("game-board")
-
-  if (gridColumnsInput && gameBoard) {
-    gridColumnsInput.addEventListener("change", () => {
-      const newGridColumns = parseInt(gridColumnsInput.value)
-      gameBoard.style.setProperty("--grid-columns", newGridColumns)
-      initializeGame()
-    })
+function selectWordsFromWordBank(
+  level,
+  unit,
+  totalWords = 30,
+  includeExtraWords = false
+) {
+  function shuffleArray(array) {
+    // Fisher-Yates (Knuth) shuffle algorithm
+    const shuffledArray = [...array] // Create a copy to avoid modifying original
+    for (let i = shuffledArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffledArray[i], shuffledArray[j]] = [
+        shuffledArray[j],
+        shuffledArray[i],
+      ]
+    }
+    return shuffledArray
   }
-}
 
-// used for debugging - counts the number of cards used in the grid
-function updateWordCardCount(count) {
-  const wordCardCountElement = document.getElementById("word-card-count")
-  if (wordCardCountElement) {
-    wordCardCountElement.textContent = `Total Word Cards: ${count}`
+  // Check if the specified level and unit exist
+  if (!smartPhonicsWordBank[level] || !smartPhonicsWordBank[level][unit]) {
+    console.error(`Invalid level or unit: ${level}, ${unit}`)
+    return { words: [] }
   }
+
+  // Get all units for the current level
+  const unitsInLevel = Object.keys(smartPhonicsWordBank[level])
+
+  // Find the current unit's index
+  const currentUnitIndex = unitsInLevel.indexOf(unit)
+
+  let selectedWords = []
+
+  // Start with the current unit
+  let processingUnitIndex = currentUnitIndex
+
+  // Flag to track word selection phase
+  let wordPass = "regular"
+
+  // First pass: Add regular words (and extra words if specified)
+  // If not enough words, switch to 'extra' pass
+  // Add extra words from units, working backwards
+  while (
+    processingUnitIndex >= 0 &&
+    (!totalWords || selectedWords.length < totalWords)
+  ) {
+    const processingUnit = unitsInLevel[processingUnitIndex]
+    const unitData = smartPhonicsWordBank[level][processingUnit]
+
+    let wordsToAdd = []
+
+    // Determine which words to add based on the current pass
+    switch (wordPass) {
+      case "regular":
+        // Add regular words
+        wordsToAdd = shuffleArray(unitData.words)
+
+        // If includeExtraWords is true, also add extra words
+        if (includeExtraWords && unitData.extraWords) {
+          wordsToAdd = [...wordsToAdd, ...shuffleArray(unitData.extraWords)]
+        }
+
+        // If we've gone through all units and still need words, switch to extra words
+        if (processingUnitIndex === 0) {
+          wordPass = "extra"
+          processingUnitIndex = currentUnitIndex // Reset to current unit index
+        } else {
+          // Move to previous unit
+          processingUnitIndex--
+        }
+        break
+
+      case "extra":
+        // Only add extra words if they exist and we're still short on words
+        if (unitData.extraWords) {
+          wordsToAdd = shuffleArray(unitData.extraWords)
+        }
+
+        // If we've gone through all units, we're done
+        if (processingUnitIndex === 0) {
+          wordPass = "done"
+        } else {
+          // Move to previous unit
+          processingUnitIndex--
+        }
+        break
+
+      case "done":
+        // There are no more words to add
+
+        // If there are more words than needed, slice the array
+        if (selectedWords.length > totalWords) {
+          selectedWords = selectedWords.slice(0, totalWords)
+        }
+
+        return selectedWords
+    }
+
+    // Remove duplicates while maintaining order
+    wordsToAdd = wordsToAdd.filter((word) => !selectedWords.includes(word))
+
+    // Add words from this unit
+    selectedWords.push(...wordsToAdd)
+  }
+
+  // If there are more words than needed, slice the array
+  if (selectedWords.length > totalWords) {
+    selectedWords = selectedWords.slice(0, totalWords)
+  }
+
+  return selectedWords
 }
 
 function initializeGame() {
@@ -247,12 +339,15 @@ function initializeGame() {
 
   const computedStyle = window.getComputedStyle(gameBoard)
 
-  // Get values from CSS variables
-  const gridColumns = parseInt(
-    computedStyle.getPropertyValue("--grid-columns"),
-    10
-  )
+  // Get gridRatio from CSS variable
   const gridRatio = parseFloat(computedStyle.getPropertyValue("--grid-ratio"))
+
+  // Get gridColumns from inline style or CSS variables
+  const gridColumnsInline = gameBoard.style.getPropertyValue("--grid-columns")
+  const gridColumns = gridColumnsInline
+    ? parseInt(gridColumnsInline, 10)
+    : parseInt(computedStyle.getPropertyValue("--grid-columns"), 10)
+
   const gridRows = Math.round(gridColumns / gridRatio)
 
   // used for debugging - Update the grid-columns input value
@@ -275,6 +370,14 @@ function initializeGame() {
   // gameBoard.style.setProperty("--gridColumns", gridColumns)
   // gameBoard.style.setProperty("--gridRows", gridRows)
 
+  // Select words for the game
+  const selectedWordSet = selectWordsFromWordBank(
+    "level2", // level
+    "unit6", // current unit
+    50, // total words desired
+    true // include extra words
+  )
+
   let treasureCell
   do {
     treasureCell = Math.floor(Math.random() * (gridColumns * gridRows)) // Randomly select treasure location
@@ -282,7 +385,7 @@ function initializeGame() {
     treasureCell % gridColumns >= gridColumns - 4 || // Prevent placement in the last 4 columns
     Math.floor(treasureCell / gridColumns) >= gridRows - 2 // Prevent placement in the last 2 rows
   )
-  
+
   addUnavailableCells(treasureCell, unavailableCells, gridColumns, gridRows)
 
   // Create treasure div
@@ -299,9 +402,9 @@ function initializeGame() {
   gameBoard.appendChild(treasureDiv)
 
   // Find a word to place on the treasure cell
-  const treasureWordIndex = Math.floor(Math.random() * vocabularyWords.length)
+  const treasureWordIndex = Math.floor(Math.random() * selectedWordSet.length)
 
-  vocabularyWords.forEach((word, index) => {
+  selectedWordSet.forEach((word, index) => {
     let cell
     // If this is the chosen treasure word, place it on the treasure cell
     if (index === treasureWordIndex) {
@@ -326,7 +429,7 @@ function initializeGame() {
         Math.floor(cell / gridColumns) >= gridRows - 2 // Prevent placement in the last 2 rows
       )
     }
-    
+
     addUnavailableCells(cell, unavailableCells, gridColumns, gridRows)
 
     const wordCard = document.createElement("div")
@@ -351,19 +454,18 @@ function initializeGame() {
 
   // used for debugging - After creating word cards, update the count (for debug)
   const wordCards = document.querySelectorAll(".word-card")
-  
-  updateWordCardCount(wordCards.length)
 
-  createBubbles()
+  updateWordCardCount(wordCards.length)
+  console.log("Word Cards Created:", wordCards.length)
+
+  // Create bubbles
+  createBubbles(15)
 }
 
 function handleWordClick(wordCard, treasureCell, currentCell) {
   if (!gameActive || wordCard.classList.contains("clicked")) return
 
-  // Create multiple bubbles on click
-  for (let i = 0; i < 3; i++) {
-    createBubble()
-  }
+  createBubbles(4)
 
   // Add ripple effect
   const ripple = document.createElement("div")
@@ -403,35 +505,6 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
   }
 }
 
-// Initialize click sound
-function playClickSound() {
-  if (clickSound.currentTime) {
-    clickSound.currentTime = 0
-  }
-  playSoundSafely(clickSound)
-}
-
-// Add click sound to all word cards
-document.addEventListener("click", (e) => {
-  if (
-    e.target instanceof HTMLElement &&
-    e.target.classList.contains("word-card")
-  ) {
-    playClickSound()
-  }
-})
-
-// for debugging - Add an event listener to clear existing used cell divs when unchecked
-showUsedCellsCheckbox.addEventListener("change", () => {
-  if (!showUsedCellsCheckbox.checked) {
-    const gameBoard = document.getElementById("game-board")
-    const usedCellDivs = gameBoard.querySelectorAll(
-      ".unavailable-cell, .unavailable-cell-main"
-    )
-    usedCellDivs.forEach((div) => div.remove())
-  }
-})
-
 // Restart button handler
 const restartBtn = document.getElementById("restart-btn")
 if (restartBtn) {
@@ -442,6 +515,20 @@ if (restartBtn) {
 
 // Call this when the page loads
 document.addEventListener("DOMContentLoaded", () => {
-  // setupGridColumnControl()
+  // for debugging - Add an event listener to clear existing used cell divs when unchecked
+  // Only add the event listener if the checkbox exists
+  if (showUsedCellsCheckbox) {
+    showUsedCellsCheckbox.addEventListener("change", () => {
+      if (!showUsedCellsCheckbox.checked) {
+        const gameBoard = document.getElementById("game-board")
+        const usedCellDivs = gameBoard.querySelectorAll(
+          ".unavailable-cell, .unavailable-cell-main"
+        )
+        usedCellDivs.forEach((div) => div.remove())
+      }
+    })
+  }
+
+  setupGridColumnControl()
   initializeGame()
 })

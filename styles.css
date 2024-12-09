@@ -72,7 +72,19 @@
     var(--sky-blue),
     var(--ocean-blue)
   ); */
-  --background-gradient: radial-gradient(
+
+  /* Alternative Predefined Positions:
+    - top right
+    - top left
+    - bottom left
+    - bottom right
+    - top
+    - bottom
+    - left
+    - right
+    - center
+  */
+    --background-gradient: radial-gradient(
     circle at center,
     #00ffff,
     #0080ff,
@@ -215,7 +227,13 @@ body {
   }
 }
 
-h1 {
+.header-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.title {
+  grid-column: 2;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
   margin-block: var(--space-s);
   font-size: var(--fs-step-5);
@@ -270,7 +288,7 @@ h1 {
 }
 
 .word-card {
-  font-size: var(--fs-step-1);
+  font-size: var(--fs-step-3);
 
   /* padding: 10% 5%; */
   color: #333;
