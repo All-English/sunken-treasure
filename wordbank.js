@@ -3,34 +3,42 @@ const smartPhonicsWordBank = {
     unit1: {
       targetSound: "ABC",
       words: ["A", "a", "B", "b", "C", "c"],
+      extraWords: ["Aa", "Bb", "Cc"],
     },
     unit2: {
       targetSound: "DEF",
       words: ["D", "d", "E", "e", "F", "f"],
+      extraWords: ["Dd", "Ee", "Ff"],
     },
     unit3: {
       targetSound: "GHI",
       words: ["G", "g", "H", "h", "I", "i"],
+      extraWords: ["Gg", "Hh", "Ii"],
     },
     unit4: {
       targetSound: "JKL",
       words: ["J", "j", "K", "k", "L", "l"],
+      extraWords: ["Jj", "Kk", "Ll"],
     },
     unit5: {
       targetSound: "MNO",
       words: ["M", "m", "N", "n", "O", "o"],
+      extraWords: ["Mm", "Nn", "Oo"],
     },
     unit6: {
       targetSound: "PQR",
       words: ["P", "p", "Q", "q", "R", "r"],
+      extraWords: ["Pp", "Qq", "Rr"],
     },
     unit7: {
       targetSound: "STUV",
       words: ["S", "s", "T", "t", "U", "u", "V", "v"],
+      extraWords: ["Ss", "Tt", "Uu", "Vv"],
     },
     unit8: {
       targetSound: "WXYZ",
       words: ["W", "w", "X", "x", "Y", "y", "Z", "z"],
+      extraWords: ["Ww", "Xx", "Yy", "Zz"],
     },
   },
   level2: {
