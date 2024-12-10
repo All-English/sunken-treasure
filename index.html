@@ -10,12 +10,33 @@
 
 <body>
     <div class="game-container wrapper">
-        <header class="header-grid">
-            <h1 class="title">Treasure Hunt</h1>
+        <header class="header-display">
+            <div class="game-setup">
+                <div class="title-wrapper">
+                    <h1 class="title">Treasure Hunt</h1>
+                    <p class="sub-title">Find the hidden treasure!</p>
+                </div>
+                <div class="game-setup__child">
+                    <label for="word-set">Word Set:</label>
+                    <select id="word-set"></select>
+                </div>
+
+                <div class="game-setup__child">
+                    <label for="max-words">Max Words: <select
+                            id="max-words"></select></label>
+
+                </div>
+
+                <div class="checkbox-container game-setup__child">
+                    <label for="include-extra-words" title="Use words not from the book but have the same sound.&#10;If unchecked, words from previous units will be used.">
+                        <input type="checkbox" id="include-extra-words" checked>
+                        Extra Words
+                    </label>
+                </div>
+            </div>
         </header>
 
-        <div id="game-board" class="game-board"></div>
-        <div id="treasure-div" class="treasure-div">💎</div>
+        <section id="game-board" class="game-board"></section>
         <button id="restart-btn" class="restart-btn hidden">Play Again</button>
     </div>
     <!-- <div class="game-controls">
