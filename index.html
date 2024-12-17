@@ -22,13 +22,13 @@
                 </div>
 
                 <div class="game-options__child">
-                    <label for="max-words">Max Words: <select
-                            id="max-words"></select></label>
+                    <label for="max-words">Max Words: <select id="max-words"></select></label>
 
                 </div>
 
                 <div class="checkbox-container game-options__child">
-                    <label for="include-extra-words" title="Use words not from the book but have the same sound.&#10;If unchecked, words from previous units will be used.">
+                    <label for="include-extra-words"
+                        title="Use words not from the book but have the same sound.&#10;If unchecked, words from previous units will be used.">
                         <input type="checkbox" id="include-extra-words" checked>
                         Extra Words
                     </label>
@@ -37,7 +37,13 @@
         </header>
 
         <section id="game-board" class="game-board"></section>
-        <button id="restart-btn" class="restart-btn hidden">Play Again</button>
+        <div id="completion-modal" class="modal">
+            <div class="modal-content">
+                <h2>Treasure Found! 🏴‍☠️</h2>
+                <p>Congratulations on discovering the treasure!</p>
+                <button id="play-again-btn">Play Again</button>
+            </div>
+        </div>
         <div id="cards-remaining" class="cards-remaining">0</div>
     </div>
     <!-- <div class="game-controls">

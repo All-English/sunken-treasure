@@ -58,15 +58,12 @@ function updateWordCardCount(count) {
 }
 
 // Create audio elements programmatically
-// const clickSound = new Audio(
-//   "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUFCgoKCgoKDw8PDw8PFBQUFBQUG5ubm5ubm6MjIyMjIykoKCgoKCg1NTU1NTU4ODg4ODg4PT09PT09P////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAYAAAAAAAAAHjOZTf9/AAAAAAAAAAAAAAAAAAAAAP/7kGQAAANUMEoFPeACNQV40KEYABEY41g5vAAA9RjpZxRwAImU+W8eshaFpAQgALAAYALATx/nYDYCMJ0HITQYYA7AH4c7MoGsnCMU5pnW+OQnBcDrQ9Xx7w37/D+PimYavV8elKUpT5fqx5VjV6vZ38eJR48eRKa9KUp7v396UgPHkQwMAAAAAA//8MAOp39CECAAhlIEEIIECBAgTT1oj///tEQYT0wgEIYxgDC09aIiE7u7u7u"
-// )
-// const winSound = new Audio(
-//   "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAeAAAUhgANDQ0NDRoaGhoaGigoKCgoKDU1NTU1NUNDQ0NDQ1BQUFBQUGRkZGRkZHFxcXFxcX9/f39/f4yMjIyMjJmZmZmZmaampqamprS0tLS0tMHBwcHBwc7Ozs7OztPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAQAAAAAAAAFFobPxR6JAAAAAAAAAAAAAAAAAAAAAP/7kGQAD/AAAGkAAAAIAAANIAAAAQAAAaQAAAAgAAA0gAAABExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+5JkAA/wAABpAAAACAAADSAAAAEAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
-// )
-// const wrongSound = new Audio(
-//   "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAADAAAGhgBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVWqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr///////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAQAAAAAAAAGhg3tzzMAAAAAAAAAAAAAAAAAAAAAAP/7kGQAD/AAAGkAAAAIAAANIAAAAQAAAaQAAAAgAAA0gAAABExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+5JkAA/wAABpAAAACAAADSAAAAEAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
-// )
+const winSound = new Audio(
+  "data:audio/wav;base64,UklGRhQAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhDgAAAAEA"
+)
+const wrongSound = new Audio(
+  "data:audio/wav;base64,//uQRAAAAWMNmkjly8AAAAcFA3Z//+8Q5H/xh/x//8="
+)
 
 // Safe sound play function
 function playSoundSafely(sound) {
@@ -425,16 +422,9 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
 
   // Keep track of how many cards are left
   cardsRemaining--
-  document.getElementById("cards-remaining").textContent = cardsRemaining
+  document.getElementById("cards-remaining").textContent = cardsRemaining.toString()
 
   createBubbles(4)
-
-  // Add ripple effect
-  const ripple = document.createElement("div")
-  ripple.className = "click-ripple"
-  wordCard.appendChild(ripple)
-
-  setTimeout(() => ripple.remove(), 600)
 
   wordCard.classList.add("clicked")
 
@@ -444,20 +434,15 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
     gameActive = false
     playSoundSafely(winSound)
 
-    // Fade out the word card
-    wordCard.style.opacity = "0"
-
     // Reveal treasure
     const treasureDiv = document.querySelector(".treasure-div")
     if (treasureDiv) {
       treasureDiv.style.display = "flex"
     }
 
-    const restartBtn = document.getElementById("restart-btn")
-    if (restartBtn) {
-      restartBtn.classList.remove("hidden")
-      restartBtn.textContent = "Play Again! 🎮"
-    }
+    // Show completion modal
+    showCompletionModal()
+
   } else {
     // Wrong guess
     playSoundSafely(wrongSound)
@@ -469,8 +454,7 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
 
 function initializeGame() {
   const gameBoard = document.getElementById("game-board")
-  const restartBtn = document.getElementById("restart-btn")
-  if (!gameBoard || !restartBtn) return
+  const restartBtn = document.getElementById("play-again-btn")
 
   const unitSelect = document.getElementById("word-set")
 
@@ -514,7 +498,6 @@ function initializeGame() {
   }
 
   gameBoard.innerHTML = ""
-  restartBtn.classList.add("hidden")
   gameActive = true
   const unavailableCells = new Set()
 
@@ -634,13 +617,42 @@ function initializeGame() {
   createBubbles(15)
 }
 
-// Restart button handler
-const restartBtn = document.getElementById("restart-btn")
-if (restartBtn) {
-  restartBtn.addEventListener("click", () => {
-    initializeGame()
-  })
+function showCompletionModal() {
+  const modal = document.getElementById("completion-modal")
+
+  // Show modal with a slight delay
+  setTimeout(() => {
+    modal.classList.add("visible")
+  }, 600)
 }
+
+function hideCompletionModal() {
+  const modal = document.getElementById("completion-modal")
+  modal.classList.remove("visible")
+}
+
+// Add event listener for the Play Again button
+document.getElementById("play-again-btn").addEventListener("click", () => {
+  hideCompletionModal()
+  initializeGame()
+})
+
+// Add escape key support
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    // Close the modal
+    hideCompletionModal()
+    // Reset current game
+    initializeGame()
+  }
+})
+
+// Allow clicking outside the modal to close it
+document.getElementById("completion-modal").addEventListener("click", (e) => {
+  if (e.target.id === "completion-modal") {
+    hideCompletionModal()
+  }
+})
 
 // Call this when the page loads
 document.addEventListener("DOMContentLoaded", () => {
