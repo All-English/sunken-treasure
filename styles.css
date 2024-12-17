@@ -87,12 +87,10 @@
     - right
     - center
   */
-  --background-gradient: radial-gradient(
-    circle at center,
-    #00ffff,
-    #0080ff,
-    #0000ff
-  );
+  --background-gradient: radial-gradient(circle at center,
+      #00ffff,
+      #0080ff,
+      #0000ff);
 
   --container-max: 1000rem;
 }
@@ -170,12 +168,12 @@ a:not([class]) {
 :focus {
   scroll-padding-block-end: 8vh;
 }
+
 /* a keyboard user who accesses elements through tabbing will see a visible focus style. */
 :is(a, button, input, textarea, summary):focus-visible {
   --outline-size: max(2px, 0.08em);
 
-  outline: var(--outline-width, var(--outline-size)) var(--outline-style, solid)
-    var(--outline-color, currentColor);
+  outline: var(--outline-width, var(--outline-size)) var(--outline-style, solid) var(--outline-color, currentColor);
   outline-offset: var(--outline-offset, var(--outline-size));
 }
 
@@ -204,6 +202,8 @@ input {
 
 body {
   background: var(--background-gradient);
+  background: url("pics/background.jpg") no-repeat center center fixed;
+  background-size: cover;
   font-family: "Parkinsans", system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
     sans-serif;
@@ -247,7 +247,8 @@ body {
 /* game-options */
 .game-options {
   /* grid-column-start: 4; */
-  background-color: rgba(255, 255, 255, 0.2); /* Translucent white */
+  background-color: rgba(255, 255, 255, 0.2);
+  /* Translucent white */
   border-radius: var(--space-xs);
   padding: var(--space-xs);
   /* margin: var(--space-2xs) auto; */
@@ -322,6 +323,18 @@ body {
   font-size: inherit;
 }
 
+.cards-remaining {
+  position: fixed;
+  bottom: var(--space-2xs);
+  right: var(--space-2xs);
+  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(255, 255, 255, 0.2); /* Translucent white */
+  color: white;
+  padding: var(--space-3xs) var(--space-2xs);
+  border-radius: 50%;
+  font-size: var(--fs-step--2);
+}
+
 /* Responsive design */
 @media (width < 37.5rem) {
   .game-options {
@@ -339,7 +352,8 @@ body {
 
 /* game-board */
 .game-board {
-  --grid-ratio: 1.618; /* Golden ratio */
+  --grid-ratio: 1.618;
+  /* Golden ratio */
   --grid-columns: 45;
   --grid-rows: round(calc(var(--grid-columns) / var(--grid-ratio)));
 
@@ -364,20 +378,16 @@ body {
 
   /* --grid-column-start: calc((var(--cell) % var(--grid-columns)) + 1); */
   /* sincd css can't calculate moudulo, we need to use a workaround */
-  --floor: round(
-    down,
-    calc(var(--cell) / var(--grid-columns))
-  ); /* computes the integer part of a/b (floor division). */
-  --modulo: calc(
-    calc(var(--cell) - var(--grid-columns) * var(--floor))
-  ); /* subtracts b x floor(a/b) from a, yielding a%b. */
-  --result: calc(
-    var(--modulo) + 1
-  ); /* add 1 to get the correct column number */
+  --floor: round(down,
+      calc(var(--cell) / var(--grid-columns)));
+  /* computes the integer part of a/b (floor division). */
+  --modulo: calc(calc(var(--cell) - var(--grid-columns) * var(--floor)));
+  /* subtracts b x floor(a/b) from a, yielding a%b. */
+  --result: calc(var(--modulo) + 1);
+  /* add 1 to get the correct column number */
   --grid-column-start: var(--result);
 
-  grid-area: var(--grid-row-start) / var(--grid-column-start) / span
-    var(--grid-row-span) / span var(--grid-column-span);
+  grid-area: var(--grid-row-start) / var(--grid-column-start) / span var(--grid-row-span) / span var(--grid-column-span);
 
   display: flex;
   justify-content: center;
@@ -414,9 +424,11 @@ body {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(0.9);
   }
+
   100% {
     transform: scale(0.8);
     opacity: 0;
@@ -432,10 +444,12 @@ body {
     transform: scale(1.2);
     box-shadow: 0 0 0 0 rgba(255, 223, 0, 0.7);
   }
+
   50% {
     transform: scale(1.3);
     box-shadow: 0 0 20px 10px rgba(255, 223, 0, 0.5);
   }
+
   100% {
     transform: scale(1.2);
     box-shadow: 0 0 0 0 rgba(255, 223, 0, 0.7);
@@ -496,6 +510,7 @@ body {
     transform: translateY(0) scale(1);
     opacity: 0.7;
   }
+
   100% {
     transform: translateY(-100vh) scale(0.5);
     opacity: 0;
@@ -511,7 +526,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  z-index: 100; /* Ensure it stays on top of other elements */
+  z-index: 100;
+  /* Ensure it stays on top of other elements */
   font-size: var(--fs-step-2);
   color: black;
   background-color: white;
@@ -531,34 +547,32 @@ body {
 
 /* used for debugging javascript */
 .unavailable-cell {
-  background-color: rgba(255, 0, 0, 0.2); /* semi-transparent red */
+  background-color: rgba(255, 0, 0, 0.2);
+  /* semi-transparent red */
   z-index: 1;
 }
 
 .unavailable-cell-main {
-  background-color: rgba(0, 255, 21, 0.5); /* semi-transparent green */
+  background-color: rgba(0, 255, 21, 0.5);
+  /* semi-transparent green */
   z-index: 1;
 }
+
 /* ///////////////
   Media Queries (Mobile First)
   ////////////// */
 
 /* Larger mobile devices/small tablets - 600px and up*/
-@media (width >= 37.5rem) {
-}
+@media (width >=37.5rem) {}
 
 /* Tablets - 768px and up */
-@media (width >= 48rem) {
-}
+@media (width >=48rem) {}
 
 /* Laptops/small desktops - 992px and up */
-@media (width >= 62rem) {
-}
+@media (width >=62rem) {}
 
 /* Large desktops - 1200px and up */
-@media (width >= 75rem) {
-}
+@media (width >=75rem) {}
 
 /* XL desktops - 1800px and up */
-@media (width >= 112.5rem) {
-}
+@media (width >=112.5rem) {}

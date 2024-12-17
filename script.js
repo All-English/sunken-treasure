@@ -34,6 +34,7 @@
 const showUsedCellsCheckbox = document.getElementById("show-used-cells") // used for debugging
 let treasureIndex
 let gameActive = true
+let cardsRemaining = 0
 
 // used for debugging - updates the grid columns using the input
 function setupGridColumnControl() {
@@ -116,6 +117,11 @@ function populateWordSetDropdown() {
   const allUnits = []
 
   Object.keys(smartPhonicsWordBank).forEach((level) => {
+    const separator = document.createElement("option")
+    separator.textContent = `---`
+    separator.disabled = true
+    unitDropdown.appendChild(separator)
+
     const unitsInLevel = Object.keys(smartPhonicsWordBank[level])
 
     unitsInLevel.forEach((unit) => {
@@ -417,6 +423,10 @@ function selectWordsFromWordBank(
 function handleWordClick(wordCard, treasureCell, currentCell) {
   if (!gameActive || wordCard.classList.contains("clicked")) return
 
+  // Keep track of how many cards are left
+  cardsRemaining--
+  document.getElementById("cards-remaining").textContent = cardsRemaining
+
   createBubbles(4)
 
   // Add ripple effect
@@ -616,6 +626,9 @@ function initializeGame() {
 
   updateWordCardCount(wordCards.length)
   console.log("Word Cards Created:", wordCards.length)
+
+  cardsRemaining = wordCards.length
+  document.getElementById("cards-remaining").textContent = cardsRemaining
 
   // Create bubbles
   createBubbles(15)
