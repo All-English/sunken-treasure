@@ -336,6 +336,85 @@ body {
   font-size: var(--fs-step--2);
 }
 
+/* Players Modal */
+.players-btn {
+    background-color: var(--ocean-blue);
+    color: white;
+    border: none;
+    padding: var(--space-3xs) var(--space-xs);
+    border-radius: var(--space-2xs);
+    cursor: pointer;
+
+    &:hover {
+        background-color: var(--deep-blue);
+    }
+}
+
+.player-display {
+    display: flex;
+    gap: var(--space-xs);
+    align-items: center;
+}
+
+.player-name {
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: var(--space-3xs) var(--space-xs);
+    border-radius: var(--space-2xs);
+    transition: background-color 0.3s ease;
+
+    &.active {
+        background-color: var(--ocean-blue);
+        color: white;
+    }
+}
+
+.players-section {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+#players-modal {
+    .modal-content {
+        textarea {
+            width: 100%;
+            margin-bottom: var(--space-s);
+            padding: var(--space-xs);
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--space-s);
+
+            button {
+                flex: 1;
+                padding: var(--space-xs);
+                background-color: var(--ocean-blue);
+                color: white;
+                border: none;
+                border-radius: var(--space-2xs);
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+
+                &:hover {
+                    background-color: var(--deep-blue);
+                }
+
+                &:last-child {
+                    background-color: #666;
+
+                    &:hover {
+                        background-color: #444;
+                    }
+                }
+            }
+        }
+    }
+}
+
 /* Responsive design */
 @media (width < 37.5rem) {
   .game-options {

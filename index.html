@@ -12,20 +12,25 @@
     <div class="game-container wrapper">
         <header class="header-display">
             <div class="game-options">
+
+                <!-- Title -->
                 <div class="title-wrapper">
                     <h1 class="title">Treasure Hunt</h1>
                     <!-- <p class="sub-title">Find the hidden treasure!</p> -->
                 </div>
+
+                <!-- Word Set Selection -->
                 <div class="game-options__child">
                     <label for="word-set">Word Set:</label>
                     <select id="word-set"></select>
                 </div>
 
+                <!-- Max Words Selection -->
                 <div class="game-options__child">
                     <label for="max-words">Max Words: <select id="max-words"></select></label>
-
                 </div>
 
+                <!-- Extra Words Option -->
                 <div class="checkbox-container game-options__child">
                     <label for="include-extra-words"
                         title="Use words not from the book but have the same sound.&#10;If unchecked, words from previous units will be used.">
@@ -33,19 +38,46 @@
                         Extra Words
                     </label>
                 </div>
+
+                <!-- Add Players Button -->
+                <div class="game-options__child players-section">
+                    <button id="add-players-btn" class="players-btn">Add Players</button>
+                    <div id="player-display" class="player-display"></div>
+                </div>
+
             </div>
         </header>
 
+        <!-- Game Board -->
         <section id="game-board" class="game-board"></section>
+
+        <!-- Game Finished Modal -->
         <div id="completion-modal" class="modal">
             <div class="modal-content">
-                <h2>Treasure Found! 🏴‍☠️</h2>
+                <h2>Treasure Found!</h2>
                 <p>Congratulations on discovering the treasure!</p>
                 <button id="play-again-btn">Play Again</button>
             </div>
         </div>
+
+        <!-- Add Players Modal -->
+        <div id="players-modal" class="modal">
+            <div class="modal-content">
+                <h2>Add Players</h2>
+                <textarea id="players-textarea" placeholder="Enter player names (comma or new line separated)"
+                    rows="5"></textarea>
+                <div class="modal-actions">
+                    <button id="save-players-btn">Save Players</button>
+                    <button id="cancel-players-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Show Number of Cards Remaining -->
         <div id="cards-remaining" class="cards-remaining">0</div>
     </div>
+    
+    <!-- Debug Controls -->
     <!-- <div class="game-controls">
         <label for="grid-columns">Grid Columns:</label>
         <input type="number" id="grid-columns" value="25">

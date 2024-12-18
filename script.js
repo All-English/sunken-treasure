@@ -35,6 +35,8 @@ const showUsedCellsCheckbox = document.getElementById("show-used-cells") // used
 let treasureIndex
 let gameActive = true
 let cardsRemaining = 0
+let players = []
+let currentPlayerIndex = 0
 
 // used for debugging - updates the grid columns using the input
 function setupGridColumnControl() {
@@ -422,7 +424,8 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
 
   // Keep track of how many cards are left
   cardsRemaining--
-  document.getElementById("cards-remaining").textContent = cardsRemaining.toString()
+  document.getElementById("cards-remaining").textContent =
+    cardsRemaining.toString()
 
   createBubbles(4)
 
@@ -442,7 +445,6 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
 
     // Show completion modal
     showCompletionModal()
-
   } else {
     // Wrong guess
     playSoundSafely(wrongSound)
@@ -450,6 +452,9 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
       wordCard.style.visibility = "hidden"
     }, 1000)
   }
+
+  // Switch to next player after each guess
+  switchToNextPlayer()
 }
 
 function initializeGame() {
@@ -631,6 +636,56 @@ function hideCompletionModal() {
   modal.classList.remove("visible")
 }
 
+function showPlayersModal() {
+  const playersModal = document.getElementById("players-modal")
+  playersModal.classList.add("visible")
+}
+
+function hidePlayersModal() {
+  const playersModal = document.getElementById("players-modal")
+  playersModal.classList.remove("visible")
+}
+
+function savePlayers() {
+  const textarea = document.getElementById("players-textarea")
+  const playerInput = textarea.value.trim()
+
+  // Split by comma or newline, trim whitespace
+players = [...new Set(
+  playerInput
+    .split(/[,\n]/)
+    .map((name) => name.trim())
+    .filter((name) => name !== "")
+)]
+
+  updatePlayerDisplay()
+  hidePlayersModal()
+}
+
+function updatePlayerDisplay() {
+  const playerDisplayElement = document.getElementById("player-display")
+  playerDisplayElement.innerHTML = ""
+
+  players.forEach((player, index) => {
+    const playerElement = document.createElement("div")
+    playerElement.classList.add("player-name")
+
+    if (index === currentPlayerIndex) {
+      playerElement.classList.add("active")
+    }
+
+    playerElement.textContent = player
+    playerDisplayElement.appendChild(playerElement)
+  })
+}
+
+function switchToNextPlayer() {
+  if (players.length > 0) {
+    currentPlayerIndex = (currentPlayerIndex + 1) % players.length
+    updatePlayerDisplay()
+  }
+}
+
 // Add event listener for the Play Again button
 document.getElementById("play-again-btn").addEventListener("click", () => {
   hideCompletionModal()
@@ -680,6 +735,17 @@ document.addEventListener("DOMContentLoaded", () => {
   unitSelect.addEventListener("change", initializeGame)
   totalWordsSelect.addEventListener("change", initializeGame)
   includeExtraWordsCheckbox.addEventListener("change", initializeGame)
+
+  // Event listeners for adding players
+  document
+    .getElementById("add-players-btn")
+    .addEventListener("click", showPlayersModal)
+  document
+    .getElementById("save-players-btn")
+    .addEventListener("click", savePlayers)
+  document
+    .getElementById("cancel-players-btn")
+    .addEventListener("click", hidePlayersModal)
 
   setupGridColumnControl() // For Debuging
   populateWordSetDropdown()
