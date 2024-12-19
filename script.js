@@ -112,6 +112,11 @@ function populateWordSetDropdown() {
   // Clear existing options
   unitDropdown.innerHTML = ""
 
+  // Create and add the optgroup
+  const smartPhonicsGroup = document.createElement("optgroup")
+  smartPhonicsGroup.label = "Smart Phonics"
+  unitDropdown.appendChild(smartPhonicsGroup)
+
   // Collect all units from all levels
   const allUnits = []
 
@@ -119,8 +124,7 @@ function populateWordSetDropdown() {
     const separator = document.createElement("option")
     separator.textContent = `---`
     separator.disabled = true
-    unitDropdown.appendChild(separator)
-
+    smartPhonicsGroup.appendChild(separator) // Append to optgroup instead of dropdown
     const unitsInLevel = Object.keys(smartPhonicsWordBank[level])
 
     unitsInLevel.forEach((unit) => {
@@ -137,7 +141,7 @@ function populateWordSetDropdown() {
       // Store all units
       allUnits.push(option.value)
 
-      unitDropdown.appendChild(option)
+      smartPhonicsGroup.appendChild(option) // Append to optgroup instead of dropdown
     })
   })
 
@@ -147,7 +151,6 @@ function populateWordSetDropdown() {
     const selectedUnit = allUnits[randomIndex]
     unitDropdown.value = selectedUnit
 
-    // Optional: Log the randomly selected unit
     console.log(`Randomly selected unit: ${selectedUnit}`)
   }
 }
@@ -651,20 +654,58 @@ function savePlayers() {
   const playerInput = textarea.value.trim()
 
   // Split by comma or newline, trim whitespace
-players = [...new Set(
-  playerInput
-    .split(/[,\n]/)
-    .map((name) => name.trim())
-    .filter((name) => name !== "")
-)]
+  players = [
+    ...new Set(
+      playerInput
+        .split(/[,\n]/)
+        .map((name) => name.trim())
+        .filter((name) => name !== "")
+    ),
+  ]
 
-  updatePlayerDisplay()
-  hidePlayersModal()
+  // Save to localStorage
+  try {
+    localStorage.setItem("treasureHuntPlayers", JSON.stringify(players))
+    updatePlayerDisplay()
+    hidePlayersModal()
+  } catch (error) {
+    console.error("Error saving players to localStorage:", error)
+    alert("Unable to save players. Local storage might be full or disabled.")
+  }
+}
+
+// Function to load players from localStorage
+function loadSavedPlayers() {
+  try {
+    // Retrieve players from localStorage
+    const savedPlayers = localStorage.getItem("treasureHuntPlayers")
+
+    if (savedPlayers) {
+      // Parse the saved players
+      players = JSON.parse(savedPlayers)
+
+      // Optional: Pre-fill textarea with saved players
+      const textarea = document.getElementById("players-textarea")
+      if (textarea) {
+        textarea.value = players.join(", ")
+      }
+      // log that saved players loaded
+      console.log("Saved players loaded:", players)
+
+      // updatePlayerDisplay()
+    }
+  } catch (error) {
+    console.error("Error loading players from localStorage:", error)
+    // Clear potentially corrupted localStorage data
+    localStorage.removeItem("treasureHuntPlayers")
+  }
 }
 
 function updatePlayerDisplay() {
   const playerDisplayElement = document.getElementById("player-display")
   playerDisplayElement.innerHTML = ""
+  // add flex-basis: 100% so it's on a new line
+  playerDisplayElement.style.flexBasis = "100%"
 
   players.forEach((player, index) => {
     const playerElement = document.createElement("div")
@@ -725,13 +766,13 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 
+  // Add event listeners to trigger game initialization
   const unitSelect = document.getElementById("word-set")
   const totalWordsSelect = document.getElementById("max-words")
   const includeExtraWordsCheckbox = document.getElementById(
     "include-extra-words"
   )
 
-  // Add event listeners to trigger game initialization
   unitSelect.addEventListener("change", initializeGame)
   totalWordsSelect.addEventListener("change", initializeGame)
   includeExtraWordsCheckbox.addEventListener("change", initializeGame)
@@ -740,12 +781,26 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("add-players-btn")
     .addEventListener("click", showPlayersModal)
+  document.getElementById("save-players-btn").addEventListener("click", () => {
+    const addPlayersBtn = document.getElementById("add-players-btn")
+
+    addPlayersBtn.textContent = "Edit Players"
+
+    savePlayers()
+  })
+  document
+    .getElementById("cancel-players-btn")
+    .addEventListener("click", hidePlayersModal)
+
   document
     .getElementById("save-players-btn")
     .addEventListener("click", savePlayers)
   document
     .getElementById("cancel-players-btn")
     .addEventListener("click", hidePlayersModal)
+
+  // Load saved players when page loads
+  loadSavedPlayers()
 
   setupGridColumnControl() // For Debuging
   populateWordSetDropdown()
