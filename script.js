@@ -38,6 +38,28 @@ let cardsRemaining = 0
 let players = []
 let currentPlayerIndex = 0
 
+// Create audio elements array for each type of sound
+const winSounds = [
+  new Audio("sounds/win/land-ho.mp3"),
+  new Audio("sounds/win/shiver-me-timbers.mp3"),
+  new Audio("sounds/win/there-she-blows.mp3"),
+  new Audio("sounds/win/There's Something-You-Dont-See-Every-Day.mp3"),
+  new Audio("sounds/win/well-blow-me-down.mp3")
+];
+
+const wrongSounds = [
+  new Audio("sounds/wrong/arrgh.mp3"),
+  new Audio("sounds/wrong/arrgh2.mp3"),
+  new Audio("sounds/wrong/arrgh3.mp3"),
+  new Audio("sounds/wrong/blimey.mp3"),
+  new Audio("sounds/wrong/heeve-ho.mp3"),
+  new Audio("sounds/wrong/Look-At-Me-I'm-Flying-Oh-Wait-Maybe-Not.mp3"),
+  new Audio("sounds/wrong/walk-the-plank.mp3"),
+  new Audio("sounds/wrong/walk-the-plank2.mp3"),
+  new Audio("sounds/wrong/yo-ho-ho.mp3"),
+  new Audio("sounds/wrong/yo-ho-ho2.mp3")
+];
+
 // used for debugging - updates the grid columns using the input
 function setupGridColumnControl() {
   const gridColumnsInput = document.getElementById("grid-columns")
@@ -59,13 +81,12 @@ function updateWordCardCount(count) {
   }
 }
 
-// Create audio elements programmatically
-const winSound = new Audio(
-  "data:audio/wav;base64,UklGRhQAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhDgAAAAEA"
-)
-const wrongSound = new Audio(
-  "data:audio/wav;base64,//uQRAAAAWMNmkjly8AAAAcFA3Z//+8Q5H/xh/x//8="
-)
+// Preload sounds
+function preloadSounds(soundsArray) {
+  soundsArray.forEach((sound) => {
+    sound.load()
+  })
+}
 
 // Safe sound play function
 function playSoundSafely(sound) {
@@ -73,6 +94,14 @@ function playSoundSafely(sound) {
     sound.play().catch(() => {
       // Silently handle any playback errors
     })
+  }
+}
+
+// Function to play a random sound from an array
+function playRandomSound(soundsArray) {
+  if (soundsArray && soundsArray.length > 0) {
+    const randomIndex = Math.floor(Math.random() * soundsArray.length)
+    playSoundSafely(soundsArray[randomIndex])
   }
 }
 
@@ -438,7 +467,7 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
   if (currentCell === treasureCell) {
     // Found the treasure!
     gameActive = false
-    playSoundSafely(winSound)
+    playRandomSound(winSounds)
 
     // Reveal treasure
     const treasureDiv = document.querySelector(".treasure-div")
@@ -450,7 +479,7 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
     showCompletionModal()
   } else {
     // Wrong guess
-    playSoundSafely(wrongSound)
+    playRandomSound(wrongSounds)
     setTimeout(() => {
       wordCard.style.visibility = "hidden"
     }, 1000)
@@ -748,6 +777,12 @@ document.getElementById("completion-modal").addEventListener("click", (e) => {
   if (e.target.id === "completion-modal") {
     hideCompletionModal()
   }
+})
+
+// Preload when the page loads
+window.addEventListener("load", () => {
+  preloadSounds(winSounds)
+  preloadSounds(wrongSounds)
 })
 
 // Call this when the page loads
