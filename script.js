@@ -37,8 +37,6 @@ let gameActive = true
 let cardsRemaining = 0
 let players = []
 let currentPlayerIndex = 0
-
-// Create audio elements array for each type of sound
 const winSounds = [
   new Audio("sounds/win/land-ho.mp3"),
   new Audio("sounds/win/shiver-me-timbers.mp3"),
@@ -46,7 +44,6 @@ const winSounds = [
   new Audio("sounds/win/There's Something-You-Dont-See-Every-Day.mp3"),
   new Audio("sounds/win/well-blow-me-down.mp3"),
 ]
-
 const wrongSounds = [
   new Audio("sounds/wrong/arrgh.mp3"),
   new Audio("sounds/wrong/arrgh2.mp3"),
@@ -59,6 +56,8 @@ const wrongSounds = [
   new Audio("sounds/wrong/yo-ho-ho.mp3"),
   new Audio("sounds/wrong/yo-ho-ho2.mp3"),
 ]
+let winSoundsQueue = shuffleArray([...winSounds])
+let wrongSoundsQueue = shuffleArray([...wrongSounds])
 
 // used for debugging - updates the grid columns using the input
 function setupGridColumnControl() {
@@ -81,6 +80,15 @@ function updateWordCardCount(count) {
   }
 }
 
+// Fisher-Yates shuffle algorithm
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 // Preload sounds
 function preloadSounds(soundsArray) {
   soundsArray.forEach((sound) => {
@@ -97,12 +105,24 @@ function playSoundSafely(sound) {
   }
 }
 
-// Function to play a random sound from an array
-function playRandomSound(soundsArray) {
-  if (soundsArray && soundsArray.length > 0) {
-    const randomIndex = Math.floor(Math.random() * soundsArray.length)
-    playSoundSafely(soundsArray[randomIndex])
+// Play a sound from a queued list
+function playNextSoundInQueue(soundsArray) {
+  if (soundsArray === winSounds) {
+    const sound = getNextSound(winSounds, winSoundsQueue);
+    playSoundSafely(sound);
+  } else if (soundsArray === wrongSounds) {
+    const sound = getNextSound(wrongSounds, wrongSoundsQueue);
+    playSoundSafely(sound);
   }
+}
+
+// Get next sound from queue, reshuffle if empty
+function getNextSound(soundsArray, queueArray) {
+  if (queueArray.length === 0) {
+    // Queue is empty, reshuffle all sounds
+    queueArray.push(...shuffleArray(soundsArray));
+  }
+  return queueArray.pop();
 }
 
 function createBubbles(numBubbles = 15) {
@@ -470,7 +490,7 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
 
     // Play wrong sound effect after a delay
     setTimeout(() => {
-      playRandomSound(winSounds)
+      playNextSoundInQueue(winSounds)
     }, 700)
 
     // Reveal treasure
@@ -495,7 +515,7 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
 
     // Play wrong sound effect after a delay
     setTimeout(() => {
-      playRandomSound(wrongSounds)
+      playNextSoundInQueue(wrongSounds)
     }, 700)
   }
 
