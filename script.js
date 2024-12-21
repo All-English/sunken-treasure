@@ -44,8 +44,8 @@ const winSounds = [
   new Audio("sounds/win/shiver-me-timbers.mp3"),
   new Audio("sounds/win/there-she-blows.mp3"),
   new Audio("sounds/win/There's Something-You-Dont-See-Every-Day.mp3"),
-  new Audio("sounds/win/well-blow-me-down.mp3")
-];
+  new Audio("sounds/win/well-blow-me-down.mp3"),
+]
 
 const wrongSounds = [
   new Audio("sounds/wrong/arrgh.mp3"),
@@ -57,8 +57,8 @@ const wrongSounds = [
   new Audio("sounds/wrong/walk-the-plank.mp3"),
   new Audio("sounds/wrong/walk-the-plank2.mp3"),
   new Audio("sounds/wrong/yo-ho-ho.mp3"),
-  new Audio("sounds/wrong/yo-ho-ho2.mp3")
-];
+  new Audio("sounds/wrong/yo-ho-ho2.mp3"),
+]
 
 // used for debugging - updates the grid columns using the input
 function setupGridColumnControl() {
@@ -467,22 +467,36 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
   if (currentCell === treasureCell) {
     // Found the treasure!
     gameActive = false
-    playRandomSound(winSounds)
+
+    // Play wrong sound effect after a delay
+    setTimeout(() => {
+      playRandomSound(winSounds)
+    }, 700)
 
     // Reveal treasure
-    const treasureDiv = document.querySelector(".treasure-div")
-    if (treasureDiv) {
-      treasureDiv.style.display = "flex"
-    }
+    setTimeout(() => {
+      const treasureDiv = document.querySelector(".treasure-div")
+      if (treasureDiv) {
+        treasureDiv.style.display = "flex"
+      }
+    }, 300)
 
     // Show completion modal
-    showCompletionModal()
+    setTimeout(() => {
+      showCompletionModal()
+    }, 2000)
   } else {
     // Wrong guess
-    playRandomSound(wrongSounds)
+
+    // Hide the word card after a delay
     setTimeout(() => {
       wordCard.style.visibility = "hidden"
-    }, 1000)
+    }, 1200)
+
+    // Play wrong sound effect after a delay
+    setTimeout(() => {
+      playRandomSound(wrongSounds)
+    }, 700)
   }
 
   // Switch to next player after each guess

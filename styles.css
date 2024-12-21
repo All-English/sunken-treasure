@@ -440,6 +440,7 @@ body {
 }
 
 .treasure-div {
+  display: none;
   font-size: var(--fs-step-6);
   z-index: -1;
   overflow: hidden;
