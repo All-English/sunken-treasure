@@ -211,16 +211,20 @@ function populateWordSetDropdown() {
   // Check URL parameters and set default if provided
   const urlParams = getUrlParameters()
   if (urlParams.level && urlParams.unit) {
-    const defaultValue = `${urlParams.level}:${urlParams.unit}`
+    const defaultValue = `level${urlParams.level}:unit${urlParams.unit}`
     if (allUnits.includes(defaultValue)) {
       unitDropdown.value = defaultValue
     }
   }
 
   // If no valid URL parameter, you can optionally set a default
-  // if (!unitDropdown.value && allUnits.length > 0) {
-  //   unitDropdown.value = allUnits[0]
-  // }
+  if (!unitDropdown.value && allUnits.length > 0) {
+    unitDropdown.value = allUnits[0]
+
+    // Update URL with the default selection
+    const [defaultLevel, defaultUnit] = allUnits[0].split(":")
+    updateUrlParameters(defaultLevel, defaultUnit)
+  }
 
   // Select a random unit
   // if (allUnits.length > 0) {
@@ -551,6 +555,20 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
   }
 }
 
+function updateUrlParameters(level, unit) {
+  // Remove 'level' and 'unit' prefixes for the URL
+  const cleanLevel = level.replace("level", "")
+  const cleanUnit = unit.replace("unit", "")
+
+  // Create new URL with updated parameters
+  const newUrl = new URL(window.location.href)
+  newUrl.searchParams.set("level", cleanLevel)
+  newUrl.searchParams.set("unit", cleanUnit)
+
+  // Update the URL in the browser's address bar without reloading the page
+  window.history.pushState({}, "", newUrl)
+}
+
 function getUrlParameters() {
   const urlParams = new URLSearchParams(window.location.search)
   const level = urlParams.get("level")
@@ -573,7 +591,6 @@ function validateWordSetSelection(level, unit) {
 
 function createGameboard() {
   const gameBoard = document.getElementById("game-board")
-  const restartBtn = document.getElementById("play-again-btn")
 
   // Check for URL parameters first
   const urlParams = getUrlParameters()
@@ -928,7 +945,6 @@ document.addEventListener("DOMContentLoaded", () => {
     "include-extra-words"
   )
 
-  unitSelect.addEventListener("change", createGameboard)
   totalWordsSelect.addEventListener("change", createGameboard)
   includeExtraWordsCheckbox.addEventListener("change", createGameboard)
 
@@ -953,6 +969,29 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("cancel-players-btn")
     .addEventListener("click", hidePlayersModal)
+
+  // Add event listener to update URL when word set changes
+  unitSelect.addEventListener("change", (event) => {
+    const [level, unit] = event.target.value.split(":")
+    updateUrlParameters(level, unit)
+    createGameboard()
+  })
+
+  // When page loads, check for initial URL parameters
+  const urlParams = getUrlParameters()
+  if (urlParams.level && urlParams.unit) {
+    const unitSelect = document.getElementById("word-set")
+    const initialValue = `${urlParams.level}:${urlParams.unit}`
+
+    // Check if the value exists in the dropdown
+    const optionExists = Array.from(unitSelect.options).some(
+      (option) => option.value === initialValue
+    )
+
+    if (optionExists) {
+      unitSelect.value = initialValue
+    }
+  }
 
   // Load saved players when page loads
   loadSavedPlayers()
