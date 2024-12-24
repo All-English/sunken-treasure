@@ -106,15 +106,31 @@ function setupSoundMuteControl() {
 
       // You might want to add a global mute flag
       window.isSoundsMuted = isMuted
+
+      // Optionally save to localStorage
+      localStorage.setItem("treasureHuntMuted", JSON.stringify(isMuted))
     })
+
+    // Initialize mute state from localStorage
+    const savedMuteState = localStorage.getItem("treasureHuntMuted")
+    if (savedMuteState !== null) {
+      const isMuted = JSON.parse(savedMuteState)
+      muteCheckbox.checked = isMuted
+      window.isSoundsMuted = isMuted
+    } else {
+      // Ensure it's unchecked by default if no saved state
+      muteCheckbox.checked = false
+      window.isSoundsMuted = false
+    }
   }
 }
 
 // Safe sound play function
 function playSoundSafely(sound) {
   if (sound instanceof HTMLAudioElement && !window.isSoundsMuted) {
-    sound.play().catch(() => {
+    sound.play().catch((error) => {
       // Silently handle any playback errors
+      console.error("Sound play error:", error)
     })
   }
 }
@@ -237,10 +253,10 @@ function populateWordSetDropdown() {
 }
 
 function populateTotalWordsDropdown() {
-  const totalWordsDropdown = document.getElementById("max-words")
+  const maxWordsDropdown = document.getElementById("max-words")
 
   // Clear existing options
-  totalWordsDropdown.innerHTML = ""
+  maxWordsDropdown.innerHTML = ""
 
   // Create options from 5 to 40, incrementing by 5
   for (let i = 5; i <= 45; i += 5) {
@@ -248,13 +264,23 @@ function populateTotalWordsDropdown() {
     option.value = i
     option.textContent = `${i}`
 
-    // Set 25 as the default selected option
-    if (i === 25) {
+    // Check if there's a saved value in localStorage
+    const savedTotalWords = localStorage.getItem("maxWords")
+
+    // Set the saved value as selected if it exists, otherwise use 25 as default
+    if (savedTotalWords && parseInt(savedTotalWords) === i) {
+      option.selected = true
+    } else if (i === 25 && !savedTotalWords) {
       option.selected = true
     }
 
-    totalWordsDropdown.appendChild(option)
+    maxWordsDropdown.appendChild(option)
   }
+
+  // Add event listener to save selected value to localStorage
+  maxWordsDropdown.addEventListener("change", () => {
+    localStorage.setItem("maxWords", maxWordsDropdown.value)
+  })
 }
 
 function addUnavailableCells(
@@ -393,7 +419,7 @@ function addUnavailableCells(
 function selectWordsFromWordBank(
   level,
   unit,
-  totalWords = 30,
+  maxWords = 30,
   includeExtraWords = false
 ) {
   function shuffleArray(array) {
@@ -434,7 +460,7 @@ function selectWordsFromWordBank(
   // Add extra words from units, working backwards
   while (
     processingUnitIndex >= 0 &&
-    (!totalWords || selectedWords.length < totalWords)
+    (!maxWords || selectedWords.length < maxWords)
   ) {
     const processingUnit = unitsInLevel[processingUnitIndex]
     const unitData = smartPhonicsWordBank[level][processingUnit]
@@ -481,8 +507,8 @@ function selectWordsFromWordBank(
         // There are no more words to add
 
         // If there are more words than needed, slice the array
-        if (selectedWords.length > totalWords) {
-          selectedWords = selectedWords.slice(0, totalWords)
+        if (selectedWords.length > maxWords) {
+          selectedWords = selectedWords.slice(0, maxWords)
         }
 
         return selectedWords
@@ -496,8 +522,8 @@ function selectWordsFromWordBank(
   }
 
   // If there are more words than needed, slice the array
-  if (selectedWords.length > totalWords) {
-    selectedWords = selectedWords.slice(0, totalWords)
+  if (selectedWords.length > maxWords) {
+    selectedWords = selectedWords.slice(0, maxWords)
   }
 
   return selectedWords
@@ -625,13 +651,13 @@ function createGameboard() {
   const includeExtraWords = includeExtraWordsCheckbox.checked
 
   // Get total words from dropdown
-  const totalWordsSelect = document.getElementById("max-words")
-  const totalWords = parseInt(totalWordsSelect.value)
+  const maxWordsSelect = document.getElementById("max-words")
+  const maxWords = parseInt(maxWordsSelect.value)
 
   const selectedWordSet = selectWordsFromWordBank(
     selectedLevel, // level
     selectedUnit, // current unit
-    totalWords, // total words desired
+    maxWords, // total words desired
     includeExtraWords // include extra words
   )
 
@@ -940,12 +966,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Add event listeners to trigger game initialization
   const unitSelect = document.getElementById("word-set")
-  const totalWordsSelect = document.getElementById("max-words")
+  const maxWordsSelect = document.getElementById("max-words")
   const includeExtraWordsCheckbox = document.getElementById(
     "include-extra-words"
   )
 
-  totalWordsSelect.addEventListener("change", createGameboard)
+  maxWordsSelect.addEventListener("change", createGameboard)
   includeExtraWordsCheckbox.addEventListener("change", createGameboard)
 
   // Event listeners for adding players
