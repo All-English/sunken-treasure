@@ -82,12 +82,12 @@ function updateWordCardCount(count) {
 
 // Fisher-Yates shuffle algorithm
 function shuffleArray(array) {
-  const shuffled = [...array];
+  const shuffled = [...array]
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
-  return shuffled;
+  return shuffled
 }
 // Preload sounds
 function preloadSounds(soundsArray) {
@@ -96,9 +96,24 @@ function preloadSounds(soundsArray) {
   })
 }
 
+// Mute sounds
+function setupSoundMuteControl() {
+  const muteCheckbox = document.getElementById("mute-sounds-checkbox")
+
+  if (muteCheckbox) {
+    muteCheckbox.addEventListener("change", () => {
+      const isMuted = muteCheckbox.checked
+
+      // You might want to add a global mute flag
+      window.isSoundsMuted = isMuted
+    })
+  }
+}
+
 // Safe sound play function
 function playSoundSafely(sound) {
-  if (sound instanceof HTMLAudioElement) {
+  
+  if (sound instanceof HTMLAudioElement && !window.isSoundsMuted) {
     sound.play().catch(() => {
       // Silently handle any playback errors
     })
@@ -108,11 +123,11 @@ function playSoundSafely(sound) {
 // Play a sound from a queued list
 function playNextSoundInQueue(soundsArray) {
   if (soundsArray === winSounds) {
-    const sound = getNextSound(winSounds, winSoundsQueue);
-    playSoundSafely(sound);
+    const sound = getNextSound(winSounds, winSoundsQueue)
+    playSoundSafely(sound)
   } else if (soundsArray === wrongSounds) {
-    const sound = getNextSound(wrongSounds, wrongSoundsQueue);
-    playSoundSafely(sound);
+    const sound = getNextSound(wrongSounds, wrongSoundsQueue)
+    playSoundSafely(sound)
   }
 }
 
@@ -120,9 +135,9 @@ function playNextSoundInQueue(soundsArray) {
 function getNextSound(soundsArray, queueArray) {
   if (queueArray.length === 0) {
     // Queue is empty, reshuffle all sounds
-    queueArray.push(...shuffleArray(soundsArray));
+    queueArray.push(...shuffleArray(soundsArray))
   }
-  return queueArray.pop();
+  return queueArray.pop()
 }
 
 function createBubbles(numBubbles = 15) {
@@ -517,13 +532,13 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
     setTimeout(() => {
       playNextSoundInQueue(wrongSounds)
     }, 700)
-  }
 
-  // Switch to next player after each guess
-  switchToNextPlayer()
+    // Switch to next player after each guess
+    switchToNextPlayer()
+  }
 }
 
-function initializeGame() {
+function createGameboard() {
   const gameBoard = document.getElementById("game-board")
   const restartBtn = document.getElementById("play-again-btn")
 
@@ -713,27 +728,34 @@ function hidePlayersModal() {
 }
 
 function savePlayers() {
+  console.log("Starting savePlayers function...")
+
   const textarea = document.getElementById("players-textarea")
+
   const playerInput = textarea.value.trim()
 
-  // Split by comma or newline, trim whitespace
-  players = [
-    ...new Set(
-      playerInput
-        .split(/[,\n]/)
-        .map((name) => name.trim())
-        .filter((name) => name !== "")
-    ),
-  ]
-
+  // Split by comma or newline
+  const splitPlayers = playerInput.split(/[,\n]/)
+  // Trim whitespace
+  const trimmedPlayers = splitPlayers.map((name) => name.trim())
+  // Filter out empty names
+  const filteredPlayers = trimmedPlayers.filter((name) => name !== "")
+  // Remove duplicates
+  players = [...new Set(filteredPlayers)]
+  
+  console.log("Player list:", players)
   // Save to localStorage
   try {
     localStorage.setItem("treasureHuntPlayers", JSON.stringify(players))
+    console.log("Players successfully saved to localStorage")
+    console.log("---")
+
     updatePlayerDisplay()
     hidePlayersModal()
   } catch (error) {
     console.error("Error saving players to localStorage:", error)
     alert("Unable to save players. Local storage might be full or disabled.")
+    console.log("---")
   }
 }
 
@@ -744,16 +766,13 @@ function loadSavedPlayers() {
     const savedPlayers = localStorage.getItem("treasureHuntPlayers")
 
     if (savedPlayers) {
-      // Parse the saved players
-      players = JSON.parse(savedPlayers)
-
       // Optional: Pre-fill textarea with saved players
       const textarea = document.getElementById("players-textarea")
       if (textarea) {
-        textarea.value = players.join(", ")
+        textarea.value = JSON.parse(savedPlayers).join(", ")
       }
       // log that saved players loaded
-      console.log("Saved players loaded:", players)
+      console.log("Saved players:", textarea.value)
 
       // updatePlayerDisplay()
     }
@@ -765,7 +784,10 @@ function loadSavedPlayers() {
 }
 
 function updatePlayerDisplay() {
+  console.log("Updating player display...")
+
   const playerDisplayElement = document.getElementById("player-display")
+
   playerDisplayElement.innerHTML = ""
   // add flex-basis: 100% so it's on a new line
   playerDisplayElement.style.flexBasis = "100%"
@@ -776,24 +798,34 @@ function updatePlayerDisplay() {
 
     if (index === currentPlayerIndex) {
       playerElement.classList.add("active")
+      console.log(`Marked ${player} as active player`)
     }
 
     playerElement.textContent = player
     playerDisplayElement.appendChild(playerElement)
   })
+
+  console.log("---")
 }
 
 function switchToNextPlayer() {
+  console.log("Switching to next player")
   if (players.length > 0) {
     currentPlayerIndex = (currentPlayerIndex + 1) % players.length
+
+    console.log(`New active player: ${players[currentPlayerIndex]}`)
+    console.log("---")
+
     updatePlayerDisplay()
+  } else {
+    console.log("No players in the game")
   }
 }
 
 // Add event listener for the Play Again button
 document.getElementById("play-again-btn").addEventListener("click", () => {
   hideCompletionModal()
-  initializeGame()
+  createGameboard()
 })
 
 // Add escape key support
@@ -802,7 +834,7 @@ document.addEventListener("keydown", (e) => {
     // Close the modal
     hideCompletionModal()
     // Reset current game
-    initializeGame()
+    createGameboard()
   }
 })
 
@@ -831,7 +863,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ".unavailable-cell, .unavailable-cell-main"
         )
         usedCellDivs.forEach((div) => div.remove())
-      } else initializeGame()
+      } else createGameboard()
     })
   }
 
@@ -842,9 +874,9 @@ document.addEventListener("DOMContentLoaded", () => {
     "include-extra-words"
   )
 
-  unitSelect.addEventListener("change", initializeGame)
-  totalWordsSelect.addEventListener("change", initializeGame)
-  includeExtraWordsCheckbox.addEventListener("change", initializeGame)
+  unitSelect.addEventListener("change", createGameboard)
+  totalWordsSelect.addEventListener("change", createGameboard)
+  includeExtraWordsCheckbox.addEventListener("change", createGameboard)
 
   // Event listeners for adding players
   document
@@ -874,5 +906,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupGridColumnControl() // For Debuging
   populateWordSetDropdown()
   populateTotalWordsDropdown()
-  initializeGame()
+  setupSoundMuteControl()
+  createGameboard()
 })

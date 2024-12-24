@@ -17,21 +17,27 @@
                 <h1 class="title">Sunken Treasure</h1>
                 <p>Find the treasure first!</p>
             </section>
-            
+
             <section class="game-options">
 
                 <!-- Word Set Selection -->
                 <select id="word-set" class="word-set-select"></select>
 
                 <!-- Max Words Selection -->
-                <label for="max-words" class="max-words-label">Max Words: <select id="max-words"
+                <label for="max-words" class="max-words-label">Max Words <select id="max-words"
                         class="max-words-select"></select></label>
 
                 <!-- Extra Words Checkbox -->
                 <label class="extra-words-label" for="include-extra-words"
-                    title="Use words not from the book but have the same sound.&#10;If unchecked, words from previous units will be used.">
+                    title="Use words not from the book but have the same sound.&#10;If unchecked, words from previous units will be used.">Extra
+                    Words
                     <input type="checkbox" id="include-extra-words" class="extra-words-checkbox" checked>
-                    Extra Words
+                </label>
+
+                <!-- Mute Sounds Checkbox  -->
+                <label class="mute-sounds-label">
+                    Mute
+                    <input type="checkbox" id="mute-sounds-checkbox" class="mute-sounds-checkbox">
                 </label>
 
                 <!-- Add Players Button -->
