@@ -420,9 +420,7 @@ body {
 
 .treasure-div {
   display: none;
-  font-size: var(--fs-step-6);
   z-index: -1;
-  overflow: hidden;
 }
 
 @keyframes fadeOut {
@@ -487,6 +485,7 @@ body {
   }
 }
 
+/* For Debugging */
 .game-controls {
   position: fixed;
   top: 20px;
@@ -528,6 +527,7 @@ body {
   z-index: 1;
 }
 
+/* Modal Styles */
 .modal {
   position: fixed;
   inset: 0;
@@ -541,6 +541,8 @@ body {
   /* opacity: 0; */
   visibility: hidden;
   transition: opacity .3s ease;
+  overflow-y: auto;
+  padding: var(--space-m);
 
   &.visible {
     opacity: 1;
@@ -561,6 +563,7 @@ body {
     box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.2);
     border: var(--border), 1px solid white;
     max-width: 90%;
+    margin: auto;
 
     h2 {
       color: var(--text-primary, white);
@@ -645,6 +648,14 @@ body {
 
   .modal-content .close-stats-btn {
     margin-top: var(--space-xs);
+  }
+
+  .player-group-even {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  .player-group-odd {
+    background-color: rgba(255, 255, 255, 0.04);
   }
 }
 
