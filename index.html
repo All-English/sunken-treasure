@@ -27,7 +27,7 @@
             <section class="game-options">
 
                 <!-- Word Set Selection -->
-                <select id="word-set" class="word-set-select"></select>
+                <select id="word-set-dropdown" class="word-set-select"></select>
 
                 <!-- Max Words Selection -->
                 <label for="max-words" class="max-words-label">Max Words <select id="max-words"
@@ -49,6 +49,9 @@
                 <!-- Add Players Button -->
                 <button id="add-players-btn" class="players-btn">Add Players</button>
 
+                <!-- Show Stats Button  -->
+                <button id="show-stats-btn" class="stats-btn">Show Stats</button>
+
                 <!-- Player Names -->
                 <div id="player-display" class="player-display"></div>
 
@@ -59,7 +62,7 @@
         <main id="game-board" class="game-board"></main>
 
         <!-- Game Finished Modal -->
-        <div id="completion-modal" class="modal">
+        <div id="completion-modal" class="completion-modal modal">
             <div class="modal-content">
                 <h2>Treasure Found!</h2>
                 <p>Congratulations on discovering the treasure!</p>
@@ -68,15 +71,26 @@
         </div>
 
         <!-- Add Players Modal -->
-        <div id="players-modal" class="modal">
+        <div id="players-modal" class="players-modal modal">
             <div class="modal-content">
                 <h2>Add Players</h2>
                 <textarea id="players-textarea" placeholder="Enter player names (comma or new line separated)"
                     rows="5"></textarea>
                 <div class="modal-actions">
-                    <button id="save-players-btn">Save Players</button>
-                    <button id="cancel-players-btn">Cancel</button>
+                    <button id="save-players-btn" class="save-players-btn">Save Players</button>
+                    <button id="cancel-players-btn" class="cancel-players-btn">Cancel</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Stats Modal -->
+        <div id="stats-modal" class="stats-modal modal" >
+            <div class="modal-content">
+                <h2>Player Statistics</h2>
+                <div class="stats-container" id="player-stats-container">
+                    <!-- Stats table will be dynamically populated -->
+                </div>
+                <button class="close-stats-btn" id="close-stats-btn">Close</button>
             </div>
         </div>
 

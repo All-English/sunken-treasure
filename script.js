@@ -32,11 +32,12 @@
 //   "seahorse",
 // ]
 const showUsedCellsCheckbox = document.getElementById("show-used-cells") // used for debugging
-let treasureIndex
-let gameActive = true
 let cardsRemaining = 0
-let players = []
 let currentPlayerIndex = 0
+let gameActive = true
+let players = []
+let playerStats = {}
+let treasureIndex
 const winSounds = [
   new Audio("sounds/win/land-ho.mp3"),
   new Audio("sounds/win/shiver-me-timbers.mp3"),
@@ -185,8 +186,97 @@ function createBubbles(numBubbles = 15) {
   }
 }
 
+// Initialize or load player stats
+function loadPlayerStats() {
+  const savedStats = localStorage.getItem("treasureHuntPlayerStats")
+  if (savedStats) {
+    playerStats = JSON.parse(savedStats)
+  }
+}
+
+// Save player stats to localStorage
+function savePlayerStats() {
+  localStorage.setItem("treasureHuntPlayerStats", JSON.stringify(playerStats))
+}
+
+// Function to update player stats when a game is completed
+function updatePlayerStats(winningPlayer) {
+  // Initialize stats for player if not exists
+  players.forEach((player) => {
+    if (!playerStats[player]) {
+      playerStats[player] = {
+        totalGamesPlayed: 0,
+        totalGamesWon: 0,
+        sessionGamesWon: 0,
+        winPercentage: 0,
+        currentWinStreak: 0,
+        longestWinStreak: 0,
+        playerWinLossRecord: {},
+      }
+    }
+  })
+
+  // Update stats for all players
+  players.forEach((player) => {
+    playerStats[player].totalGamesPlayed++
+
+    // Update win/loss record against other players
+    players.forEach((otherPlayer) => {
+      if (player !== otherPlayer) {
+        if (!playerStats[player].playerWinLossRecord[otherPlayer]) {
+          playerStats[player].playerWinLossRecord[otherPlayer] = {
+            wins: 0,
+            losses: 0,
+          }
+        }
+      }
+    })
+  })
+
+  // Update winning player's stats
+  if (winningPlayer) {
+    const playerStat = playerStats[winningPlayer]
+    playerStat.totalGamesWon++
+    playerStat.sessionGamesWon++
+    playerStat.currentWinStreak++
+
+    // Update longest win streak
+    playerStat.longestWinStreak = Math.max(
+      playerStat.longestWinStreak,
+      playerStat.currentWinStreak
+    )
+
+    // Update win percentage
+    playerStat.winPercentage = Math.round(
+      (playerStat.totalGamesWon / playerStat.totalGamesPlayed) * 100
+    )
+
+    // Update win/loss record against other players
+    players.forEach((otherPlayer) => {
+      if (otherPlayer !== winningPlayer) {
+        playerStats[winningPlayer].playerWinLossRecord[otherPlayer].wins++
+        playerStats[otherPlayer].playerWinLossRecord[winningPlayer].losses++
+
+        playerStats[otherPlayer].currentWinStreak = 0
+      }
+    })
+  }
+
+  // Save updated stats
+  savePlayerStats()
+}
+
+// Reset session wins when starting a new game with players
+function resetSessionWins() {
+  players.forEach((player) => {
+    if (playerStats[player]) {
+      playerStats[player].sessionGamesWon = 0
+    }
+  })
+}
+
 function populateWordSetDropdown() {
-  const unitDropdown = document.getElementById("word-set")
+  const unitDropdown = document.getElementById("word-set-dropdown")
 
   // Clear existing options
   unitDropdown.innerHTML = ""
@@ -252,7 +342,7 @@ function populateWordSetDropdown() {
   // }
 }
 
-function populateTotalWordsDropdown() {
+function populateMaxWordsDropdown() {
   const maxWordsDropdown = document.getElementById("max-words")
 
   // Clear existing options
@@ -559,9 +649,13 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
       }
     }, 300)
 
+    const winningPlayer = players[currentPlayerIndex]
+    updatePlayerStats(winningPlayer)
+
     // Show completion modal
     setTimeout(() => {
       showCompletionModal()
+      updatePlayerDisplay()
     }, 2000)
   } else {
     // Wrong guess
@@ -618,6 +712,12 @@ function validateWordSetSelection(level, unit) {
 function createGameboard() {
   const gameBoard = document.getElementById("game-board")
 
+  // Reset player turn to first player
+  if (players.length > 0) {
+    currentPlayerIndex = 0
+    console.log(`Current Player: ${players[currentPlayerIndex]}`)
+    updatePlayerDisplay()
+  }
   // Check for URL parameters first
   const urlParams = getUrlParameters()
 
@@ -633,13 +733,13 @@ function createGameboard() {
     selectedUnit = urlParams.unit
 
     // Update the dropdown to match URL parameters
-    const unitSelect = document.getElementById("word-set")
-    unitSelect.value = `${selectedLevel}:${selectedUnit}`
+    const wordSetDropdown = document.getElementById("word-set-dropdown")
+    wordSetDropdown.value = `${selectedLevel}:${selectedUnit}`
   } else {
     // Fallback to dropdown selection
-    const unitSelect = document.getElementById("word-set")
+    const wordSetDropdown = document.getElementById("word-set-dropdown")
     // Split the value into level and unit
-    const [level, unit] = unitSelect.value.split(":")
+    const [level, unit] = wordSetDropdown.value.split(":")
     selectedLevel = level
     selectedUnit = unit
   }
@@ -802,11 +902,7 @@ function createGameboard() {
 
 function showCompletionModal() {
   const modal = document.getElementById("completion-modal")
-
-  // Show modal with a slight delay
-  setTimeout(() => {
-    modal.classList.add("visible")
-  }, 600)
+  modal.classList.add("visible")
 }
 
 function hideCompletionModal() {
@@ -822,6 +918,108 @@ function showPlayersModal() {
 function hidePlayersModal() {
   const playersModal = document.getElementById("players-modal")
   playersModal.classList.remove("visible")
+}
+
+// Display detailed player stats
+function showPlayerStatsModal() {
+  const statsModal = document.getElementById("stats-modal")
+  const statsContainer = document.getElementById("player-stats-container")
+
+  // Clear existing stats
+  statsContainer.innerHTML = ""
+
+  // Sort players by total wins (descending)
+  const sortedPlayers = Object.keys(playerStats).sort(
+    (a, b) =>
+      (playerStats[b].totalGamesWon || 0) - (playerStats[a].totalGamesWon || 0)
+  )
+
+  // Create main stats table
+  const mainTable = document.createElement("table")
+  mainTable.innerHTML = `
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Games Played</th>
+        <th>Games Won</th>
+        <th>Win %</th>
+        <th>Current Streak</th>
+        <th>Longest Streak</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${sortedPlayers
+        .map((player) => {
+          const stat = playerStats[player]
+          return `
+          <tr>
+            <td>${player}</td>
+            <td>${stat.totalGamesPlayed || 0}</td>
+            <td>${stat.totalGamesWon || 0}</td>
+            <td>${stat.winPercentage || 0}%</td>
+            <td>${stat.currentWinStreak || 0}</td>
+            <td>${stat.longestWinStreak || 0}</td>
+          </tr>
+        `
+        })
+        .join("")}
+    </tbody>
+  `
+
+  // Create win/loss record section
+  const winLossSection = document.createElement("div")
+  winLossSection.innerHTML = "<h3>Win/Loss Records</h3>"
+
+  const winLossTable = document.createElement("table")
+  winLossTable.innerHTML = `
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Opponent</th>
+        <th>Wins</th>
+        <th>Losses</th>
+        <th>Win %</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${sortedPlayers
+        .map((player) => {
+          const playerRecord = playerStats[player].playerWinLossRecord || {}
+          return Object.keys(playerRecord)
+            .map((opponent) => {
+              const record = playerRecord[opponent]
+              const totalGames = record.wins + record.losses
+              const winPercentage = totalGames
+                ? Math.round((record.wins / totalGames) * 100)
+                : 0
+              return `
+              <tr>
+                <td>${player}</td>
+                <td>${opponent}</td>
+                <td>${record.wins}</td>
+                <td>${record.losses}</td>
+                <td>${winPercentage}%</td>
+              </tr>
+            `
+            })
+            .join("")
+        })
+        .join("")}
+    </tbody>
+  `
+
+  // Append tables to container
+  statsContainer.appendChild(mainTable)
+  winLossSection.appendChild(winLossTable)
+  statsContainer.appendChild(winLossSection)
+  
+  // Show modal
+  statsModal.classList.add("visible")
+}
+
+function hidePlayerStatsModal() {
+  const statsModal = document.getElementById("stats-modal")
+  statsModal.classList.remove("visible")
 }
 
 function savePlayers() {
@@ -847,13 +1045,18 @@ function savePlayers() {
     console.log("Players successfully saved to localStorage")
     console.log("---")
 
+    resetSessionWins()
     updatePlayerDisplay()
     hidePlayersModal()
+    createGameboard()
   } catch (error) {
     console.error("Error saving players to localStorage:", error)
     alert("Unable to save players. Local storage might be full or disabled.")
     console.log("---")
   }
+
+  const showStatsBtn = document.getElementById("show-stats-btn")
+  showStatsBtn.classList.add("visible")
 }
 
 // Function to load players from localStorage
@@ -898,7 +1101,17 @@ function updatePlayerDisplay() {
       console.log(`Marked ${player} as active player`)
     }
 
-    playerElement.textContent = player
+    // Add stats to player display
+    const playerStat = playerStats[player] || {}
+    const sessionGamesWon = playerStat.totalGamesWon || 0
+
+    playerElement.innerHTML = `
+      ${player}: 
+      <span class="player-stats">
+        ${sessionGamesWon}
+      </span>
+    `
+
     playerDisplayElement.appendChild(playerElement)
   })
 
@@ -919,37 +1132,13 @@ function switchToNextPlayer() {
   }
 }
 
-// Add event listener for the Play Again button
-document.getElementById("play-again-btn").addEventListener("click", () => {
-  hideCompletionModal()
-  createGameboard()
-})
-
-// Add escape key support
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    // Close the modal
-    hideCompletionModal()
-    // Reset current game
-    createGameboard()
-  }
-})
-
-// Allow clicking outside the modal to close it
-document.getElementById("completion-modal").addEventListener("click", (e) => {
-  if (e.target.id === "completion-modal") {
-    hideCompletionModal()
-  }
-})
-
 // Preload when the page loads
 window.addEventListener("load", () => {
   preloadSounds(winSounds)
   preloadSounds(wrongSounds)
 })
 
-// Call this when the page loads
-document.addEventListener("DOMContentLoaded", () => {
+function setupEventListeners() {
   // for debugging - Add an event listener to clear existing used cell divs when unchecked
   // Only add the event listener if the checkbox exists
   if (showUsedCellsCheckbox) {
@@ -964,67 +1153,107 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 
-  // Add event listeners to trigger game initialization
-  const unitSelect = document.getElementById("word-set")
-  const maxWordsSelect = document.getElementById("max-words")
-  const includeExtraWordsCheckbox = document.getElementById(
-    "include-extra-words"
-  )
+  // Check for initial URL parameters
+  const urlParams = getUrlParameters()
+  if (urlParams.level && urlParams.unit) {
+    const wordSetDropdown = document.getElementById("word-set-dropdown")
+    const initialValue = `${urlParams.level}:${urlParams.unit}`
 
-  maxWordsSelect.addEventListener("change", createGameboard)
-  includeExtraWordsCheckbox.addEventListener("change", createGameboard)
+    // Check if the value exists in the dropdown
+    const optionExists = Array.from(wordSetDropdown.options).some(
+      (option) => option.value === initialValue
+    )
 
-  // Event listeners for adding players
-  document
-    .getElementById("add-players-btn")
-    .addEventListener("click", showPlayersModal)
-  document.getElementById("save-players-btn").addEventListener("click", () => {
-    const addPlayersBtn = document.getElementById("add-players-btn")
+    if (optionExists) {
+      wordSetDropdown.value = initialValue
+    }
+  }
 
-    addPlayersBtn.textContent = "Edit Players"
-
-    savePlayers()
-  })
-  document
-    .getElementById("cancel-players-btn")
-    .addEventListener("click", hidePlayersModal)
-
-  document
-    .getElementById("save-players-btn")
-    .addEventListener("click", savePlayers)
-  document
-    .getElementById("cancel-players-btn")
-    .addEventListener("click", hidePlayersModal)
-
-  // Add event listener to update URL when word set changes
-  unitSelect.addEventListener("change", (event) => {
+  // Update URL parameters when word set changes
+  const wordSetDropdown = document.getElementById("word-set-dropdown")
+  wordSetDropdown.addEventListener("change", (event) => {
     const [level, unit] = event.target.value.split(":")
     updateUrlParameters(level, unit)
     createGameboard()
   })
 
-  // When page loads, check for initial URL parameters
-  const urlParams = getUrlParameters()
-  if (urlParams.level && urlParams.unit) {
-    const unitSelect = document.getElementById("word-set")
-    const initialValue = `${urlParams.level}:${urlParams.unit}`
+  // Max Words Select Event Listener
+  const maxWordsSelect = document.getElementById("max-words")
+  maxWordsSelect.addEventListener("change", createGameboard)
 
-    // Check if the value exists in the dropdown
-    const optionExists = Array.from(unitSelect.options).some(
-      (option) => option.value === initialValue
-    )
+  // Extra Words Checkbox Event Listener
+  const includeExtraWordsCheckbox = document.getElementById(
+    "include-extra-words"
+  )
+  includeExtraWordsCheckbox.addEventListener("change", createGameboard)
 
-    if (optionExists) {
-      unitSelect.value = initialValue
+  // Stats Buttons Event Listenerers
+  const showStatsBtn = document.getElementById("show-stats-btn")
+  showStatsBtn.addEventListener("click", showPlayerStatsModal)
+  const closeStatsBtn = document.getElementById("close-stats-btn")
+  closeStatsBtn.addEventListener("click", hidePlayerStatsModal)
+
+  // Add/Save Player Buttons Event Listeners
+  const addPlayersBtn = document.getElementById("add-players-btn")
+  const savePlayersBtn = document.getElementById("save-players-btn")
+  const cancelPlayersBtn = document.getElementById("cancel-players-btn")
+  addPlayersBtn.addEventListener("click", showPlayersModal)
+  savePlayersBtn.addEventListener("click", () => {
+    const addPlayersBtn = document.getElementById("add-players-btn")
+    addPlayersBtn.textContent = "Edit Players"
+
+    savePlayers()
+  })
+  cancelPlayersBtn.addEventListener("click", hidePlayersModal)
+
+  // Play Again button event listener
+  const playAgainBtn = document.getElementById("play-again-btn")
+  playAgainBtn.addEventListener("click", () => {
+    hideCompletionModal()
+    // Reset current game
+    createGameboard()
+  })
+
+  // Allow clicking outside the modals to close them
+  const completionModal = document.getElementById("completion-modal")
+  const statsModal = document.getElementById("stats-modal")
+  const playersModal = document.getElementById("players-modal")
+  completionModal.addEventListener("click", (e) => {
+    if (e.target.id === "completion-modal") {
+      hideCompletionModal()
     }
-  }
+  })
+  statsModal.addEventListener("click", (e) => {
+    if (e.target.id === "stats-modal") {
+      hidePlayerStatsModal()
+    }
+  })
+  playersModal.addEventListener("click", (e) => {
+    if (e.target.id === "players-modal") {
+      hidePlayersModal()
+    }
+  })
 
-  // Load saved players when page loads
+  // Add escape key support to modals
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      // Close the modal
+      hideCompletionModal()
+      hidePlayerStatsModal()
+      hidePlayersModal()
+      // Reset current game
+      createGameboard()
+    }
+  })
+}
+// Call this when the page loads
+document.addEventListener("DOMContentLoaded", () => {
+  setupEventListeners()
   loadSavedPlayers()
-
+  loadPlayerStats()
   setupGridColumnControl() // For Debuging
   populateWordSetDropdown()
-  populateTotalWordsDropdown()
+  populateMaxWordsDropdown()
   setupSoundMuteControl()
   createGameboard()
 })

@@ -309,8 +309,8 @@ body {
   padding-right: var(--space-m);
 }
 
-/* Players Modal */
-.players-btn {
+.players-btn,
+.stats-btn {
   background-color: var(--ocean-blue);
   color: white;
   border: none;
@@ -320,6 +320,16 @@ body {
 
   &:hover {
     background-color: var(--deep-blue);
+  }
+}
+
+.stats-btn {
+  display: none;
+  visibility: hidden;
+
+  &.visible {
+    display: inline-block;
+    visibility: visible;
   }
 }
 
@@ -339,49 +349,6 @@ body {
     &.active {
       background-color: var(--ocean-blue);
       color: white;
-    }
-  }
-}
-
-
-
-#players-modal {
-  .modal-content {
-    textarea {
-      width: 100%;
-      margin-bottom: var(--space-s);
-      padding: var(--space-xs);
-      resize: vertical;
-      min-height: 100px;
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: space-between;
-      gap: var(--space-s);
-
-      button {
-        flex: 1;
-        padding: var(--space-xs);
-        background-color: var(--ocean-blue);
-        color: white;
-        border: none;
-        border-radius: var(--space-2xs);
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-
-        &:hover {
-          background-color: var(--deep-blue);
-        }
-
-        &:last-child {
-          background-color: #666;
-
-          &:hover {
-            background-color: #444;
-          }
-        }
-      }
     }
   }
 }
@@ -495,16 +462,8 @@ body {
   }
 }
 
-
 .hidden {
   display: none;
-}
-
-@keyframes ripple {
-  to {
-    transform: scale(4);
-    opacity: 0;
-  }
 }
 
 .bubble {
@@ -581,7 +540,7 @@ body {
   z-index: 1000;
   /* opacity: 0; */
   visibility: hidden;
-  transition: opacity 0.3s ease;
+  transition: opacity .3s ease;
 
   &.visible {
     opacity: 1;
@@ -616,9 +575,76 @@ body {
     }
 
     button {
-      margin-top: 0;
       font-size: var(--fs-step-1);
+      padding: var(--space-xs);
+      background-color: var(--ocean-blue);
+      color: white;
+      border: none;
+      border-radius: var(--space-2xs);
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background-color: var(--deep-blue);
+      }
     }
+  }
+}
+
+/* Players Modal - TextAreas and Buttons */
+.players-modal {
+  .modal-content {
+    textarea {
+      width: 100%;
+      margin-bottom: var(--space-s);
+      padding: var(--space-xs);
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-s);
+
+      .cancel-players-btn {
+        background-color: #666;
+
+        &:hover {
+          background-color: #444;
+        }
+      }
+    }
+  }
+}
+
+/* Stats Modal */
+.stats-modal {
+  .stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-m);
+
+    & table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    & th,
+    & td {
+      border: 1px solid var(--deep-blue);
+      padding: var(--space-xs);
+      text-align: center;
+    }
+
+    & h3 {
+      margin-bottom: var(--space-s);
+      font-size: var(--fs-step-3);
+    }
+  }
+
+  .modal-content .close-stats-btn {
+    margin-top: var(--space-xs);
   }
 }
 
