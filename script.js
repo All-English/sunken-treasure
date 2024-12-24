@@ -225,10 +225,12 @@ function updatePlayerStats(winningPlayer) {
       if (player !== otherPlayer) {
         if (!playerStats[player].playerWinLossRecord[otherPlayer]) {
           playerStats[player].playerWinLossRecord[otherPlayer] = {
-            wins: 0,
-            losses: 0,
+            victories: 0,
+            defeats: 0,
+            gamesPlayedWith: 0,
           }
         }
+        playerStats[player].playerWinLossRecord[otherPlayer].gamesPlayedWith++
       }
     })
   })
@@ -254,8 +256,8 @@ function updatePlayerStats(winningPlayer) {
     // Update win/loss record against other players
     players.forEach((otherPlayer) => {
       if (otherPlayer !== winningPlayer) {
-        playerStats[winningPlayer].playerWinLossRecord[otherPlayer].wins++
-        playerStats[otherPlayer].playerWinLossRecord[winningPlayer].losses++
+        playerStats[winningPlayer].playerWinLossRecord[otherPlayer].victories++
+        playerStats[otherPlayer].playerWinLossRecord[winningPlayer].defeats++
 
         playerStats[otherPlayer].currentWinStreak = 0
       }
@@ -935,8 +937,8 @@ function showPlayerStatsModal() {
   )
 
   // Create main stats table
-  const mainTable = document.createElement("table")
-  mainTable.innerHTML = `
+ const mainTable = document.createElement("table")
+ mainTable.innerHTML = `
     <thead>
       <tr>
         <th>Player</th>
@@ -949,10 +951,10 @@ function showPlayerStatsModal() {
     </thead>
     <tbody>
       ${sortedPlayers
-        .map((player) => {
+        .map((player, index) => {
           const stat = playerStats[player]
           return `
-          <tr>
+          <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
             <td>${player}</td>
             <td>${stat.totalGamesPlayed || 0}</td>
             <td>${stat.totalGamesWon || 0}</td>
@@ -965,58 +967,100 @@ function showPlayerStatsModal() {
         .join("")}
     </tbody>
   `
-
   // Create win/loss record section
   const winLossSection = document.createElement("div")
   winLossSection.innerHTML = "<h3>Win/Loss Records</h3>"
 
   const winLossTable = document.createElement("table")
-  winLossTable.innerHTML = `
-    <thead>
-      <tr>
-        <th>Player</th>
-        <th>Opponent</th>
-        <th>Wins</th>
-        <th>Losses</th>
-        <th>Win %</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${sortedPlayers
-        .map((player) => {
-          const playerRecord = playerStats[player].playerWinLossRecord || {}
-          return Object.keys(playerRecord)
-            .map((opponent) => {
-              const record = playerRecord[opponent]
-              const totalGames = record.wins + record.losses
-              const winPercentage = totalGames
-                ? Math.round((record.wins / totalGames) * 100)
-                : 0
-              return `
-              <tr>
-                <td>${player}</td>
-                <td>${opponent}</td>
-                <td>${record.wins}</td>
-                <td>${record.losses}</td>
-                <td>${winPercentage}%</td>
+winLossTable.innerHTML = `
+  <thead>
+    <tr>
+      <th>Player</th>
+      <th>Opponent</th>
+      <th>Victories</th>
+      <th>Defeats</th>
+      <th>Played With</th>
+      <th>Win %</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${sortedPlayers
+      .map((player, playerIndex) => {
+        const playerRecord = playerStats[player].playerWinLossRecord || {}
+        const opponentRows = Object.keys(playerRecord).map((opponent) => {
+          const record = playerRecord[opponent]
+          const gamesPlayedWith = record.gamesPlayedWith || 0
+          const winPercentage = gamesPlayedWith
+            ? Math.round((record.victories / gamesPlayedWith) * 100)
+            : 0
+          return {
+            player,
+            opponent,
+            victories: record.victories,
+            defeats: record.defeats,
+            gamesPlayedWith,
+            winPercentage,
+          }
+        })
+
+        // Sort rows by victories, then defeats, then win percentage for each player independently
+        opponentRows.sort((a, b) => {
+          if (b.victories !== a.victories) return b.victories - a.victories
+          if (b.defeats !== a.defeats) return b.defeats - a.defeats
+          return b.winPercentage - a.winPercentage
+        })
+
+        // Generate rows for this player only
+        return opponentRows
+          .map((row, index) => {
+            // Only check previous row if it exists and belongs to the same player
+            const prevRow = index > 0 ? opponentRows[index - 1] : null
+
+            // Count matching values only within this player's rows
+            const winsCount = opponentRows.filter(
+              (r) => r.victories === row.victories
+            ).length
+            const lossesCount = opponentRows.filter(
+              (r) => r.defeats === row.defeats
+            ).length
+            const gamesPlayedCount = opponentRows.filter(
+              (r) => r.gamesPlayedWith === row.gamesPlayedWith
+            ).length
+            const winPctCount = opponentRows.filter(
+              (r) => r.winPercentage === row.winPercentage
+            ).length
+
+            // Check if this is the first row of each group within this player's rows
+            const isFirstInPlayer = index === 0
+            const isFirstInWinsGroup = !prevRow || prevRow.victories !== row.victories
+            const isFirstInLossesGroup = !prevRow || prevRow.defeats !== row.defeats
+            const isFirstInGamesPlayedGroup = !prevRow || prevRow.gamesPlayedWith !== row.gamesPlayedWith
+            const isFirstInWinPctGroup = !prevRow || prevRow.winPercentage !== row.winPercentage
+
+            return `
+              <tr class="player-group-${playerIndex % 2 === 0 ? 'even' : 'odd'}">
+                ${isFirstInPlayer ? `<td rowspan="${opponentRows.length}">${row.player}</td>` : ''}
+                <td>${row.opponent}</td>
+                ${isFirstInWinsGroup ? `<td rowspan="${winsCount}">${row.victories}</td>` : ''}
+                ${isFirstInLossesGroup ? `<td rowspan="${lossesCount}">${row.defeats}</td>` : ''}
+                ${isFirstInGamesPlayedGroup ? `<td rowspan="${gamesPlayedCount}">${row.gamesPlayedWith}</td>` : ''}
+                ${isFirstInWinPctGroup ? `<td rowspan="${winPctCount}">${row.winPercentage}%</td>` : ''}
               </tr>
             `
-            })
-            .join("")
-        })
-        .join("")}
-    </tbody>
-  `
-
+          })
+          .join('')
+      })
+      .join('')}
+  </tbody>
+`
   // Append tables to container
   statsContainer.appendChild(mainTable)
   winLossSection.appendChild(winLossTable)
   statsContainer.appendChild(winLossSection)
-  
+
   // Show modal
   statsModal.classList.add("visible")
 }
-
 function hidePlayerStatsModal() {
   const statsModal = document.getElementById("stats-modal")
   statsModal.classList.remove("visible")
@@ -1044,16 +1088,16 @@ function savePlayers() {
     localStorage.setItem("treasureHuntPlayers", JSON.stringify(players))
     console.log("Players successfully saved to localStorage")
     console.log("---")
-
-    resetSessionWins()
-    updatePlayerDisplay()
-    hidePlayersModal()
-    createGameboard()
   } catch (error) {
     console.error("Error saving players to localStorage:", error)
     alert("Unable to save players. Local storage might be full or disabled.")
     console.log("---")
   }
+
+  resetSessionWins()
+  updatePlayerDisplay()
+  hidePlayersModal()
+  createGameboard()
 
   const showStatsBtn = document.getElementById("show-stats-btn")
   showStatsBtn.classList.add("visible")
@@ -1103,7 +1147,7 @@ function updatePlayerDisplay() {
 
     // Add stats to player display
     const playerStat = playerStats[player] || {}
-    const sessionGamesWon = playerStat.totalGamesWon || 0
+    const sessionGamesWon = playerStat.sessionGamesWon || 0
 
     playerElement.innerHTML = `
       ${player}: 
