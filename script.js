@@ -112,7 +112,6 @@ function setupSoundMuteControl() {
 
 // Safe sound play function
 function playSoundSafely(sound) {
-  
   if (sound instanceof HTMLAudioElement && !window.isSoundsMuted) {
     sound.play().catch(() => {
       // Silently handle any playback errors
@@ -630,15 +629,15 @@ function createGameboard() {
   const treasureDiv = document.createElement("div")
   treasureDiv.id = "treasure-div"
   treasureDiv.className = "treasure-div"
-  treasureDiv.textContent = "💎"
-  treasureDiv.style.setProperty("--cell", treasureCell)
-  // treasureDiv.style.gridColumn = `${
-  //   (treasureCell % gridColumns) + 1
-  // } / span ${gridColumnSpan}`
 
-  // treasureDiv.style.gridRow = `${
-  //   Math.floor(treasureCell / gridColumns) + 1
-  // } / span ${gridRowSpan}`
+  const treasureImage = document.createElement("img")
+  treasureImage.className = "treasure-image"
+  treasureImage.src = "pics/treasure-chest.svg"
+  treasureImage.style.width = "100%"
+  treasureImage.style.height = "100%"
+
+  treasureDiv.appendChild(treasureImage)
+  treasureDiv.style.setProperty("--cell", treasureCell)
 
   gameBoard.appendChild(treasureDiv)
 
@@ -742,7 +741,7 @@ function savePlayers() {
   const filteredPlayers = trimmedPlayers.filter((name) => name !== "")
   // Remove duplicates
   players = [...new Set(filteredPlayers)]
-  
+
   console.log("Player list:", players)
   // Save to localStorage
   try {
