@@ -208,14 +208,28 @@ function populateWordSetDropdown() {
     })
   })
 
-  // Select a random unit
-  if (allUnits.length > 0) {
-    const randomIndex = Math.floor(Math.random() * allUnits.length)
-    const selectedUnit = allUnits[randomIndex]
-    unitDropdown.value = selectedUnit
-
-    console.log(`Randomly selected unit: ${selectedUnit}`)
+  // Check URL parameters and set default if provided
+  const urlParams = getUrlParameters()
+  if (urlParams.level && urlParams.unit) {
+    const defaultValue = `${urlParams.level}:${urlParams.unit}`
+    if (allUnits.includes(defaultValue)) {
+      unitDropdown.value = defaultValue
+    }
   }
+
+  // If no valid URL parameter, you can optionally set a default
+  // if (!unitDropdown.value && allUnits.length > 0) {
+  //   unitDropdown.value = allUnits[0]
+  // }
+
+  // Select a random unit
+  // if (allUnits.length > 0) {
+  //   const randomIndex = Math.floor(Math.random() * allUnits.length)
+  //   const selectedUnit = allUnits[randomIndex]
+  //   unitDropdown.value = selectedUnit
+
+  //   console.log(`Randomly selected unit: ${selectedUnit}`)
+  // }
 }
 
 function populateTotalWordsDropdown() {
@@ -537,11 +551,55 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
   }
 }
 
+function getUrlParameters() {
+  const urlParams = new URLSearchParams(window.location.search)
+  const level = urlParams.get("level")
+  const unit = urlParams.get("unit")
+
+  return {
+    level: level ? `level${level}` : null,
+    unit: unit ? `unit${unit}` : null,
+  }
+}
+
+function validateWordSetSelection(level, unit) {
+  // Check if the specified level and unit exist in the word bank
+  if (!smartPhonicsWordBank[level] || !smartPhonicsWordBank[level][unit]) {
+    console.warn(`Invalid level or unit: ${level}, ${unit}. Using default.`)
+    return false
+  }
+  return true
+}
+
 function createGameboard() {
   const gameBoard = document.getElementById("game-board")
   const restartBtn = document.getElementById("play-again-btn")
 
-  const unitSelect = document.getElementById("word-set")
+  // Check for URL parameters first
+  const urlParams = getUrlParameters()
+
+  let selectedLevel, selectedUnit
+
+  if (
+    urlParams.level &&
+    urlParams.unit &&
+    validateWordSetSelection(urlParams.level, urlParams.unit)
+  ) {
+    // Use URL parameters if valid
+    selectedLevel = urlParams.level
+    selectedUnit = urlParams.unit
+
+    // Update the dropdown to match URL parameters
+    const unitSelect = document.getElementById("word-set")
+    unitSelect.value = `${selectedLevel}:${selectedUnit}`
+  } else {
+    // Fallback to dropdown selection
+    const unitSelect = document.getElementById("word-set")
+    // Split the value into level and unit
+    const [level, unit] = unitSelect.value.split(":")
+    selectedLevel = level
+    selectedUnit = unit
+  }
 
   // Get extra words checkbox state
   const includeExtraWordsCheckbox = document.getElementById(
@@ -552,9 +610,6 @@ function createGameboard() {
   // Get total words from dropdown
   const totalWordsSelect = document.getElementById("max-words")
   const totalWords = parseInt(totalWordsSelect.value)
-
-  // Split the value into level and unit
-  const [selectedLevel, selectedUnit] = unitSelect.value.split(":")
 
   const selectedWordSet = selectWordsFromWordBank(
     selectedLevel, // level
