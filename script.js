@@ -711,31 +711,9 @@ function createGameboard() {
     console.log(`Current Player: ${players[currentPlayerIndex]}`)
     updatePlayerDisplay()
   }
-  // Check for URL parameters first
-  const urlParams = getUrlParameters()
 
-  let selectedLevel, selectedUnit
-
-  if (
-    urlParams.level &&
-    urlParams.unit &&
-    validateWordSetSelection(urlParams.level, urlParams.unit)
-  ) {
-    // Use URL parameters if valid
-    selectedLevel = urlParams.level
-    selectedUnit = urlParams.unit
-
-    // Update the dropdown to match URL parameters
-    const wordSetDropdown = document.getElementById("word-set-dropdown")
-    wordSetDropdown.value = `${selectedLevel}:${selectedUnit}`
-  } else {
-    // Fallback to dropdown selection
-    const wordSetDropdown = document.getElementById("word-set-dropdown")
-    // Split the value into level and unit
-    const [level, unit] = wordSetDropdown.value.split(":")
-    selectedLevel = level
-    selectedUnit = unit
-  }
+  const wordSetDropdown = document.getElementById("word-set-dropdown")
+  const [selectedLevel, selectedUnit] = wordSetDropdown.value.split(":")
 
   // Get extra words checkbox state
   const includeExtraWordsCheckbox = document.getElementById(
@@ -1385,22 +1363,6 @@ function setupEventListeners() {
         usedCellDivs.forEach((div) => div.remove())
       } else createGameboard()
     })
-  }
-
-  // Check for initial URL parameters
-  const urlParams = getUrlParameters()
-  if (urlParams.level && urlParams.unit) {
-    const wordSetDropdown = document.getElementById("word-set-dropdown")
-    const initialValue = `${urlParams.level}:${urlParams.unit}`
-
-    // Check if the value exists in the dropdown
-    const optionExists = Array.from(wordSetDropdown.options).some(
-      (option) => option.value === initialValue
-    )
-
-    if (optionExists) {
-      wordSetDropdown.value = initialValue
-    }
   }
 
   // Update URL parameters when word set changes
