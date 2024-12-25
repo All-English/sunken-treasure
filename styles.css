@@ -70,27 +70,91 @@
   --deep-blue: #00008b;
   --sky-blue: #87ceeb;
 
-  /* --background-gradient: linear-gradient(
-    to bottom,
-    var(--sky-blue),
-    var(--ocean-blue)
-  ); */
+  /* Primary Colors */
+  --color-deep-blue: #1C3D5A;
+  --color-light-blue: #4A8BBA;
+  --color-seafoam: #64C7C4;
 
-  /* Alternative Predefined Positions:
-    - top right
-    - top left
-    - bottom left
-    - bottom right
-    - top
-    - bottom
-    - left
-    - right
-    - center
-  */
-  --background-gradient: radial-gradient(circle at center,
-      #00ffff,
-      #0080ff,
-      #0000ff);
+  /* Accent Colors */
+  --color-coral: #FF7F50;
+  --color-sand: #F4D03F;
+
+  /* Text Colors */
+  --color-white: #F2F2F2;
+  --color-navy: #0A1F2F;
+  --color-gray: #E0E5E9;
+
+  --primary-text-color: var(--color-white);
+  --secondary-text-color: var(--color-gray);
+
+  /* Button Styles */
+  --button-primary-bg: var(--color-coral);
+  --button-primary-text: var(--color-white);
+  --button-primary-hover: var(--color-coral-hover);
+
+  --button-secondary-bg: var(--color-seafoam);
+  --button-secondary-text: var(--color-navy);
+  --button-secondary-hover: var(--color-seafoam-hover);
+
+  /* Link Styles */
+  --link-color: var(--color-sand);
+  --link-hover: var(--color-sand-hover);
+
+  /* Container Styles */
+  --card-bg: rgba(255, 255, 255, 0.1);
+  --card-text: var(--color-white);
+  --card-border: rgba(255, 255, 255, 0.2);
+
+  --container-bg: rgba(74, 139, 186, 0.9);
+  --container-text: var(--color-white);
+
+  /* Header Styles */
+  --header-primary: var(--color-white);
+  --header-secondary: var(--color-gray);
+
+  /* Hover States (10% lighter) */
+  --color-coral-hover: #ff8f64;
+  --color-seafoam-hover: #78d1ce;
+  --color-sand-hover: #f5d656;
+
+  /* Modal Styles */
+  --modal-bg: rgb(74, 139, 186);
+  /* Using light-blue as base instead of deep blue */
+  --modal-overlay: rgba(10, 31, 47, 0.65);
+  /* Darker overlay for behind modal */
+  --modal-border: rgba(255, 255, 255, 0.1);
+  --modal-text: var(--color-white);
+  --modal-close-btn: var(--color-coral);
+  --modal-close-btn-hover: var(--color-coral-hover);
+
+  /* Checkbox Styles */
+  --checkbox-border: var(--color-light-blue);
+  /* #4A8BBA */
+  --checkbox-border-hover: var(--color-seafoam);
+  /* #64C7C4 */
+  --checkbox-bg: transparent;
+  --checkbox-checked-bg: var(--color-seafoam);
+  --checkbox-checked-border: var(--color-seafoam);
+  --checkbox-check-color: var(--color-white);
+  /* Color of the checkmark */
+
+  /* Select Styles */
+  --select-border: var(--color-light-blue);
+  /* #4A8BBA */
+  --select-bg: rgba(74, 139, 186, 0.2);
+  /* Very light transparent light-blue */
+  /* Semi-transparent deep blue */
+  --select-text: var(--color-white);
+
+  /* Hover/Focus states */
+  --select-border-hover: var(--color-seafoam);
+  --select-border-focus: var(--color-seafoam);
+
+  /* Options/Dropdown */
+  --select-option-bg: var(--color-deep-blue);
+  --select-option-text: var(--color-white);
+  --select-option-hover-bg: var(--color-light-blue);
+  --select-option-selected-bg: var(--color-seafoam);
 
   --container-max: 1000rem;
 }
@@ -219,8 +283,7 @@ body {
   overflow: auto;
 
   text-align: center;
-  color: white;
-  /* border: rgb(255, 136, 0) solid 3px; */
+  color: var(--primary-text-color);
 }
 
 .header-display {
@@ -237,12 +300,11 @@ body {
 
 /* game-options */
 .game-options {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--card-bg);
   /* Translucent white */
   border-radius: var(--space-xs);
   padding: var(--space-xs);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  color: white;
   font-size: var(--fs-step-1);
 
   display: flex;
@@ -254,12 +316,14 @@ body {
 
 .title {
   font-family: "Pirata One", system-ui;
+  color: var(--header-primary);
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
   font-size: var(--fs-step-5);
   text-align: center;
 }
 
 .subtitle {
+  color: var(--header-secondary);
   font-size: var(--fs-step-1);
 }
 
@@ -277,11 +341,9 @@ body {
 .mute-sounds-checkbox {
   width: max-content;
   padding: var(--space-3xs);
-  border: 2px solid var(--deep-blue);
+  border: 2px solid var(--checkbox-border);
   border-radius: var(--space-2xs);
   font-size: inherit;
-  background-color: rgba(255, 255, 255, 0.9);
-  color: var(--deep-blue);
   transition: all 0.3s ease;
 }
 
@@ -290,13 +352,14 @@ body {
 .extra-words-checkbox:focus,
 .mute-sounds-checkbox:focus {
   /* outline: none; */
-  border-color: var(--ocean-blue);
+  border-color: var(--checkbox-border-hover);
   box-shadow: 0 0 10px rgba(135, 206, 235, 0.5);
 }
 
 .extra-words-checkbox,
 .mute-sounds-checkbox {
-  accent-color: var(--ocean-blue);
+  color: var(--primary-text-color);
+  accent-color: var(--checkbox-checked-bg);
 }
 
 .max-words-select,
@@ -306,26 +369,37 @@ body {
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 12px;
+  background-color: var(--select-bg);
+  color: var(--select-text);
   padding-right: var(--space-m);
 }
 
 .players-btn,
 .stats-btn {
-  background-color: var(--ocean-blue);
-  color: white;
   border: none;
   padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--space-2xs);
   cursor: pointer;
+}
+
+.players-btn {
+  background-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
 
   &:hover {
-    background-color: var(--deep-blue);
+    background-color: var(--button-primary-hover);
   }
 }
 
 .stats-btn {
   display: none;
   visibility: hidden;
+  background-color: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+
+  &:hover {
+    background-color: var(--button-secondary-hover);
+  }
 
   &.visible {
     display: inline-block;
@@ -341,14 +415,15 @@ body {
   justify-content: center;
 
   .player-name {
-    background-color: rgba(255, 255, 255, 0.2);
     padding: var(--space-3xs) var(--space-xs);
     border-radius: var(--space-2xs);
-    transition: background-color 0.3s ease;
+    font-size: var(--fs-step-1);
+    color: var(--primary-text-color);
 
     &.active {
-      background-color: var(--ocean-blue);
-      color: white;
+      font-size: var(--fs-step-2);
+      font-weight: 700;
+      color: var(--link-color);
     }
   }
 }
@@ -401,10 +476,10 @@ body {
   font-size: var(--fs-step-3);
 
   /* padding: 10% 5%; */
-  color: var(--deep-blue);
+  color: var(--color-deep-blue);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  background-color: #f0f0f0;
-  border: 2px solid var(--deep-blue);
+  background-color: var(--color-white);
+  border: 2px solid var(--color-deep-blue);
   border-radius: 8px;
   cursor: pointer;
   text-wrap: balance;
@@ -415,7 +490,7 @@ body {
 .word-card:hover {
   transform: scale(1.05);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-  background: rgba(255, 255, 255, 1);
+  background-color: rgba(255, 255, 255, 1);
 }
 
 .treasure-div {
@@ -441,23 +516,6 @@ body {
 
 .word-card.clicked {
   animation: fadeOut 1.2s forwards;
-}
-
-@keyframes treasureFound {
-  0% {
-    transform: scale(1.2);
-    box-shadow: 0 0 0 0 rgba(255, 223, 0, 0.7);
-  }
-
-  50% {
-    transform: scale(1.3);
-    box-shadow: 0 0 20px 10px rgba(255, 223, 0, 0.5);
-  }
-
-  100% {
-    transform: scale(1.2);
-    box-shadow: 0 0 0 0 rgba(255, 223, 0, 0.7);
-  }
 }
 
 .hidden {
@@ -498,8 +556,8 @@ body {
   z-index: 100;
   /* Ensure it stays on top of other elements */
   font-size: var(--fs-step-2);
-  color: black;
-  background-color: white;
+  color: var(--color-navy);
+  background-color: var(--color-white);
 }
 
 #grid-columns {
@@ -534,6 +592,7 @@ body {
   width: 100%;
   height: 100%;
   background-color: hsla(0, 0%, 0%, 0.5);
+  background-color: var(--modal-overlay);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -554,120 +613,107 @@ body {
   }
 
   .modal-content {
-    background-color: var(--background-modal, gray);
+    background-color: var(--modal-bg);
+    color: var(--modal-text);
     padding: var(--space-l);
     border-radius: 8px;
     text-align: center;
     transform: scale(0.7);
     transition: transform 0.3s ease;
     box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.2);
-    border: var(--border), 1px solid white;
+    border: 1px solid var(--modal-border);
     max-width: 90%;
     margin: auto;
 
-    h2 {
-      color: var(--text-primary, white);
-      font-size: var(--fs-step-5);
-      margin-bottom: var(--space-s);
-    }
-
-    p {
-      color: var(--text-primary, white);
-      font-size: var(--fs-step-4);
-      margin-bottom: var(--space-m);
-    }
-
-    button {
-      font-size: var(--fs-step-1);
-      padding: var(--space-xs);
-      background-color: var(--ocean-blue);
-      color: white;
-      border: none;
-      border-radius: var(--space-2xs);
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-
-      &:hover {
-        background-color: var(--deep-blue);
-      }
-    }
-  }
-}
-
-/* Players Modal - TextAreas and Buttons */
-.players-modal {
-  .modal-content {
+    /* Players Modal - TextArea */
     textarea {
       width: 100%;
-      margin-bottom: var(--space-s);
       padding: var(--space-xs);
       resize: vertical;
       min-height: 100px;
+      font-size: var(--fs-step-1);
     }
 
+    /* Players Modal - Buttons */
     .modal-actions {
       display: flex;
       justify-content: space-between;
       gap: var(--space-s);
 
       .cancel-players-btn {
-        background-color: #666;
+        background-color: var(--button-secondary-bg);
+        color: var(--button-secondary-text);
 
         &:hover {
-          background-color: #444;
+          background-color: var(--button-secondary-hover);
+        }
+      }
+    }
+
+    h2 {
+      color: var(--primary-text-color);
+      font-size: var(--fs-step-4);
+      margin-bottom: var(--space-s);
+    }
+
+    button {
+      font-size: var(--fs-step-1);
+      padding: var(--space-xs);
+      margin-top: var(--space-xs);
+      background-color: var(--modal-close-btn);
+      color: var(--modal-text);
+      border: none;
+      border-radius: var(--space-2xs);
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background-color: var(--color-coral-hover);
+      }
+    }
+
+    .stats-container {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-m);
+
+      h3 {
+        margin-bottom: var(--space-s);
+        font-size: var(--fs-step-3);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+
+        th,
+        td {
+          border: 1px solid var(--color-deep-blue);
+          padding: var(--space-xs);
+          text-align: center;
+        }
+
+        .player-group-even {
+          background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .player-group-odd {
+          background-color: rgba(74, 139, 186, 0.1);
         }
       }
     }
   }
 }
 
-/* Stats Modal */
-.stats-modal {
-  .stats-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-m);
-
-    & table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    & th,
-    & td {
-      border: 1px solid var(--deep-blue);
-      padding: var(--space-xs);
-      text-align: center;
-    }
-
-    & h3 {
-      margin-bottom: var(--space-s);
-      font-size: var(--fs-step-3);
-    }
-  }
-
-  .modal-content .close-stats-btn {
-    margin-top: var(--space-xs);
-  }
-
-  .player-group-even {
-    background-color: rgba(0, 0, 0, 0.04);
-  }
-
-  .player-group-odd {
-    background-color: rgba(255, 255, 255, 0.04);
-  }
-}
 
 /* Show cards remaining in bottom right corner */
 .cards-remaining {
   position: fixed;
   bottom: var(--space-2xs);
   right: var(--space-2xs);
-  background-color: rgba(0, 0, 0, 0.7);
   background-color: rgba(255, 255, 255, 0.2);
   /* Translucent white */
-  color: white;
+  color: var(--primary-text-color);
   padding: var(--space-3xs) var(--space-2xs);
   border-radius: 50%;
   font-size: var(--fs-step--2);
