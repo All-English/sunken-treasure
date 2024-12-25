@@ -50,7 +50,7 @@
                 <button id="add-players-btn" class="players-btn">Add Players</button>
 
                 <!-- Show Stats Button  -->
-                <button id="show-stats-btn" class="stats-btn">Show Stats</button>
+                <button id="show-stats-btn" class="stats-btn">Leaderboard</button>
 
                 <!-- Player Names -->
                 <div id="player-display" class="player-display"></div>
@@ -65,8 +65,22 @@
         <div id="completion-modal" class="completion-modal modal">
             <div class="modal-content">
                 <h2>Treasure Found!</h2>
-                <p>Congratulations on discovering the treasure!</p>
+                <p><span id="winner-name"></span></p>
+                <div id="completion-stats-container" class="completion-stats-container stats-container">
+                    <!-- Current game stats will be inserted here -->
+                </div>
                 <button id="play-again-btn">Play Again</button>
+            </div>
+        </div>
+
+        <!-- Stats Modal -->
+        <div id="stats-modal" class="stats-modal modal">
+            <div class="modal-content">
+                <h2>Player Statistics</h2>
+                <div id="player-stats-container" class="stats-container">
+                    <!-- Stats table will be dynamically populated -->
+                </div>
+                <button class="close-stats-btn" id="close-stats-btn">Close</button>
             </div>
         </div>
 
@@ -80,17 +94,6 @@
                     <button id="save-players-btn" class="save-players-btn">Save Players</button>
                     <button id="cancel-players-btn" class="cancel-players-btn">Cancel</button>
                 </div>
-            </div>
-        </div>
-
-        <!-- Stats Modal -->
-        <div id="stats-modal" class="stats-modal modal" >
-            <div class="modal-content">
-                <h2>Player Statistics</h2>
-                <div class="stats-container" id="player-stats-container">
-                    <!-- Stats table will be dynamically populated -->
-                </div>
-                <button class="close-stats-btn" id="close-stats-btn">Close</button>
             </div>
         </div>
 

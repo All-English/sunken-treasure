@@ -656,7 +656,7 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
 
     // Show completion modal
     setTimeout(() => {
-      showCompletionModal()
+      showCompletionModal(winningPlayer)
       updatePlayerDisplay()
     }, 2000)
   } else {
@@ -902,9 +902,181 @@ function createGameboard() {
   createBubbles(15)
 }
 
-function showCompletionModal() {
-  const modal = document.getElementById("completion-modal")
-  modal.classList.add("visible")
+function createPlayerStatsTables(playersList) {
+  const container = document.createElement("div")
+
+  // Create main stats table
+  const mainTable = document.createElement("table")
+  mainTable.innerHTML = `
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Games Played</th>
+        <th>Games Won</th>
+        <th>Win %</th>
+        <th>Current Streak</th>
+        <th>Longest Streak</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${playersList
+        .map((player, index) => {
+          const stat = playerStats[player]
+          return `
+          <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
+            <td>${player}</td>
+            <td>${stat.totalGamesPlayed || 0}</td>
+            <td>${stat.totalGamesWon || 0}</td>
+            <td>${stat.winPercentage || 0}%</td>
+            <td>${stat.currentWinStreak || 0}</td>
+            <td>${stat.longestWinStreak || 0}</td>
+          </tr>
+        `
+        })
+        .join("")}
+    </tbody>
+  `
+
+  // Create win/loss record section
+  const winLossSection = document.createElement("div")
+  winLossSection.innerHTML = "<h3>Win/Loss Records</h3>"
+
+  const winLossTable = document.createElement("table")
+  winLossTable.innerHTML = `
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Opponent</th>
+        <th>Victories</th>
+        <th>Defeats</th>
+        <th>Played With</th>
+        <th>Win %</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${playersList
+        .map((player, playerIndex) => {
+          const playerRecord = playerStats[player].playerWinLossRecord || {}
+          const opponentRows = Object.keys(playerRecord)
+            .filter((opponent) => playersList.includes(opponent))
+            .map((opponent) => {
+              const record = playerRecord[opponent]
+              const gamesPlayedWith = record.gamesPlayedWith || 0
+              const winPercentage = gamesPlayedWith
+                ? Math.round((record.victories / gamesPlayedWith) * 100)
+                : 0
+              return {
+                player,
+                opponent,
+                victories: record.victories,
+                defeats: record.defeats,
+                gamesPlayedWith,
+                winPercentage,
+              }
+            })
+
+          opponentRows.sort((a, b) => {
+            if (b.victories !== a.victories) return b.victories - a.victories
+            if (b.defeats !== a.defeats) return b.defeats - a.defeats
+            return b.winPercentage - a.winPercentage
+          })
+
+          return opponentRows
+            .map((row, index) => {
+              const prevRow = index > 0 ? opponentRows[index - 1] : null
+
+              const winsCount = opponentRows.filter(
+                (r) => r.victories === row.victories
+              ).length
+              const lossesCount = opponentRows.filter(
+                (r) => r.defeats === row.defeats
+              ).length
+              const gamesPlayedCount = opponentRows.filter(
+                (r) => r.gamesPlayedWith === row.gamesPlayedWith
+              ).length
+              const winPctCount = opponentRows.filter(
+                (r) => r.winPercentage === row.winPercentage
+              ).length
+
+              const isFirstInPlayer = index === 0
+              const isFirstInWinsGroup =
+                !prevRow || prevRow.victories !== row.victories
+              const isFirstInLossesGroup =
+                !prevRow || prevRow.defeats !== row.defeats
+              const isFirstInGamesPlayedGroup =
+                !prevRow || prevRow.gamesPlayedWith !== row.gamesPlayedWith
+              const isFirstInWinPctGroup =
+                !prevRow || prevRow.winPercentage !== row.winPercentage
+
+              return `
+                <tr class="player-group-${
+                  playerIndex % 2 === 0 ? "even" : "odd"
+                }">
+                  ${
+                    isFirstInPlayer
+                      ? `<td rowspan="${opponentRows.length}">${row.player}</td>`
+                      : ""
+                  }
+                  <td>${row.opponent}</td>
+                  ${
+                    isFirstInWinsGroup
+                      ? `<td rowspan="${winsCount}">${row.victories}</td>`
+                      : ""
+                  }
+                  ${
+                    isFirstInLossesGroup
+                      ? `<td rowspan="${lossesCount}">${row.defeats}</td>`
+                      : ""
+                  }
+                  ${
+                    isFirstInGamesPlayedGroup
+                      ? `<td rowspan="${gamesPlayedCount}">${row.gamesPlayedWith}</td>`
+                      : ""
+                  }
+                  ${
+                    isFirstInWinPctGroup
+                      ? `<td rowspan="${winPctCount}">${row.winPercentage}%</td>`
+                      : ""
+                  }
+                </tr>
+              `
+            })
+            .join("")
+        })
+        .join("")}
+    </tbody>
+  `
+
+  container.appendChild(mainTable)
+  winLossSection.appendChild(winLossTable)
+  container.appendChild(winLossSection)
+
+  return container
+}
+
+function showCompletionModal(winner) {
+  const completionModal = document.getElementById("completion-modal")
+  const winnerNameSpan = document.getElementById("winner-name")
+
+  if (winner) {
+    const completionModalStats = document.getElementById(
+      "completion-stats-container"
+    )
+
+    // Set winner's name
+    winnerNameSpan.textContent = `${winner} found the treasure!`
+
+    // Clear existing stats
+    completionModalStats.innerHTML = ""
+
+    const statsTables = createPlayerStatsTables(players)
+    completionModalStats.appendChild(statsTables)
+  } else {
+      winnerNameSpan.textContent = `Congratulations, You found the treasure!`
+  }
+
+  // Show modal
+  completionModal.classList.add("visible")
 }
 
 function hideCompletionModal() {
@@ -937,8 +1109,8 @@ function showPlayerStatsModal() {
   )
 
   // Create main stats table
- const mainTable = document.createElement("table")
- mainTable.innerHTML = `
+  const mainTable = document.createElement("table")
+  mainTable.innerHTML = `
     <thead>
       <tr>
         <th>Player</th>
@@ -972,7 +1144,7 @@ function showPlayerStatsModal() {
   winLossSection.innerHTML = "<h3>Win/Loss Records</h3>"
 
   const winLossTable = document.createElement("table")
-winLossTable.innerHTML = `
+  winLossTable.innerHTML = `
   <thead>
     <tr>
       <th>Player</th>
@@ -1032,25 +1204,51 @@ winLossTable.innerHTML = `
 
             // Check if this is the first row of each group within this player's rows
             const isFirstInPlayer = index === 0
-            const isFirstInWinsGroup = !prevRow || prevRow.victories !== row.victories
-            const isFirstInLossesGroup = !prevRow || prevRow.defeats !== row.defeats
-            const isFirstInGamesPlayedGroup = !prevRow || prevRow.gamesPlayedWith !== row.gamesPlayedWith
-            const isFirstInWinPctGroup = !prevRow || prevRow.winPercentage !== row.winPercentage
+            const isFirstInWinsGroup =
+              !prevRow || prevRow.victories !== row.victories
+            const isFirstInLossesGroup =
+              !prevRow || prevRow.defeats !== row.defeats
+            const isFirstInGamesPlayedGroup =
+              !prevRow || prevRow.gamesPlayedWith !== row.gamesPlayedWith
+            const isFirstInWinPctGroup =
+              !prevRow || prevRow.winPercentage !== row.winPercentage
 
             return `
-              <tr class="player-group-${playerIndex % 2 === 0 ? 'even' : 'odd'}">
-                ${isFirstInPlayer ? `<td rowspan="${opponentRows.length}">${row.player}</td>` : ''}
+              <tr class="player-group-${
+                playerIndex % 2 === 0 ? "even" : "odd"
+              }">
+                ${
+                  isFirstInPlayer
+                    ? `<td rowspan="${opponentRows.length}">${row.player}</td>`
+                    : ""
+                }
                 <td>${row.opponent}</td>
-                ${isFirstInWinsGroup ? `<td rowspan="${winsCount}">${row.victories}</td>` : ''}
-                ${isFirstInLossesGroup ? `<td rowspan="${lossesCount}">${row.defeats}</td>` : ''}
-                ${isFirstInGamesPlayedGroup ? `<td rowspan="${gamesPlayedCount}">${row.gamesPlayedWith}</td>` : ''}
-                ${isFirstInWinPctGroup ? `<td rowspan="${winPctCount}">${row.winPercentage}%</td>` : ''}
+                ${
+                  isFirstInWinsGroup
+                    ? `<td rowspan="${winsCount}">${row.victories}</td>`
+                    : ""
+                }
+                ${
+                  isFirstInLossesGroup
+                    ? `<td rowspan="${lossesCount}">${row.defeats}</td>`
+                    : ""
+                }
+                ${
+                  isFirstInGamesPlayedGroup
+                    ? `<td rowspan="${gamesPlayedCount}">${row.gamesPlayedWith}</td>`
+                    : ""
+                }
+                ${
+                  isFirstInWinPctGroup
+                    ? `<td rowspan="${winPctCount}">${row.winPercentage}%</td>`
+                    : ""
+                }
               </tr>
             `
           })
-          .join('')
+          .join("")
       })
-      .join('')}
+      .join("")}
   </tbody>
 `
   // Append tables to container
@@ -1061,6 +1259,7 @@ winLossTable.innerHTML = `
   // Show modal
   statsModal.classList.add("visible")
 }
+
 function hidePlayerStatsModal() {
   const statsModal = document.getElementById("stats-modal")
   statsModal.classList.remove("visible")
