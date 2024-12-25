@@ -279,16 +279,12 @@ function resetSessionWins() {
 
 function populateWordSetDropdown() {
   const unitDropdown = document.getElementById("word-set-dropdown")
-
-  // Clear existing options
   unitDropdown.innerHTML = ""
 
-  // Create and add the optgroup
   const smartPhonicsGroup = document.createElement("optgroup")
   smartPhonicsGroup.label = "Smart Phonics"
   unitDropdown.appendChild(smartPhonicsGroup)
 
-  // Collect all units from all levels
   const allUnits = []
 
   Object.keys(smartPhonicsWordBank).forEach((level) => {
@@ -309,39 +305,34 @@ function populateWordSetDropdown() {
         ""
       )} - Unit ${unit.replace("unit", "")} (${targetSound})`
 
-      // Store all units
       allUnits.push(option.value)
-
       smartPhonicsGroup.appendChild(option) // Append to optgroup instead of dropdown
     })
   })
 
-  // Check URL parameters and set default if provided
+  // Handle URL parameters first
   const urlParams = getUrlParameters()
   if (urlParams.level && urlParams.unit) {
-    const defaultValue = `level${urlParams.level}:unit${urlParams.unit}`
-    if (allUnits.includes(defaultValue)) {
+    const level = `${urlParams.level}`
+    const unit = `${urlParams.unit}`
+
+    if (validateWordSetSelection(level, unit)) {
+      const defaultValue = `${level}:${unit}`
       unitDropdown.value = defaultValue
+      return // Exit if we successfully set a valid value from URL params
     }
   }
 
-  // If no valid URL parameter, you can optionally set a default
-  if (!unitDropdown.value && allUnits.length > 0) {
-    unitDropdown.value = allUnits[0]
+  // Only select random if we didn't set a value from URL params
+  if (allUnits.length > 0) {
+    const randomIndex = Math.floor(Math.random() * allUnits.length)
+    const selectedUnit = allUnits[randomIndex]
+    unitDropdown.value = selectedUnit
 
-    // Update URL with the default selection
-    const [defaultLevel, defaultUnit] = allUnits[0].split(":")
-    updateUrlParameters(defaultLevel, defaultUnit)
+    // Update URL with the random selection
+    const [randomLevel, randomUnit] = selectedUnit.split(":")
+    updateUrlParameters(randomLevel, randomUnit)
   }
-
-  // Select a random unit
-  // if (allUnits.length > 0) {
-  //   const randomIndex = Math.floor(Math.random() * allUnits.length)
-  //   const selectedUnit = allUnits[randomIndex]
-  //   unitDropdown.value = selectedUnit
-
-  //   console.log(`Randomly selected unit: ${selectedUnit}`)
-  // }
 }
 
 function populateMaxWordsDropdown() {
@@ -1072,7 +1063,7 @@ function showCompletionModal(winner) {
     const statsTables = createPlayerStatsTables(players)
     completionModalStats.appendChild(statsTables)
   } else {
-      winnerNameSpan.textContent = `Congratulations, You found the treasure!`
+    winnerNameSpan.textContent = `Congratulations, You found the treasure!`
   }
 
   // Show modal
