@@ -708,7 +708,7 @@ function createGameboard() {
   // Reset player turn to first player
   if (players.length > 0) {
     currentPlayerIndex = 0
-    console.log(`Current Player: ${players[currentPlayerIndex]}`)
+    console.log(`First Player is ${players[currentPlayerIndex]}`)
     updatePlayerDisplay()
   }
 
