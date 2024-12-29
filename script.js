@@ -34,7 +34,6 @@
 const showUsedCellsCheckbox = document.getElementById("show-used-cells") // used for debugging
 let cardsRemaining = 0
 let currentPlayerIndex = 0
-let gameActive = true
 let players = []
 let playerStats = {}
 let treasureIndex
@@ -59,6 +58,279 @@ const wrongSounds = [
 ]
 let winSoundsQueue = shuffleArray([...winSounds])
 let wrongSoundsQueue = shuffleArray([...wrongSounds])
+
+// Define treasure types with their properties
+const TREASURE_TYPES = {
+  CHEST: {
+    id: "chest",
+    points: 50,
+    images: ["pics/treasure-chest.svg"],
+    placementRatio: 0.1, // Proportion of treasures of this type
+  },
+  GOLD_BAG: {
+    id: "goldBag",
+    points: 30,
+    images: ["pics/gold-bag.png"],
+    placementRatio: 0.3,
+  },
+  GEM: {
+    id: "gem",
+    points: 10,
+    images: [
+      "pics/gem-blue.png",
+      "pics/gem-blue-2.png",
+      "pics/gem-green.png",
+      "pics/gem-green-2.png",
+      "pics/gem-multicolored.png",
+      "pics/gem-orange-2.png",
+      "pics/gem-orange.png",
+      "pics/gem-pink.png",
+      "pics/gem-purple.png",
+      "pics/gem-purple-2.png",
+      "pics/gem-red.png",
+      "pics/gem-red-2.png",
+      "pics/gem-silver.png",
+      "pics/gem-turquise.png",
+      "pics/gem-yellow.png",
+    ],
+    placementRatio: 0.5,
+  },
+}
+
+// Calculate player level using a quadratic formula
+// Provides quick initial leveling with gradually increasing point requirements
+function calculatePlayerLevel(totalPoints) {
+  // New formula: Points = 5n^2 + 35n - 40
+  const a = 5 // Coefficient of n^2
+  const b = 35 // Coefficient of n
+  const c = -40 // Constant term
+
+  const discriminant = Math.sqrt(b * b - 4 * a * (c - totalPoints))
+  const level = Math.floor((-b + discriminant) / (2 * a))
+  return level
+
+  // Minimum Points Required for Each Level:
+  // Level | Minimum Points | Verification
+  // -------------------------------------
+  //     1 |             0 | Level 0 → 1
+  //     2 |            50 | Level 1 → 2
+  //     3 |           110 | Level 2 → 3
+  //     4 |           180 | Level 3 → 4
+  //     5 |           260 | Level 4 → 5
+  //     6 |           350 | Level 5 → 6
+  //     7 |           450 | Level 6 → 7
+  //     8 |           560 | Level 7 → 8
+  //     9 |           680 | Level 8 → 9
+  //    10 |           810 | Level 9 → 10
+}
+
+function showLevelUpNotification(player, newLevel) {
+  // Create notification element
+  const notification = document.createElement("div")
+  notification.classList.add("level-up-notification")
+  notification.innerHTML = `
+    <h3>Level Up!</h3>
+    <p>${player} is now Level ${newLevel}</p>
+  `
+
+  // Add to game container or create a specific notification area
+  const gameContainer = document.querySelector(".game-container")
+  gameContainer.appendChild(notification)
+
+  // Play a sound effect?
+
+  // Automatically remove notification after a few seconds
+  setTimeout(() => {
+    notification.remove()
+  }, 3000)
+}
+
+// Initialize statistics for a new player
+function initializePlayerStats(playerName) {
+  return {
+    // Track overall points and game performance
+    totalPoints: 0,
+    totalPointsAllTime: 0,
+    playerLevel: 1,
+    totalGamesPlayed: 0,
+    totalGamesWon: 0,
+    winPercentage: 0,
+
+    // Track treasures found by type
+    treasuresFound: {
+      chest: 0,
+      goldBag: 0,
+      gem: 0,
+      total: 0,
+    },
+    // Track points earned from each treasure type
+    pointsPerTreasureType: {
+      chest: 0,
+      goldBag: 0,
+      gem: 0,
+    },
+
+    // Track performance against other players
+    versusStats: {},
+
+    // Track current game session statistics
+    currentSessionStats: {
+      gamesPlayed: 0,
+      gamesWon: 0,
+      totalPointsEarned: 0,
+    },
+  }
+}
+
+// Update player stats when a treasure is found
+function updateTreasureStats(player, treasureType, points) {
+  if (players.length === 0) {
+    return
+  }
+
+  const stats = playerStats[player]
+
+  // Increment treasure-specific counters
+  stats.treasuresFound[treasureType]++
+  stats.treasuresFound.total++
+  stats.pointsPerTreasureType[treasureType] += points
+
+  // Update point totals
+  stats.totalPoints += points // Current game's points
+  stats.totalPointsAllTime += points // All-time accumulated points
+  stats.currentSessionStats.totalPointsEarned += points // Points earned in current game session
+
+  const previousLevel = stats.playerLevel
+
+  // Recalculate player level based on total points
+  stats.playerLevel = calculatePlayerLevel(stats.totalPointsAllTime)
+
+  // Check if level has increased
+  if (stats.playerLevel > previousLevel) {
+    // Create and show level up notification
+    showLevelUpNotification(player, stats.playerLevel)
+    console.log(
+      player,
+      "leveled up to",
+      stats.playerLevel,
+      "with",
+      stats.totalPointsAllTime,
+      "points"
+    )
+  }
+}
+
+// Update player stats at the end of a game
+function updatePlayerStats(winningPlayer) {
+  if (players.length === 0) {
+    return
+  }
+
+  players.forEach((player) => {
+    const stats = playerStats[player]
+
+    // Increment game play counters
+    stats.totalGamesPlayed++
+    stats.currentSessionStats.gamesPlayed++
+
+    // Update win statistics if player won
+    if (player === winningPlayer) {
+      stats.totalGamesWon++
+      stats.currentSessionStats.gamesWon++
+      stats.winPercentage = Math.round(
+        (stats.totalGamesWon / stats.totalGamesPlayed) * 100
+      )
+    }
+
+    // Track performance against other players
+    players.forEach((opponent) => {
+      if (opponent !== player) {
+        // Initialize versus stats if not exists
+        if (!stats.versusStats[opponent]) {
+          stats.versusStats[opponent] = {
+            gamesPlayed: 0,
+            gamesWon: 0,
+            winPercentage: 0,
+          }
+        }
+
+        // Update games played
+        stats.versusStats[opponent].gamesPlayed++
+
+        // Update wins if player won
+        if (player === winningPlayer) {
+          stats.versusStats[opponent].gamesWon++
+          stats.versusStats[opponent].winPercentage = Math.round(
+            (stats.versusStats[opponent].gamesWon /
+              stats.versusStats[opponent].gamesPlayed) *
+              100
+          )
+        }
+      }
+    })
+  })
+
+  // Save updated stats to persistent storage
+  savePlayerStats()
+}
+
+// Calculate number of treasures based on max words
+function calculateTreasureCount(maxWords) {
+  const MAX_TOTAL_TREASURES = 10 // Prevent board overcrowding
+  const baseCount = Math.floor(maxWords / 5)
+
+  const CHEST = 1 // Always 1 chest
+
+  // Calculate gold bag count, ensuring it doesn't exceed max treasures
+  const GOLD_BAG = Math.min(
+    Math.max(1, Math.floor(baseCount * TREASURE_TYPES.GOLD_BAG.placementRatio)),
+    MAX_TOTAL_TREASURES - (CHEST + 1)
+  )
+
+  // Calculate gem count, using remaining available slots
+  const GEM = Math.min(
+    Math.max(1, baseCount - (CHEST + GOLD_BAG)),
+    MAX_TOTAL_TREASURES - (CHEST + GOLD_BAG)
+  )
+
+  return { CHEST, GOLD_BAG, GEM }
+}
+
+// Create a treasure div
+function createTreasureDiv(treasureType, availableCells) {
+  // Randomly select a cell for the treasure
+  const treasureCellIndex = Math.floor(Math.random() * availableCells.length)
+  const treasureCell = availableCells.splice(treasureCellIndex, 1)[0]
+
+  // Create treasure div element
+  const treasureDiv = document.createElement("div")
+  treasureDiv.id = `treasure-${treasureType.id}-${Math.random()
+    .toString(36)
+    .substr(2, 9)}`
+  treasureDiv.className = "treasure-div"
+  treasureDiv.dataset.points = treasureType.points
+  treasureDiv.dataset.type = treasureType.id
+
+  // Create and set treasure image
+  const treasureImage = document.createElement("img")
+  treasureImage.className = "treasure-image"
+
+  // Randomly select an image from available images
+  const selectedImage =
+    treasureType.images[Math.floor(Math.random() * treasureType.images.length)]
+
+  treasureImage.src = selectedImage
+  treasureImage.style.width = "100%"
+
+  treasureDiv.appendChild(treasureImage)
+  treasureDiv.style.setProperty("--cell", treasureCell)
+
+  // Add treasure to game board
+  const gameBoard = document.getElementById("game-board")
+  gameBoard.appendChild(treasureDiv)
+
+  return treasureCell
+}
 
 // used for debugging - updates the grid columns using the input
 function setupGridColumnControl() {
@@ -199,75 +471,6 @@ function savePlayerStats() {
   localStorage.setItem("treasureHuntPlayerStats", JSON.stringify(playerStats))
 }
 
-// Function to update player stats when a game is completed
-function updatePlayerStats(winningPlayer) {
-  // Initialize stats for player if not exists
-  players.forEach((player) => {
-    if (!playerStats[player]) {
-      playerStats[player] = {
-        totalGamesPlayed: 0,
-        totalGamesWon: 0,
-        sessionGamesWon: 0,
-        winPercentage: 0,
-        currentWinStreak: 0,
-        longestWinStreak: 0,
-        playerWinLossRecord: {},
-      }
-    }
-  })
-
-  // Update stats for all players
-  players.forEach((player) => {
-    playerStats[player].totalGamesPlayed++
-
-    // Update win/loss record against other players
-    players.forEach((otherPlayer) => {
-      if (player !== otherPlayer) {
-        if (!playerStats[player].playerWinLossRecord[otherPlayer]) {
-          playerStats[player].playerWinLossRecord[otherPlayer] = {
-            victories: 0,
-            defeats: 0,
-            gamesPlayedWith: 0,
-          }
-        }
-        playerStats[player].playerWinLossRecord[otherPlayer].gamesPlayedWith++
-      }
-    })
-  })
-
-  // Update winning player's stats
-  if (winningPlayer) {
-    const playerStat = playerStats[winningPlayer]
-    playerStat.totalGamesWon++
-    playerStat.sessionGamesWon++
-    playerStat.currentWinStreak++
-
-    // Update longest win streak
-    playerStat.longestWinStreak = Math.max(
-      playerStat.longestWinStreak,
-      playerStat.currentWinStreak
-    )
-
-    // Update win percentage
-    playerStat.winPercentage = Math.round(
-      (playerStat.totalGamesWon / playerStat.totalGamesPlayed) * 100
-    )
-
-    // Update win/loss record against other players
-    players.forEach((otherPlayer) => {
-      if (otherPlayer !== winningPlayer) {
-        playerStats[winningPlayer].playerWinLossRecord[otherPlayer].victories++
-        playerStats[otherPlayer].playerWinLossRecord[winningPlayer].defeats++
-
-        playerStats[otherPlayer].currentWinStreak = 0
-      }
-    })
-  }
-
-  // Save updated stats
-  savePlayerStats()
-}
-
 // Reset session wins when starting a new game with players
 function resetSessionWins() {
   players.forEach((player) => {
@@ -342,7 +545,7 @@ function populateMaxWordsDropdown() {
   maxWordsDropdown.innerHTML = ""
 
   // Create options from 5 to 40, incrementing by 5
-  for (let i = 5; i <= 45; i += 5) {
+  for (let i = 5; i <= 40; i += 5) {
     const option = document.createElement("option")
     option.value = i
     option.textContent = `${i}`
@@ -612,44 +815,62 @@ function selectWordsFromWordBank(
   return selectedWords
 }
 
-function handleWordClick(wordCard, treasureCell, currentCell) {
-  if (!gameActive || wordCard.classList.contains("clicked")) return
+function handleWordClick(wordCard, treasureCells, currentCell) {
+  if (wordCard.classList.contains("clicked")) return
 
   // Keep track of how many cards are left
   cardsRemaining--
   document.getElementById("cards-remaining").textContent =
     cardsRemaining.toString()
 
-  createBubbles(4)
+  createBubbles(8)
 
   wordCard.classList.add("clicked")
 
-  // Check if clicked cell is near treasure cell
-  if (currentCell === treasureCell) {
-    // Found the treasure!
-    gameActive = false
+  // Find the treasure div for this specific cell
+  const treasureDiv = document.querySelector(
+    `.treasure-div[style*="--cell: ${currentCell}"]`
+  )
 
-    // Play wrong sound effect after a delay
+  // Check if current cell is a treasure cell
+  if (treasureDiv) {
+    const treasureType = treasureDiv.dataset.type
+    const points = parseInt(treasureDiv.dataset.points)
+
+    const currentPlayer = players[currentPlayerIndex]
+
+    console.log(
+      currentPlayer,
+      "found a",
+      treasureType,
+      "worth",
+      points,
+      "points!"
+    )
+
+    // Play sound effect after a delay
     setTimeout(() => {
       playNextSoundInQueue(winSounds)
     }, 700)
 
     // Reveal treasure
     setTimeout(() => {
-      const treasureDiv = document.querySelector(".treasure-div")
-      if (treasureDiv) {
-        treasureDiv.style.display = "flex"
+      treasureDiv.style.display = "flex"
+
+      updateTreasureStats(currentPlayer, treasureType, points)
+
+      // Check if all treasures are found
+      const remainingTreasures = document.querySelectorAll(
+        '.treasure-div:not([style*="display: flex"])'
+      )
+
+      if (remainingTreasures.length === 0) {
+        console.log("All treasures found!")
+        endGame(currentPlayer)
+      } else {
+        switchToNextPlayer()
       }
     }, 300)
-
-    const winningPlayer = players[currentPlayerIndex]
-    updatePlayerStats(winningPlayer)
-
-    // Show completion modal
-    setTimeout(() => {
-      showCompletionModal(winningPlayer)
-      updatePlayerDisplay()
-    }, 2000)
   } else {
     // Wrong guess
 
@@ -666,6 +887,26 @@ function handleWordClick(wordCard, treasureCell, currentCell) {
     // Switch to next player after each guess
     switchToNextPlayer()
   }
+}
+
+// Determine the winner and end the game
+function endGame(currentPlayer) {
+  // Find player with most points
+  const winner = players.reduce((maxPointPlayer, currentPlayer) => {
+    return playerStats[currentPlayer].totalPoints >
+      playerStats[maxPointPlayer].totalPoints
+      ? currentPlayer
+      : maxPointPlayer
+  })
+
+  // Update all players' stats
+  updatePlayerStats(winner)
+
+  // Show completion modal
+  setTimeout(() => {
+    showCompletionModal(winner)
+    updatePlayerDisplay()
+  }, 2000)
 }
 
 function updateUrlParameters(level, unit) {
@@ -752,7 +993,6 @@ function createGameboard() {
   }
 
   gameBoard.innerHTML = ""
-  gameActive = true
   const unavailableCells = new Set()
 
   // Create an array of all available cells
@@ -765,70 +1005,75 @@ function createGameboard() {
       Math.floor(cell / gridColumns) < gridRows - 2 // Prevent placement in the last 2 rows
   )
 
-  // For golden ratio
-  // const gridRows = Math.round(gridColumns / 1.618)
-  // const gridColumnSpan = Math.round(gridColumns / 10)
-  // const gridRowSpan = Math.round(gridColumnSpan / 1.618)
+  const treasureCounts = calculateTreasureCount(maxWords)
 
-  // Set CSS custom properties
-  // gameBoard.style.setProperty("--gridColumns", gridColumns)
-  // gameBoard.style.setProperty("--gridRows", gridRows)
+  // Treasure to Place in the treasureDiv cells
+  const treasuresToPlace = [
+    { type: TREASURE_TYPES.CHEST, count: treasureCounts.CHEST },
+    { type: TREASURE_TYPES.GOLD_BAG, count: treasureCounts.GOLD_BAG },
+    { type: TREASURE_TYPES.GEM, count: treasureCounts.GEM },
+  ]
 
-  // let treasureCell
-  // do {
-  //   treasureCell = Math.floor(Math.random() * (gridColumns * gridRows)) // Randomly select treasure location
-  // } while (
-  //   treasureCell % gridColumns >= gridColumns - 4 || // Prevent placement in the last 4 columns
-  //   Math.floor(treasureCell / gridColumns) >= gridRows - 2 // Prevent placement in the last 2 rows
-  // )
+  // Track total treasures placed
+  let totalTreasuresPlaced = 0
 
-  // Select treasure cell
-  const treasureCellIndex = Math.floor(Math.random() * availableCells.length)
-  const treasureCell = availableCells.splice(treasureCellIndex, 1)[0]
+  // Create the treasure Divs
+  treasuresToPlace.forEach((treasureConfig) => {
+    for (let i = 0; i < treasureConfig.count; i++) {
+      // Stop if we've reached max treasures or no available cells
+      if (totalTreasuresPlaced >= 10 || availableCells.length === 0) break
 
-  addUnavailableCells(
-    treasureCell,
-    unavailableCells,
-    availableCells,
-    gridColumns,
-    gridRows
-  )
+      const treasureCell = createTreasureDiv(
+        treasureConfig.type,
+        availableCells
+      )
 
-  // Create treasure div
-  const treasureDiv = document.createElement("div")
-  treasureDiv.id = "treasure-div"
-  treasureDiv.className = "treasure-div"
+      addUnavailableCells(
+        treasureCell,
+        unavailableCells,
+        availableCells,
+        gridColumns,
+        gridRows
+      )
 
-  const treasureImage = document.createElement("img")
-  treasureImage.className = "treasure-image"
-  treasureImage.src = "pics/treasure-chest.svg"
-  treasureImage.style.width = "100%"
-  treasureImage.style.height = "100%"
-
-  treasureDiv.appendChild(treasureImage)
-  treasureDiv.style.setProperty("--cell", treasureCell)
-
-  gameBoard.appendChild(treasureDiv)
-
-  // Find a word to place on the treasure cell
-  const treasureWordIndex = Math.floor(Math.random() * selectedWordSet.length)
-
-  selectedWordSet.forEach((word, index) => {
-    let cell
-    // If this is the chosen treasure word, place it on the treasure cell
-    if (index === treasureWordIndex) {
-      cell = treasureCell
-    } else {
-      // If no available cells, log and skip
-      if (availableCells.length === 0) {
-        console.log(`No more available cells. Skipping word: ${word}`)
-        return
-      }
-
-      // Randomly select from remaining available cells
-      const cellIndex = Math.floor(Math.random() * availableCells.length)
-      cell = availableCells.splice(cellIndex, 1)[0]
+      totalTreasuresPlaced++
     }
+  })
+
+  // First, assign a word to each treasure cell
+  const treasureCells = document.querySelectorAll(".treasure-div")
+
+  treasureCells.forEach((treasureDiv) => {
+    const treasureCell = parseInt(treasureDiv.style.getPropertyValue("--cell"))
+
+    // Find a word to place on this treasure cell
+    const wordIndex = Math.floor(Math.random() * selectedWordSet.length)
+    const word = selectedWordSet.splice(wordIndex, 1)[0]
+
+    const wordCard = document.createElement("div")
+    wordCard.className = "word-card"
+    wordCard.textContent = word
+
+    // Position in grid
+    wordCard.style.setProperty("--cell", treasureCell)
+
+    wordCard.addEventListener("click", () =>
+      handleWordClick(wordCard, treasureCells, treasureCell)
+    )
+    gameBoard.appendChild(wordCard)
+  })
+
+  // Next, place remaining words in available cells
+  selectedWordSet.forEach((word, index) => {
+    // If no available cells, log and skip
+    if (availableCells.length === 0) {
+      console.log(`No more available cells. Skipping word: ${word}`)
+      return
+    }
+
+    // Randomly select from remaining available cells
+    const cellIndex = Math.floor(Math.random() * availableCells.length)
+    const cell = availableCells.splice(cellIndex, 1)[0]
 
     addUnavailableCells(
       cell,
@@ -845,15 +1090,8 @@ function createGameboard() {
     // Position in grid
     wordCard.style.setProperty("--cell", cell)
 
-    // wordCard.style.gridColumn = `${
-    //   (cell % gridColumns) + 1
-    // } / span ${gridColumnSpan}`
-    // wordCard.style.gridRow = `${
-    //   Math.floor(cell / gridColumns) + 1
-    // } / span ${gridRowSpan}`
-
     wordCard.addEventListener("click", () =>
-      handleWordClick(wordCard, treasureCell, cell)
+      handleWordClick(wordCard, treasureCells, cell)
     )
     gameBoard.appendChild(wordCard)
   })
@@ -868,7 +1106,7 @@ function createGameboard() {
   document.getElementById("cards-remaining").textContent = cardsRemaining
 
   // Create bubbles
-  createBubbles(15)
+  createBubbles(25)
 }
 
 function createPlayerStatsTables(playersList) {
@@ -1262,6 +1500,14 @@ function savePlayers() {
     console.log("---")
   }
 
+  // Ensure stats are initialized for each player
+  players.forEach((player) => {
+    if (!playerStats[player]) {
+      console.log("Initialzing player stats for", player)
+      playerStats[player] = initializePlayerStats(player)
+    }
+  })
+
   resetSessionWins()
   updatePlayerDisplay()
   hidePlayersModal()
@@ -1296,7 +1542,9 @@ function loadSavedPlayers() {
 }
 
 function updatePlayerDisplay() {
-  console.log("Updating player display...")
+  if (players.length === 0) {
+    return
+  }
 
   const playerDisplayElement = document.getElementById("player-display")
 
@@ -1310,38 +1558,33 @@ function updatePlayerDisplay() {
 
     if (index === currentPlayerIndex) {
       playerElement.classList.add("active")
-      console.log(`Marked ${player} as active player`)
+      // console.log(`Marked ${player} as active player`)
     }
 
     // Add stats to player display
     const playerStat = playerStats[player] || {}
-    const sessionGamesWon = playerStat.sessionGamesWon || 0
+    const totalPoints = playerStat.totalPoints
+    const playerLevel = playerStat.playerLevel
 
     playerElement.innerHTML = `
-      ${player}: 
-      <span class="player-stats">
-        ${sessionGamesWon}
-      </span>
-    `
+  ${player}: 
+  <span class="player-stats">
+    Lvl ${playerLevel} (${totalPoints} pts)
+  </span>
+`
 
     playerDisplayElement.appendChild(playerElement)
   })
-
-  console.log("---")
 }
 
 function switchToNextPlayer() {
-  console.log("Switching to next player")
-  if (players.length > 0) {
-    currentPlayerIndex = (currentPlayerIndex + 1) % players.length
-
-    console.log(`New active player: ${players[currentPlayerIndex]}`)
-    console.log("---")
-
-    updatePlayerDisplay()
-  } else {
-    console.log("No players in the game")
+  if (players.length === 0) {
+    return
   }
+
+  currentPlayerIndex = (currentPlayerIndex + 1) % players.length
+  console.log(`Switching to next player: ${players[currentPlayerIndex]}`)
+  updatePlayerDisplay()
 }
 
 // Preload when the page loads

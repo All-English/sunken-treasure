@@ -705,6 +705,25 @@ body {
   }
 }
 
+.level-up-notification {
+  position: fixed;
+  top: 75%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--color-seafoam);
+  color: var(--color-white);
+  padding: var(--space-m);
+  border-radius: var(--space-xs);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  z-index: 1000;
+  text-align: center;
+  animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0; }
+  10%, 90% { opacity: 1; }
+}
 
 /* Show cards remaining in bottom right corner */
 .cards-remaining {
