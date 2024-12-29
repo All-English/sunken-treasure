@@ -34,6 +34,7 @@
 const showUsedCellsCheckbox = document.getElementById("show-used-cells") // used for debugging
 let cardsRemaining = 0
 let currentPlayerIndex = 0
+let gameActive = true
 let players = []
 let playerStats = {}
 let treasureIndex
@@ -99,13 +100,13 @@ const TREASURE_TYPES = {
 
 // Calculate player level using a quadratic formula
 // Provides quick initial leveling with gradually increasing point requirements
-function calculatePlayerLevel(totalPoints) {
+function calculatePlayerLevel(totalPointsAllTime) {
   // New formula: Points = 5n^2 + 35n - 40
   const a = 5 // Coefficient of n^2
   const b = 35 // Coefficient of n
   const c = -40 // Constant term
 
-  const discriminant = Math.sqrt(b * b - 4 * a * (c - totalPoints))
+  const discriminant = Math.sqrt(b * b - 4 * a * (c - totalPointsAllTime))
   const level = Math.floor((-b + discriminant) / (2 * a))
   return level
 
@@ -149,7 +150,7 @@ function showLevelUpNotification(player, newLevel) {
 function initializePlayerStats(playerName) {
   return {
     // Track overall points and game performance
-    totalPoints: 0,
+    currentGamePoints: 0,
     totalPointsAllTime: 0,
     playerLevel: 1,
     totalGamesPlayed: 0,
@@ -196,7 +197,7 @@ function updateTreasureStats(player, treasureType, points) {
   stats.pointsPerTreasureType[treasureType] += points
 
   // Update point totals
-  stats.totalPoints += points // Current game's points
+  stats.currentGamePoints += points // Current game's points
   stats.totalPointsAllTime += points // All-time accumulated points
   stats.currentSessionStats.totalPointsEarned += points // Points earned in current game session
 
@@ -471,11 +472,15 @@ function savePlayerStats() {
   localStorage.setItem("treasureHuntPlayerStats", JSON.stringify(playerStats))
 }
 
-// Reset session wins when starting a new game with players
-function resetSessionWins() {
+// Reset session stats when starting a new game with players
+function resetSessionStats() {
   players.forEach((player) => {
     if (playerStats[player]) {
-      playerStats[player].sessionGamesWon = 0
+      playerStats[player].currentSessionStats = {
+        gamesPlayed: 0,
+        gamesWon: 0,
+        totalPointsEarned: 0,
+      }
     }
   })
 }
@@ -816,7 +821,8 @@ function selectWordsFromWordBank(
 }
 
 function handleWordClick(wordCard, treasureCells, currentCell) {
-  if (wordCard.classList.contains("clicked")) return
+  if (!gameActive || wordCard.classList.contains("clicked")) return
+  gameActive = false
 
   // Keep track of how many cards are left
   cardsRemaining--
@@ -837,7 +843,7 @@ function handleWordClick(wordCard, treasureCells, currentCell) {
     const treasureType = treasureDiv.dataset.type
     const points = parseInt(treasureDiv.dataset.points)
 
-    const currentPlayer = players[currentPlayerIndex]
+    const currentPlayer = players[currentPlayerIndex] || "You"
 
     console.log(
       currentPlayer,
@@ -870,9 +876,10 @@ function handleWordClick(wordCard, treasureCells, currentCell) {
       } else {
         switchToNextPlayer()
       }
+      gameActive = true
     }, 300)
   } else {
-    // Wrong guess
+    // Wrong guess made
 
     // Hide the word card after a delay
     setTimeout(() => {
@@ -886,18 +893,22 @@ function handleWordClick(wordCard, treasureCells, currentCell) {
 
     // Switch to next player after each guess
     switchToNextPlayer()
+    gameActive = true
   }
 }
 
 // Determine the winner and end the game
 function endGame(currentPlayer) {
-  // Find player with most points
-  const winner = players.reduce((maxPointPlayer, currentPlayer) => {
-    return playerStats[currentPlayer].totalPoints >
-      playerStats[maxPointPlayer].totalPoints
-      ? currentPlayer
-      : maxPointPlayer
-  })
+  let winner
+  if (players.length > 0) {
+    // Find player with most points
+    winner = players.reduce((maxPointPlayer, currentPlayer) => {
+      return playerStats[currentPlayer].currentGamePoints >
+        playerStats[maxPointPlayer].currentGamePoints
+        ? currentPlayer
+        : maxPointPlayer
+    })
+  }
 
   // Update all players' stats
   updatePlayerStats(winner)
@@ -951,6 +962,10 @@ function createGameboard() {
     currentPlayerIndex = 0
     console.log(`First Player is ${players[currentPlayerIndex]}`)
     updatePlayerDisplay()
+
+    players.forEach((player) => {
+      playerStats[player].currentGamePoints = 0
+    })
   }
 
   const wordSetDropdown = document.getElementById("word-set-dropdown")
@@ -1508,10 +1523,10 @@ function savePlayers() {
     }
   })
 
-  resetSessionWins()
-  updatePlayerDisplay()
+  resetSessionStats()
   hidePlayersModal()
   createGameboard()
+  updatePlayerDisplay()
 
   const showStatsBtn = document.getElementById("show-stats-btn")
   showStatsBtn.classList.add("visible")
@@ -1562,14 +1577,14 @@ function updatePlayerDisplay() {
     }
 
     // Add stats to player display
-    const playerStat = playerStats[player] || {}
-    const totalPoints = playerStat.totalPoints
+    const playerStat = playerStats[player]
+    const currentGamePoints = playerStat.currentGamePoints
     const playerLevel = playerStat.playerLevel
 
     playerElement.innerHTML = `
-  ${player}: 
+  ${player} 
   <span class="player-stats">
-    Lvl ${playerLevel} (${totalPoints} pts)
+    ${currentGamePoints} [Level ${playerLevel}] 
   </span>
 `
 
@@ -1651,6 +1666,7 @@ function setupEventListeners() {
     hideCompletionModal()
     // Reset current game
     createGameboard()
+    updatePlayerDisplay()
   })
 
   // Allow clicking outside the modals to close them
