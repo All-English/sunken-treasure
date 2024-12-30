@@ -895,11 +895,17 @@ function handleWordClick(wordCard, currentCell) {
 
       if (remainingTreasures.length === 0) {
         console.log("All treasures found!")
+        updatePlayerDisplay()
         endGame(currentPlayer)
+        gameActive = true
       } else {
-        switchToNextPlayer()
+        updatePlayerDisplay()
+        setTimeout(() => {
+          switchToNextPlayer()
+          updatePlayerDisplay()
+          gameActive = true
+        }, 2000)
       }
-      gameActive = true
     }, 300)
   } else {
     // Wrong guess made
@@ -915,7 +921,10 @@ function handleWordClick(wordCard, currentCell) {
     }, 700)
 
     // Switch to next player after each guess
+
     switchToNextPlayer()
+    updatePlayerDisplay()
+
     gameActive = true
   }
 }
@@ -933,13 +942,14 @@ function endGame(currentPlayer) {
     })
   }
 
+  // Play a finished sound effect
+
   // Update all players' stats
   updatePlayerStats(winner)
 
   // Show completion modal
   setTimeout(() => {
     showCompletionModal(winner)
-    updatePlayerDisplay()
   }, 2000)
 }
 
@@ -1130,9 +1140,7 @@ function createGameboard() {
     // Position in grid
     wordCard.style.setProperty("--cell", cell)
 
-    wordCard.addEventListener("click", () =>
-      handleWordClick(wordCard, cell)
-    )
+    wordCard.addEventListener("click", () => handleWordClick(wordCard, cell))
     gameBoard.appendChild(wordCard)
   })
 
@@ -1643,7 +1651,6 @@ function switchToNextPlayer() {
 
   currentPlayerIndex = (currentPlayerIndex + 1) % players.length
   console.log(`Switching to next player: ${players[currentPlayerIndex]}`)
-  updatePlayerDisplay()
 }
 
 // Preload when the page loads
