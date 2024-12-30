@@ -321,7 +321,7 @@ function createTreasureDiv(treasureType, availableCells) {
     treasureType.images[Math.floor(Math.random() * treasureType.images.length)]
 
   treasureImage.src = selectedImage
-  treasureImage.style.width = "100%"
+  treasureImage.style.width = "80%"
 
   treasureDiv.appendChild(treasureImage)
   treasureDiv.style.setProperty("--cell", treasureCell)
@@ -820,7 +820,7 @@ function selectWordsFromWordBank(
   return selectedWords
 }
 
-function handleWordClick(wordCard, treasureCells, currentCell) {
+function handleWordClick(wordCard, currentCell) {
   if (!gameActive || wordCard.classList.contains("clicked")) return
   gameActive = false
 
@@ -862,6 +862,29 @@ function handleWordClick(wordCard, treasureCells, currentCell) {
     // Reveal treasure
     setTimeout(() => {
       treasureDiv.style.display = "flex"
+
+      // Delay popup creation to sync with treasure appearance
+      setTimeout(() => {
+        // Create and show points popup
+        const popup = document.createElement("div")
+        popup.className = "points-popup"
+        popup.textContent = `+${points}`
+
+        // Position popup above the treasure
+        const treasureRect = treasureDiv.getBoundingClientRect()
+        popup.style.left = `${
+          treasureRect.left + treasureRect.width / 2 - 50
+        }px`
+        popup.style.top = `${treasureRect.top - 70}px`
+
+        // Add popup to document
+        document.body.appendChild(popup)
+
+        // Remove popup after animation
+        setTimeout(() => {
+          popup.remove()
+        }, 5000)
+      }, 500) // Wait for half of treasureAppear animation
 
       updateTreasureStats(currentPlayer, treasureType, points)
 
@@ -1075,7 +1098,7 @@ function createGameboard() {
     wordCard.style.setProperty("--cell", treasureCell)
 
     wordCard.addEventListener("click", () =>
-      handleWordClick(wordCard, treasureCells, treasureCell)
+      handleWordClick(wordCard, treasureCell)
     )
     gameBoard.appendChild(wordCard)
   })
@@ -1108,7 +1131,7 @@ function createGameboard() {
     wordCard.style.setProperty("--cell", cell)
 
     wordCard.addEventListener("click", () =>
-      handleWordClick(wordCard, treasureCells, cell)
+      handleWordClick(wordCard, cell)
     )
     gameBoard.appendChild(wordCard)
   })
@@ -1565,7 +1588,7 @@ function updatePlayerDisplay() {
   const playerDisplayElement = document.getElementById("player-display")
   // add flex-basis: 100% so it's on a new line
   playerDisplayElement.style.flexBasis = "100%"
-  
+
   // First time creation of player elements if they don't exist
   if (playerDisplayElement.children.length === 0) {
     players.forEach((player, index) => {
@@ -1576,9 +1599,9 @@ function updatePlayerDisplay() {
       playerElement.innerHTML = `
         <span class="player-name">${player}</span>
         <span class="player-bullet">•</span>
-        <span class="player-level"></span>
-        <span class="player-bullet">•</span>
         <span class="player-score"></span>
+        <span class="player-bullet">•</span>
+        <span class="player-level"></span>
       `
 
       playerDisplayElement.appendChild(playerElement)

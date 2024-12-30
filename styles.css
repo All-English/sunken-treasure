@@ -413,7 +413,8 @@ body {
   gap: var(--space-xs);
   align-items: center;
   justify-content: center;
-  min-height: 52px; /* Because there was a small "shake" caused by the transition */
+  min-height: 52px;
+  /* Because there was a small "shake" caused by the transition */
 
   .player-info {
     display: flex;
@@ -432,7 +433,7 @@ body {
       border: 1px solid var(--link-color);
 
       .player-name {
-        color: var(--link-color);
+        /* color: var(--link-color); */
       }
     }
 
@@ -440,6 +441,18 @@ body {
     .player-level,
     .player-score {
       transition: all 0.3s ease;
+    }
+
+    .player-name {
+      font-weight: 700;
+    }
+
+    .player-score {
+      color: var(--link-color);
+    }
+    .player-level {
+      color: var(--secondary-text-color);
+      font-style: italic;
     }
   }
 }
@@ -509,9 +522,61 @@ body {
   background-color: rgba(255, 255, 255, 1);
 }
 
+@keyframes treasureAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .treasure-div {
   display: none;
   z-index: -1;
+  opacity: 0;
+  transform: scale(0.5);
+
+  &[style*="display: flex"] {
+    animation: treasureAppear 1s ease forwards;
+  }
+}
+
+@keyframes popup {
+  0% {
+    opacity: 0;
+    /* Start fully transparent */
+    transform: translateY(0);
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-60px);
+  }
+}
+
+.points-popup {
+  position: absolute;
+  background: var(--color-gold);
+  color: var(--color-white);
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  font-weight: bold;
+  font-size: var(--fs-step-3);
+  pointer-events: none;
+  animation: popup 5s ease-out forwards;
+  z-index: 1000;
 }
 
 @keyframes fadeOut {
