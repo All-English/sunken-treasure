@@ -955,6 +955,8 @@ function validateWordSetSelection(level, unit) {
 }
 
 function createGameboard() {
+  console.clear()
+
   const gameBoard = document.getElementById("game-board")
 
   // Reset player turn to first player
@@ -1082,7 +1084,7 @@ function createGameboard() {
   selectedWordSet.forEach((word, index) => {
     // If no available cells, log and skip
     if (availableCells.length === 0) {
-      console.log(`No more available cells. Skipping word: ${word}`)
+      // console.log(`No more available cells. Skipping word: ${word}`)
       return
     }
 
@@ -1560,35 +1562,54 @@ function updatePlayerDisplay() {
   if (players.length === 0) {
     return
   }
-
   const playerDisplayElement = document.getElementById("player-display")
-
-  playerDisplayElement.innerHTML = ""
   // add flex-basis: 100% so it's on a new line
   playerDisplayElement.style.flexBasis = "100%"
+  
+  // First time creation of player elements if they don't exist
+  if (playerDisplayElement.children.length === 0) {
+    players.forEach((player, index) => {
+      const playerElement = document.createElement("div")
+      playerElement.classList.add("player-info")
+      playerElement.dataset.player = player
 
+      playerElement.innerHTML = `
+        <span class="player-name">${player}</span>
+        <span class="player-bullet">•</span>
+        <span class="player-level"></span>
+        <span class="player-bullet">•</span>
+        <span class="player-score"></span>
+      `
+
+      playerDisplayElement.appendChild(playerElement)
+    })
+  }
+
+  // Update existing elements
   players.forEach((player, index) => {
-    const playerElement = document.createElement("div")
-    playerElement.classList.add("player-name")
+    const playerElement = playerDisplayElement.querySelector(
+      `[data-player="${player}"]`
+    )
+    if (playerElement) {
+      const playerStat = playerStats[player]
+      const currentGamePoints = playerStat.currentGamePoints
+      const playerLevel = playerStat.playerLevel
 
-    if (index === currentPlayerIndex) {
-      playerElement.classList.add("active")
-      // console.log(`Marked ${player} as active player`)
+      // Update stats
+      playerElement.querySelector(
+        ".player-level"
+      ).textContent = `Lvl ${playerLevel}`
+      playerElement.querySelector(
+        ".player-score"
+      ).textContent = `${currentGamePoints} pts`
+
+      // Update active state
+      if (index === currentPlayerIndex) {
+        playerElement.classList.add("active")
+      } else {
+        playerElement.classList.remove("active")
+      }
     }
-
-    // Add stats to player display
-    const playerStat = playerStats[player]
-    const currentGamePoints = playerStat.currentGamePoints
-    const playerLevel = playerStat.playerLevel
-
-    playerElement.innerHTML = `
-  ${player} 
-  <span class="player-stats">
-    ${currentGamePoints} [Level ${playerLevel}] 
-  </span>
-`
-
-    playerDisplayElement.appendChild(playerElement)
   })
 }
 

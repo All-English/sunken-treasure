@@ -413,17 +413,33 @@ body {
   gap: var(--space-xs);
   align-items: center;
   justify-content: center;
+  min-height: 52px; /* Because there was a small "shake" caused by the transition */
 
-  .player-name {
+  .player-info {
+    display: flex;
+    gap: var(--space-3xs);
+    align-items: center;
     padding: var(--space-3xs) var(--space-xs);
     border-radius: var(--space-2xs);
     font-size: var(--fs-step-1);
     color: var(--primary-text-color);
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+
 
     &.active {
       font-size: var(--fs-step-2);
-      font-weight: 700;
-      color: var(--link-color);
+      border: 1px solid var(--link-color);
+
+      .player-name {
+        color: var(--link-color);
+      }
+    }
+
+    .player-name,
+    .player-level,
+    .player-score {
+      transition: all 0.3s ease;
     }
   }
 }
@@ -714,15 +730,23 @@ body {
   color: var(--color-white);
   padding: var(--space-m);
   border-radius: var(--space-xs);
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   text-align: center;
   animation: fadeInOut 3s ease-in-out;
 }
 
 @keyframes fadeInOut {
-  0%, 100% { opacity: 0; }
-  10%, 90% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  10%,
+  90% {
+    opacity: 1;
+  }
 }
 
 /* Show cards remaining in bottom right corner */
