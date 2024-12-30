@@ -97,6 +97,11 @@ const TREASURE_TYPES = {
     placementRatio: 0.5,
   },
 }
+const usedTreasureImages = {
+  chest: [],
+  gem: [],
+  goldBag: [],
+}
 
 // Calculate player level using a quadratic formula
 // Provides quick initial leveling with gradually increasing point requirements
@@ -316,9 +321,23 @@ function createTreasureDiv(treasureType, availableCells) {
   const treasureImage = document.createElement("img")
   treasureImage.className = "treasure-image"
 
-  // Randomly select an image from available images
-  const selectedImage =
-    treasureType.images[Math.floor(Math.random() * treasureType.images.length)]
+  // Get unused images
+  let unusedImages = treasureType.images.filter(
+    (img) => !usedTreasureImages[treasureType.id].includes(img)
+  )
+
+  // If all images have been used, reset the tracking array
+  if (unusedImages.length === 0) {
+    usedTreasureImages[treasureType.id] = []
+    unusedImages = treasureType.images
+  }
+
+  // Select random image from unused images
+  const randomIndex = Math.floor(Math.random() * unusedImages.length)
+  const selectedImage = unusedImages[randomIndex]
+
+  // Track the used image
+  usedTreasureImages[treasureType.id].push(selectedImage)
 
   treasureImage.src = selectedImage
 
@@ -1010,6 +1029,11 @@ function createGameboard() {
       playerStats[player].currentGamePoints = 0
     })
   }
+
+  // Reset used images tracking
+  Object.keys(usedTreasureImages).forEach((treasureType) => {
+    usedTreasureImages[treasureType] = []
+  })
 
   const wordSetDropdown = document.getElementById("word-set-dropdown")
   const [selectedLevel, selectedUnit] = wordSetDropdown.value.split(":")
