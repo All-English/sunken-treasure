@@ -1521,7 +1521,7 @@ function setupEventListeners() {
   includeExtraWordsCheckbox.addEventListener("change", createGameboard)
 
   // Stats Buttons Event Listenerers
-  const showStatsBtn = document.getElementById("show-stats-btn")
+  const showStatsBtn = document.getElementById("leaderboard-btn")
   showStatsBtn.addEventListener("click", showPlayerStatsModal)
   const closeStatsBtn = document.getElementById("close-stats-btn")
   closeStatsBtn.addEventListener("click", hidePlayerStatsModal)

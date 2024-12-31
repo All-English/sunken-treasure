@@ -375,7 +375,7 @@ body {
 }
 
 .players-btn,
-.stats-btn {
+.leaderboard-btn {
   border: none;
   padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--space-2xs);
@@ -391,9 +391,9 @@ body {
   }
 }
 
-.stats-btn {
-  display: none;
-  visibility: hidden;
+.leaderboard-btn {
+  /* display: none;
+  visibility: hidden; */
   background-color: var(--button-secondary-bg);
   color: var(--button-secondary-text);
 
