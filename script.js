@@ -1015,7 +1015,7 @@ function validateWordSetSelection(level, unit) {
 }
 
 function createGameboard() {
-  console.clear()
+  // console.clear()
 
   const gameBoard = document.getElementById("game-board")
 
@@ -1357,7 +1357,13 @@ function savePlayers() {
   console.log("Player list:", players)
   // Save to localStorage
   try {
-    localStorage.setItem("treasureHuntPlayers", JSON.stringify(players))
+    const playerData = {
+      players: players,
+      timestamp: Date.now(),
+    }
+    localStorage.setItem("treasureHuntPlayerData", JSON.stringify(playerData))
+
+    // localStorage.setItem("treasureHuntPlayers", JSON.stringify(players))
     console.log("Players successfully saved to localStorage")
     console.log("---")
   } catch (error) {
@@ -1385,25 +1391,40 @@ function savePlayers() {
 
 // Function to load players from localStorage
 function loadSavedPlayers() {
-  try {
-    // Retrieve players from localStorage
-    const savedPlayers = localStorage.getItem("treasureHuntPlayers")
+  // Get stored data
+  const storedData = localStorage.getItem("treasureHuntPlayerData")
+  if (!storedData) return null
 
-    if (savedPlayers) {
-      // Optional: Pre-fill textarea with saved players
-      const textarea = document.getElementById("players-textarea")
-      if (textarea) {
-        textarea.value = JSON.parse(savedPlayers).join(", ")
+  const playerData = JSON.parse(storedData)
+  const currentTime = Date.now()
+
+  // 30 minutes in milliseconds = 30 * 60 * 1000
+  const CLASS_DURATION = 30 * 60 * 1000
+
+  // Check if data is still valid (within time window)
+  if (currentTime - playerData.timestamp < CLASS_DURATION) {
+    players = playerData.players
+
+    // Initialize any missing stats
+    players.forEach((player) => {
+      if (!playerStats[player]) {
+        console.log("Initializing player stats for", player)
+        playerStats[player] = initializePlayerStats(player)
       }
-      // log that saved players loaded
-      console.log("Saved players:", textarea.value)
+    })
+    updatePlayerDisplay()
+  }
 
-      // updatePlayerDisplay()
+  if (playerData.players) {
+    // Pre-fill textarea with saved players
+    const textarea = document.getElementById("players-textarea")
+    if (textarea) {
+      textarea.value = playerData.players.join(", ")
     }
-  } catch (error) {
-    console.error("Error loading players from localStorage:", error)
-    // Clear potentially corrupted localStorage data
-    localStorage.removeItem("treasureHuntPlayers")
+    // log that saved players loaded
+    console.log("Saved players:", textarea.value)
+
+    // updatePlayerDisplay()
   }
 }
 
