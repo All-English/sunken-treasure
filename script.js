@@ -1379,8 +1379,8 @@ function savePlayers() {
   createGameboard()
   updatePlayerDisplay()
 
-  const showStatsBtn = document.getElementById("show-stats-btn")
-  showStatsBtn.classList.add("visible")
+  // const showStatsBtn = document.getElementById("leaderboard-btn")
+  // showStatsBtn.classList.add("visible")
 }
 
 // Function to load players from localStorage
