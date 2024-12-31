@@ -575,6 +575,7 @@ body {
   border-radius: 1rem;
   font-weight: bold;
   font-size: var(--fs-step-3);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   animation: popup 5s ease-out forwards;
   z-index: 1000;
