@@ -1412,7 +1412,10 @@ function loadSavedPlayers() {
         playerStats[player] = initializePlayerStats(player)
       }
     })
+    console.log("Loaded saved players within 30 minutes")
     updatePlayerDisplay()
+  } else {
+    console.log("Saved player data has expired")
   }
 
   if (playerData.players) {
@@ -1420,11 +1423,10 @@ function loadSavedPlayers() {
     const textarea = document.getElementById("players-textarea")
     if (textarea) {
       textarea.value = playerData.players.join(", ")
-    }
-    // log that saved players loaded
-    console.log("Saved players:", textarea.value)
 
-    // updatePlayerDisplay()
+      // log that saved players loaded
+      console.log("Saved players:", textarea.value)
+    }
   }
 }
 
