@@ -71,7 +71,11 @@ const TREASURE_TYPES = {
   GOLD_BAG: {
     id: "goldBag",
     points: 30,
-    images: ["pics/gold-bag.png", "pics/gold-sack-ripped.png", "pics/gold-sack-open.svg"],
+    images: [
+      "pics/gold-bag.png",
+      "pics/gold-sack-ripped.png",
+      "pics/gold-sack-open.svg",
+    ],
     placementRatio: 0.3,
   },
   GEM: {
@@ -400,15 +404,29 @@ function createTreasureDiv(treasureType, availableCells) {
   treasureImage.src = selectedImage
 
   // Set width based on treasure type
-  if (treasureImage.src.endsWith("gem-green-2.png")) {
+  if (treasureImage.src.endsWith("gem-green.png")) {
+    treasureImage.style.width = "45%"
+  } else if (treasureImage.src.endsWith("gem-green-2.png")) {
     treasureImage.style.width = "40%"
+  } else if (treasureImage.src.endsWith("gem-blue.png")) {
+    treasureImage.style.width = "40%"
+  } else if (treasureImage.src.endsWith("gem-purple.png")) {
+    treasureImage.style.width = "45%"
+  } else if (treasureImage.src.endsWith("gem-mulitcolored.png")) {
+    treasureImage.style.width = "60%"
   } else if (treasureType.id === "gem") {
     treasureImage.style.width = "50%"
-  } else if (treasureImage.src.endsWith("gold-sack-ripped.png")) {
+  }
+
+  if (treasureImage.src.endsWith("gold-sack-ripped.png")) {
     treasureImage.style.width = "50%"
   } else if (treasureImage.src.endsWith("gold-sack-open.svg")) {
     treasureImage.style.width = "75%"
-  } else {
+  } else if (treasureType.id === "goldBag") {
+    treasureImage.style.width = "90%"
+  }
+
+  if (treasureType.id === "chest") {
     treasureImage.style.width = "90%"
   }
 
