@@ -71,7 +71,7 @@ const TREASURE_TYPES = {
   GOLD_BAG: {
     id: "goldBag",
     points: 30,
-    images: ["pics/gold-bag.png"],
+    images: ["pics/gold-bag.png", "pics/gold-sack-ripped.png", "pics/gold-sack-open.svg"],
     placementRatio: 0.3,
   },
   GEM: {
@@ -183,7 +183,21 @@ function initializePlayerStats(playerName) {
     currentSessionStats: {
       gamesPlayed: 0,
       gamesWon: 0,
-      totalPointsEarned: 0,
+      totalSessionPoints: 0,
+      winPercentage: 0,
+
+      treasuresFound: {
+        chest: 0,
+        goldBag: 0,
+        gem: 0,
+        total: 0,
+      },
+
+      pointsPerTreasureType: {
+        chest: 0,
+        goldBag: 0,
+        gem: 0,
+      },
     },
   }
 }
@@ -201,10 +215,14 @@ function updateTreasureStats(player, treasureType, points) {
   stats.treasuresFound.total++
   stats.pointsPerTreasureType[treasureType] += points
 
+  stats.currentSessionStats.treasuresFound[treasureType]++
+  stats.currentSessionStats.treasuresFound.total++
+  stats.currentSessionStats.pointsPerTreasureType[treasureType] += points
+
   // Update point totals
   stats.currentGamePoints += points // Current game's points
   stats.totalPointsAllTime += points // All-time accumulated points
-  stats.currentSessionStats.totalPointsEarned += points // Points earned in current game session
+  stats.currentSessionStats.totalSessionPoints += points // Points earned in current game session
 
   const previousLevel = stats.playerLevel
 
@@ -242,9 +260,15 @@ function updatePlayerStats(winningPlayer) {
     // Update win statistics if player won
     if (player === winningPlayer) {
       stats.totalGamesWon++
-      stats.currentSessionStats.gamesWon++
       stats.winPercentage = Math.round(
         (stats.totalGamesWon / stats.totalGamesPlayed) * 100
+      )
+
+      stats.currentSessionStats.gamesWon++
+      stats.currentSessionStats.winPercentage = Math.round(
+        (stats.currentSessionStats.gamesWon /
+          stats.currentSessionStats.gamesPlayed) *
+          100
       )
     }
 
@@ -282,24 +306,58 @@ function updatePlayerStats(winningPlayer) {
 
 // Calculate number of treasures based on max words
 function calculateTreasureCount(maxWords) {
-  const MAX_TOTAL_TREASURES = 10 // Prevent board overcrowding
-  const baseCount = Math.floor(maxWords / 5)
-
   const CHEST = 1 // Always 1 chest
 
-  // Calculate gold bag count, ensuring it doesn't exceed max treasures
-  const GOLD_BAG = Math.min(
-    Math.max(1, Math.floor(baseCount * TREASURE_TYPES.GOLD_BAG.placementRatio)),
-    MAX_TOTAL_TREASURES - (CHEST + 1)
-  )
-
-  // Calculate gem count, using remaining available slots
-  const GEM = Math.min(
-    Math.max(1, baseCount - (CHEST + GOLD_BAG)),
-    MAX_TOTAL_TREASURES - (CHEST + GOLD_BAG)
-  )
-
-  return { CHEST, GOLD_BAG, GEM }
+  switch (maxWords) {
+    case 5: // 3 total
+      return {
+        CHEST,
+        GOLD_BAG: 1,
+        GEM: 1,
+      }
+    case 10: // 4 total
+      return {
+        CHEST,
+        GOLD_BAG: 1,
+        GEM: 2,
+      }
+    case 15: // 5 total
+      return {
+        CHEST,
+        GOLD_BAG: 1,
+        GEM: 3,
+      }
+    case 20: // 6 total
+      return {
+        CHEST,
+        GOLD_BAG: 2,
+        GEM: 3,
+      }
+    case 25: // 7 total
+      return {
+        CHEST,
+        GOLD_BAG: 2,
+        GEM: 4,
+      }
+    case 30: // 8 total
+      return {
+        CHEST,
+        GOLD_BAG: 2,
+        GEM: 5,
+      }
+    case 35: // 9 total
+      return {
+        CHEST,
+        GOLD_BAG: 3,
+        GEM: 5,
+      }
+    case 40: // 10 total
+      return {
+        CHEST,
+        GOLD_BAG: 3,
+        GEM: 6,
+      }
+  }
 }
 
 // Create a treasure div
@@ -342,10 +400,12 @@ function createTreasureDiv(treasureType, availableCells) {
   treasureImage.src = selectedImage
 
   // Set width based on treasure type
-  if (treasureType.id === "gem") {
+  if (treasureImage.src.endsWith("gem-green-2.png")) {
+    treasureImage.style.width = "40%"
+  } else if (treasureType.id === "gem") {
     treasureImage.style.width = "50%"
-  } else if (treasureType.id === "goldBag") {
-    treasureImage.style.width = "90%"
+  } else if (treasureImage.src.endsWith("gold-sack-ripped.png")) {
+    treasureImage.style.width = "50%"
   } else {
     treasureImage.style.width = "90%"
   }
@@ -506,7 +566,21 @@ function resetSessionStats() {
       playerStats[player].currentSessionStats = {
         gamesPlayed: 0,
         gamesWon: 0,
-        totalPointsEarned: 0,
+        totalSessionPoints: 0,
+        winPercentage: 0,
+
+        treasuresFound: {
+          chest: 0,
+          goldBag: 0,
+          gem: 0,
+          total: 0,
+        },
+
+        pointsPerTreasureType: {
+          chest: 0,
+          goldBag: 0,
+          gem: 0,
+        },
       }
     }
   })
@@ -910,7 +984,7 @@ function handleWordClick(wordCard, currentCell) {
         // Remove popup after animation
         setTimeout(() => {
           popup.remove()
-        }, 5000)
+        }, 4000)
       }, 500) // Wait for half of treasureAppear animation
 
       updateTreasureStats(currentPlayer, treasureType, points)
@@ -1023,11 +1097,12 @@ function createGameboard() {
   if (players.length > 0) {
     currentPlayerIndex = 0
     console.log(`First Player is ${players[currentPlayerIndex]}`)
-    updatePlayerDisplay()
 
     players.forEach((player) => {
       playerStats[player].currentGamePoints = 0
     })
+
+    updatePlayerDisplay()
   }
 
   // Reset used images tracking
@@ -1103,7 +1178,7 @@ function createGameboard() {
   treasuresToPlace.forEach((treasureConfig) => {
     for (let i = 0; i < treasureConfig.count; i++) {
       // Stop if we've reached max treasures or no available cells
-      if (totalTreasuresPlaced >= 10 || availableCells.length === 0) break
+      if (availableCells.length === 0) break
 
       const treasureCell = createTreasureDiv(
         treasureConfig.type,
@@ -1200,8 +1275,8 @@ function createPlayerStatsTables(playersList) {
         <th>Player</th>
         <th>Level</th>
         <th>Total Points</th>
-        <th>Games Played</th>
         <th>Games Won</th>
+        <th>Games Played</th>
         <th>Win %</th>
       </tr>
     </thead>
@@ -1214,8 +1289,8 @@ function createPlayerStatsTables(playersList) {
             <td>${player}</td>
             <td>${stat.playerLevel || 1}</td>
             <td>${stat.totalPointsAllTime || 0}</td>
-            <td>${stat.totalGamesPlayed || 0}</td>
             <td>${stat.totalGamesWon || 0}</td>
+            <td>${stat.totalGamesPlayed || 0}</td>
             <td>${stat.winPercentage || 0}%</td>
           </tr>
         `
@@ -1226,7 +1301,7 @@ function createPlayerStatsTables(playersList) {
 
   // Create treasure stats section
   const treasureSection = document.createElement("div")
-  treasureSection.innerHTML = "<h3>Treasure Collection Stats</h3>"
+  treasureSection.innerHTML = "<h3>Treasure Stats</h3>"
 
   const treasureTable = document.createElement("table")
   treasureTable.innerHTML = `
@@ -1270,6 +1345,86 @@ function createPlayerStatsTables(playersList) {
   return container
 }
 
+function createSessionStatsTables(playersList) {
+  const container = document.createElement("div")
+
+  // Create session stats table
+  const sessionMainTable = document.createElement("table")
+  sessionMainTable.innerHTML = `
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Game Points</th>
+        <th>Session Points</th>
+        <th>Games Won</th>
+        <th>Games Played</th>
+        <th>Win %</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${playersList
+        .map((player, index) => {
+          const stat = playerStats[player]
+          return `
+          <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
+            <td>${player}</td>
+            <td>${stat.currentGamePoints || 0}</td>
+            <td>${stat.currentSessionStats.totalSessionPoints || 0}</td>
+            <td>${stat.currentSessionStats.gamesWon || 0}</td>
+            <td>${stat.currentSessionStats.gamesPlayed || 0}</td>
+            <td>${stat.currentSessionStats.winPercentage || 0}%</td>
+          </tr>
+        `
+        })
+        .join("")}
+    </tbody>
+  `
+  // Create treasure stats section
+  const treasureSection = document.createElement("div")
+  treasureSection.innerHTML = "<h3>Treasure Stats</h3>"
+
+  const treasureTable = document.createElement("table")
+  treasureTable.innerHTML = `
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Chests Found</th>
+        <th>Gold Bags Found</th>
+        <th>Gems Found</th>
+        <th>Total Treasures</th>
+        <th>Points from Chests</th>
+        <th>Points from Gold</th>
+        <th>Points from Gems</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${playersList
+        .map((player, index) => {
+          const stat = playerStats[player].currentSessionStats
+          return `
+          <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
+            <td>${player}</td>
+            <td>${stat.treasuresFound.chest || 0}</td>
+            <td>${stat.treasuresFound.goldBag || 0}</td>
+            <td>${stat.treasuresFound.gem || 0}</td>
+            <td>${stat.treasuresFound.total || 0}</td>
+            <td>${stat.pointsPerTreasureType.chest || 0}</td>
+            <td>${stat.pointsPerTreasureType.goldBag || 0}</td>
+            <td>${stat.pointsPerTreasureType.gem || 0}</td>
+          </tr>
+        `
+        })
+        .join("")}
+    </tbody>
+  `
+
+  container.appendChild(sessionMainTable)
+  treasureSection.appendChild(treasureTable)
+  container.appendChild(treasureSection)
+
+  return container
+}
+
 function showCompletionModal(winner) {
   const completionModal = document.getElementById("completion-modal")
   const winnerNameSpan = document.getElementById("winner-name")
@@ -1285,8 +1440,15 @@ function showCompletionModal(winner) {
     // Clear existing stats
     completionModalStats.innerHTML = ""
 
-    // Only show stats for current players in the game
-    const statsTables = createPlayerStatsTables(players)
+    // Get all players from playerStats and sort by total points
+    const sortedPlayers = [...players].sort(
+      (a, b) =>
+        (playerStats[b].currentSessionStats.totalSessionPoints || 0) -
+        (playerStats[a].currentSessionStats.totalSessionPoints || 0)
+    )
+
+    // Show session stats for current players
+    const statsTables = createSessionStatsTables(sortedPlayers)
     completionModalStats.appendChild(statsTables)
   } else {
     winnerNameSpan.textContent = `Congratulations, You found the treasure!`
@@ -1531,6 +1693,7 @@ function setupEventListeners() {
     const [level, unit] = event.target.value.split(":")
     updateUrlParameters(level, unit)
     createGameboard()
+    updatePlayerDisplay()
   })
 
   // Max Words Select Event Listener
@@ -1606,11 +1769,11 @@ function setupEventListeners() {
 // Call this when the page loads
 document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners()
-  loadSavedPlayers()
-  loadPlayerStats()
   setupGridColumnControl() // For Debuging
-  populateWordSetDropdown()
+  loadPlayerStats()
+  loadSavedPlayers()
   populateMaxWordsDropdown()
+  populateWordSetDropdown()
   setupSoundMuteControl()
   createGameboard()
 })
