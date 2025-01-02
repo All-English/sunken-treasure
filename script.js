@@ -406,6 +406,8 @@ function createTreasureDiv(treasureType, availableCells) {
     treasureImage.style.width = "50%"
   } else if (treasureImage.src.endsWith("gold-sack-ripped.png")) {
     treasureImage.style.width = "50%"
+  } else if (treasureImage.src.endsWith("gold-sack-open.svg")) {
+    treasureImage.style.width = "75%"
   } else {
     treasureImage.style.width = "90%"
   }
