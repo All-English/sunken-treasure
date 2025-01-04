@@ -431,10 +431,6 @@ body {
     &.active {
       font-size: var(--fs-step-2);
       border: 1px solid var(--link-color);
-
-      .player-name {
-        /* color: var(--link-color); */
-      }
     }
 
     .player-name,
@@ -452,9 +448,9 @@ body {
       color: var(--link-color);
     }
 
-    .player-session-score {
+    /* .player-session-score {
       color: var(--color-seafoam)
-    }
+    } */
 
     .player-level {
       color: var(--secondary-text-color);

@@ -1596,6 +1596,8 @@ function loadSavedPlayers() {
       }
     })
     console.log("Loaded saved players within 30 minutes")
+
+    sessionStatus = true
     updatePlayerDisplay()
   } else {
     console.log("Saved player data has expired")
@@ -1647,9 +1649,9 @@ function updatePlayerDisplay() {
         <span class="player-name">${player}</span>
         <span class="player-level"></span>
         <span>•</span>
-        <span class="player-score"></span>
-        <span class="bullet" style="display: none;">•</span>
         <span class="player-session-score" style="display: none;"></span>
+        <span class="bullet" style="display: none;">•</span>
+        <span class="player-score"></span>
       `
 
       playerDisplayElement.appendChild(playerElement)
