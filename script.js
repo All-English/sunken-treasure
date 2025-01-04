@@ -1025,7 +1025,6 @@ function handleWordClick(wordCard, currentCell) {
       } else {
         updatePlayerDisplay()
         setTimeout(() => {
-          switchToNextPlayer()
           updatePlayerDisplay()
           gameActive = true
         }, 2000)
@@ -1044,9 +1043,6 @@ function handleWordClick(wordCard, currentCell) {
       playNextSoundInQueue(wrongSounds)
     }, 700)
 
-    // Switch to next player after each guess
-
-    switchToNextPlayer()
     updatePlayerDisplay()
 
     gameActive = true
@@ -1622,6 +1618,10 @@ function updatePlayerDisplay() {
   if (players.length === 0) {
     return
   }
+
+  // Switch to next player
+  currentPlayerIndex = (currentPlayerIndex + 1) % players.length
+
   const playerDisplayElement = document.getElementById("player-display")
   // add flex-basis: 100% so it's on a new line
   playerDisplayElement.style.flexBasis = "100%"
@@ -1692,14 +1692,6 @@ function updatePlayerDisplay() {
       }
     }
   })
-}
-
-function switchToNextPlayer() {
-  if (players.length === 0) {
-    return
-  }
-
-  currentPlayerIndex = (currentPlayerIndex + 1) % players.length
 }
 
 // Preload when the page loads
