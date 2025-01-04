@@ -1658,14 +1658,6 @@ function updatePlayerDisplay() {
     })
   }
 
-  function switchToNextPlayer() {
-    if (players.length === 0) {
-      return
-    }
-
-    currentPlayerIndex = (currentPlayerIndex + 1) % players.length
-  }
-
   // Update existing elements
   players.forEach((player, index) => {
     const playerElement = playerDisplayElement.querySelector(
@@ -1704,6 +1696,13 @@ function updatePlayerDisplay() {
   })
 }
 
+function switchToNextPlayer() {
+  if (players.length === 0) {
+    return
+  }
+
+  currentPlayerIndex = (currentPlayerIndex + 1) % players.length
+}
 // Preload when the page loads
 window.addEventListener("load", () => {
   preloadSounds(winSounds)
