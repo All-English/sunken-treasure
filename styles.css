@@ -318,7 +318,7 @@ body {
   font-family: "Pirata One", system-ui;
   color: var(--header-primary);
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  font-size: var(--fs-step-5);
+  font-size: var(--fs-step-3);
   text-align: center;
 }
 
@@ -504,7 +504,7 @@ body {
 }
 
 .word-card {
-  font-size: var(--fs-step-3);
+  font-size: var(--fs-step-1);
 
   /* padding: 10% 5%; */
   color: var(--color-deep-blue);
@@ -853,13 +853,29 @@ body {
 @media (width >=37.5rem) {}
 
 /* Tablets - 768px and up */
-@media (width >=48rem) {}
+@media (width >=48rem) {
+  .word-card {
+    font-size: var(--fs-step-2);
+  }
+
+  .title {
+    font-size: var(--fs-step-4);
+  }
+}
 
 /* Laptops/small desktops - 992px and up */
 @media (width >=62rem) {}
 
 /* Large desktops - 1200px and up */
-@media (width >=75rem) {}
+@media (width >=75rem) {
+  .word-card {
+    font-size: var(--fs-step-3);
+  }
+
+  .title {
+    font-size: var(--fs-step-5);
+  }
+}
 
 /* XL desktops - 1800px and up */
 @media (width >=112.5rem) {}
