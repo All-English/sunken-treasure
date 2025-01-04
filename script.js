@@ -37,6 +37,7 @@ let currentPlayerIndex = 0
 let gameActive = true
 let players = []
 let playerStats = {}
+let sessionStatus = false
 let treasureIndex
 const winSounds = [
   new Audio("sounds/win/land-ho.mp3"),
@@ -581,6 +582,8 @@ function savePlayerStats() {
 
 // Reset session stats when starting a new game with players
 function resetSessionStats() {
+  sessionStatus = false
+
   players.forEach((player) => {
     if (playerStats[player]) {
       playerStats[player].currentSessionStats = {
@@ -1053,7 +1056,10 @@ function handleWordClick(wordCard, currentCell) {
 // Determine the winner and end the game
 function endGame(currentPlayer) {
   let winner
+
   if (players.length > 0) {
+    sessionStatus = true
+
     // Find player with most points
     winner = players.reduce((maxPointPlayer, currentPlayer) => {
       return playerStats[currentPlayer].currentGamePoints >
@@ -1110,7 +1116,6 @@ function validateWordSetSelection(level, unit) {
 
 function createGameboard() {
   // console.clear()
-
   const gameBoard = document.getElementById("game-board")
 
   // Reset player turn to first player
@@ -1598,6 +1603,7 @@ function loadSavedPlayers() {
     updatePlayerDisplay()
   } else {
     console.log("Saved player data has expired")
+    resetSessionStats()
   }
 
   if (playerData.players) {
@@ -1639,10 +1645,11 @@ function updatePlayerDisplay() {
 
       playerElement.innerHTML = `
         <span class="player-name">${player}</span>
-        <span class="player-bullet">•</span>
-        <span class="player-score"></span>
-        <span class="player-bullet">•</span>
         <span class="player-level"></span>
+        <span>•</span>
+        <span class="player-score"></span>
+        <span class="bullet" style="display: none;">•</span>
+        <span class="player-session-score" style="display: none;"></span>
       `
 
       playerDisplayElement.appendChild(playerElement)
@@ -1656,16 +1663,26 @@ function updatePlayerDisplay() {
     )
     if (playerElement) {
       const playerStat = playerStats[player]
-      const currentGamePoints = playerStat.currentGamePoints
       const playerLevel = playerStat.playerLevel
+      const currentGamePoints = playerStat.currentGamePoints
+      const currentSessionPoints =
+        playerStat.currentSessionStats.totalSessionPoints
 
       // Update stats
       playerElement.querySelector(
-        ".player-level"
-      ).textContent = `Lvl ${playerLevel}`
-      playerElement.querySelector(
         ".player-score"
-      ).textContent = `${currentGamePoints} pts`
+      ).textContent = `${currentGamePoints}`
+      if (sessionStatus) {
+        playerElement.querySelector(".bullet").style.display = "inline"
+        playerElement.querySelector(".player-session-score").style.display =
+          "inline"
+        playerElement.querySelector(
+          ".player-session-score"
+        ).textContent = `${currentSessionPoints}`
+      }
+      // playerElement.querySelector(
+      //   ".player-level"
+      // ).textContent = `Lvl ${playerLevel}`
 
       // Update active state
       if (index === currentPlayerIndex) {
@@ -1683,7 +1700,6 @@ function switchToNextPlayer() {
   }
 
   currentPlayerIndex = (currentPlayerIndex + 1) % players.length
-  console.log(`Switching to next player: ${players[currentPlayerIndex]}`)
 }
 
 // Preload when the page loads

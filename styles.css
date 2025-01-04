@@ -439,7 +439,8 @@ body {
 
     .player-name,
     .player-level,
-    .player-score {
+    .player-score,
+    .player-session-score {
       transition: all 0.3s ease;
     }
 
@@ -449,6 +450,10 @@ body {
 
     .player-score {
       color: var(--link-color);
+    }
+
+    .player-session-score {
+      color: var(--color-seafoam)
     }
 
     .player-level {
