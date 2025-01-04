@@ -931,10 +931,9 @@ function selectWordsFromWordBank(
     }
 
     // Remove duplicates while maintaining order
-    wordsToAdd = wordsToAdd.filter((word) => !selectedWords.includes(word))
-
+    const mergedSet = new Set([...selectedWords, ...wordsToAdd])
     // Add words from this unit
-    selectedWords.push(...wordsToAdd)
+    selectedWords = [...mergedSet]
   }
 
   // If there are more words than needed, slice the array
