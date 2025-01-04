@@ -789,7 +789,13 @@ body {
         }
 
         .table-treasure-icon {
-          width: 80px;
+          width: 50px;
+          margin: auto;
+        }
+
+        .table-treasure-icon-goldbag {
+          width: 37px;
+          margin: auto;
         }
 
         .player-group-even {

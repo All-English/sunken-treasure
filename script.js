@@ -1023,12 +1023,15 @@ function handleWordClick(wordCard, currentCell) {
         endGame(currentPlayer)
         gameActive = true
       } else {
-        updatePlayerDisplay()
-        setTimeout(() => {
-          switchToNextPlayer()
+        // Don't delay if there are no players
+        if (players.length > 0) {
           updatePlayerDisplay()
-          gameActive = true
-        }, 2000)
+          setTimeout(() => {
+            switchToNextPlayer()
+            updatePlayerDisplay()
+            gameActive = true
+          }, 2000)
+        }
       }
     }, 300)
   } else {
@@ -1332,12 +1335,12 @@ function createPlayerStatsTables(playersList) {
       <tr>
         <th></th>
         <th>Total<br>Treasures</th>
-        <th class="table-treasure-icon"><img src="pics/treasure-chest.svg"></th>
-        <th class="table-treasure-icon"><img src="pics/gold-bag.png"></th>
-        <th class="table-treasure-icon"><img src="pics/gem-turquise.png"></th>
-        <th class="table-treasure-icon"><img src="pics/treasure-chest.svg">Points</th>
-        <th class="table-treasure-icon"><img src="pics/gold-bag.png">Points</th>
-        <th class="table-treasure-icon"><img src="pics/gem-turquise.png">Points</th>
+        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg"></th>
+        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png"></th>
+        <th><img class="table-treasure-icon" src="pics/gem-turquise.png"></th>
+        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg">Points</th>
+        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png">Points</th>
+        <th><img class="table-treasure-icon" src="pics/gem-turquise.png">Points</th>
       </tr>
     </thead>
     <tbody>
@@ -1413,10 +1416,10 @@ function createSessionStatsTables(playersList) {
         <th></th>
         <th>Total<br>Treasures</th>
         <th class="table-treasure-icon"><img src="pics/treasure-chest.svg"></th>
-        <th class="table-treasure-icon"><img src="pics/gold-bag.png"></th>
+        <th class="table-treasure-icon-goldbag"><img src="pics/gold-sack-ripped.png"></th>
         <th class="table-treasure-icon"><img src="pics/gem-turquise.png"></th>
         <th class="table-treasure-icon"><img src="pics/treasure-chest.svg">Points</th>
-        <th class="table-treasure-icon"><img src="pics/gold-bag.png">Points</th>
+        <th class="table-treasure-icon-goldbag"><img src="pics/gold-sack-ripped.png">Points</th>
         <th class="table-treasure-icon"><img src="pics/gem-turquise.png">Points</th>
       </tr>
     </thead>
