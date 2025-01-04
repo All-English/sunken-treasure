@@ -265,17 +265,18 @@ function updatePlayerStats(winningPlayer) {
     // Update win statistics if player won
     if (player === winningPlayer) {
       stats.totalGamesWon++
-      stats.winPercentage = Math.round(
-        (stats.totalGamesWon / stats.totalGamesPlayed) * 100
-      )
-
       stats.currentSessionStats.gamesWon++
-      stats.currentSessionStats.winPercentage = Math.round(
-        (stats.currentSessionStats.gamesWon /
-          stats.currentSessionStats.gamesPlayed) *
-          100
-      )
     }
+
+    // Calculate win percentages
+    stats.winPercentage = Math.round(
+      (stats.totalGamesWon / stats.totalGamesPlayed) * 100
+    )
+    stats.currentSessionStats.winPercentage = Math.round(
+      (stats.currentSessionStats.gamesWon /
+        stats.currentSessionStats.gamesPlayed) *
+        100
+    )
 
     // Track performance against other players
     players.forEach((opponent) => {
@@ -1472,7 +1473,7 @@ function showCompletionModal(winner) {
     const statsTables = createSessionStatsTables(sortedPlayers)
     completionModalStats.appendChild(statsTables)
   } else {
-    winnerNameSpan.textContent = `Congratulations, You found the treasure!`
+    winnerNameSpan.textContent = `Congratulations, You found all the treasures!`
   }
 
   // Show modal
