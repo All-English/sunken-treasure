@@ -1026,6 +1026,7 @@ function handleWordClick(wordCard, currentCell) {
       } else {
         updatePlayerDisplay()
         setTimeout(() => {
+          switchToNextPlayer()
           updatePlayerDisplay()
           gameActive = true
         }, 2000)
@@ -1044,6 +1045,7 @@ function handleWordClick(wordCard, currentCell) {
       playNextSoundInQueue(wrongSounds)
     }, 700)
 
+    switchToNextPlayer()
     updatePlayerDisplay()
 
     gameActive = true
@@ -1622,9 +1624,6 @@ function updatePlayerDisplay() {
     return
   }
 
-  // Switch to next player
-  currentPlayerIndex = (currentPlayerIndex + 1) % players.length
-
   const playerDisplayElement = document.getElementById("player-display")
   // add flex-basis: 100% so it's on a new line
   playerDisplayElement.style.flexBasis = "100%"
@@ -1657,6 +1656,14 @@ function updatePlayerDisplay() {
 
       playerDisplayElement.appendChild(playerElement)
     })
+  }
+
+  function switchToNextPlayer() {
+    if (players.length === 0) {
+      return
+    }
+
+    currentPlayerIndex = (currentPlayerIndex + 1) % players.length
   }
 
   // Update existing elements
