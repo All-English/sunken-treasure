@@ -433,7 +433,7 @@ function createTreasureDiv(treasureType, availableCells) {
   }
 
   treasureDiv.appendChild(treasureImage)
-  treasureDiv.style.setProperty("--cell", `${treasureCell} `)
+  treasureDiv.style.setProperty("--cell", treasureCell)
 
   // Add treasure to game board
   const gameBoard = document.getElementById("game-board")
@@ -959,7 +959,7 @@ function handleWordClick(wordCard, currentCell) {
 
   // Find the treasure div for this specific cell
   const treasureDiv = document.querySelector(
-    `.treasure-div[style*="--cell: ${currentCell} "]`
+    `.treasure-div[style*="--cell: ${currentCell};"]`
   )
 
   // Check if current cell is a treasure cell
@@ -1235,7 +1235,7 @@ function createGameboard() {
     wordCard.textContent = word
 
     // Position in grid
-    wordCard.style.setProperty("--cell", `${treasureCell} `)
+    wordCard.style.setProperty("--cell", treasureCell)
 
     wordCard.addEventListener("click", () =>
       handleWordClick(wordCard, treasureCell)
@@ -1268,7 +1268,7 @@ function createGameboard() {
     wordCard.textContent = word
 
     // Position in grid
-    wordCard.style.setProperty("--cell", `${cell} `)
+    wordCard.style.setProperty("--cell", cell)
 
     wordCard.addEventListener("click", () => handleWordClick(wordCard, cell))
     gameBoard.appendChild(wordCard)
