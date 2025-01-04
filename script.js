@@ -1294,7 +1294,7 @@ function createPlayerStatsTables(playersList) {
   mainTable.innerHTML = `
     <thead>
       <tr>
-        <th>Player</th>
+        <th></th>
         <th>Level</th>
         <th>Total Points</th>
         <th>Games Won</th>
@@ -1329,14 +1329,14 @@ function createPlayerStatsTables(playersList) {
   treasureTable.innerHTML = `
     <thead>
       <tr>
-        <th>Player</th>
-        <th>Chests Found</th>
-        <th>Gold Bags Found</th>
-        <th>Gems Found</th>
-        <th>Total Treasures</th>
-        <th>Points from Chests</th>
-        <th>Points from Gold</th>
-        <th>Points from Gems</th>
+        <th></th>
+        <th>Total<br>Treasures</th>
+        <th class="table-treasure-icon"><img src="pics/treasure-chest.svg"></th>
+        <th class="table-treasure-icon"><img src="pics/gold-bag.png"></th>
+        <th class="table-treasure-icon"><img src="pics/gem-turquise.png"></th>
+        <th class="table-treasure-icon"><img src="pics/treasure-chest.svg">Points</th>
+        <th class="table-treasure-icon"><img src="pics/gold-bag.png">Points</th>
+        <th class="table-treasure-icon"><img src="pics/gem-turquise.png">Points</th>
       </tr>
     </thead>
     <tbody>
@@ -1346,10 +1346,10 @@ function createPlayerStatsTables(playersList) {
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
             <td>${player}</td>
+            <td>${stat.treasuresFound.total || 0}</td>
             <td>${stat.treasuresFound.chest || 0}</td>
             <td>${stat.treasuresFound.goldBag || 0}</td>
             <td>${stat.treasuresFound.gem || 0}</td>
-            <td>${stat.treasuresFound.total || 0}</td>
             <td>${stat.pointsPerTreasureType.chest || 0}</td>
             <td>${stat.pointsPerTreasureType.goldBag || 0}</td>
             <td>${stat.pointsPerTreasureType.gem || 0}</td>
@@ -1375,9 +1375,9 @@ function createSessionStatsTables(playersList) {
   sessionMainTable.innerHTML = `
     <thead>
       <tr>
-        <th>Player</th>
-        <th>Game Points</th>
+        <th></th>
         <th>Session Points</th>
+        <th>Game Points</th>
         <th>Games Won</th>
         <th>Games Played</th>
         <th>Win %</th>
@@ -1390,8 +1390,8 @@ function createSessionStatsTables(playersList) {
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
             <td>${player}</td>
-            <td>${stat.currentGamePoints || 0}</td>
             <td>${stat.currentSessionStats.totalSessionPoints || 0}</td>
+            <td>${stat.currentGamePoints || 0}</td>
             <td>${stat.currentSessionStats.gamesWon || 0}</td>
             <td>${stat.currentSessionStats.gamesPlayed || 0}</td>
             <td>${stat.currentSessionStats.winPercentage || 0}%</td>
@@ -1409,14 +1409,14 @@ function createSessionStatsTables(playersList) {
   treasureTable.innerHTML = `
     <thead>
       <tr>
-        <th>Player</th>
-        <th>Chests Found</th>
-        <th>Gold Bags Found</th>
-        <th>Gems Found</th>
-        <th>Total Treasures</th>
-        <th>Points from Chests</th>
-        <th>Points from Gold</th>
-        <th>Points from Gems</th>
+        <th></th>
+        <th>Total<br>Treasures</th>
+        <th class="table-treasure-icon"><img src="pics/treasure-chest.svg"></th>
+        <th class="table-treasure-icon"><img src="pics/gold-bag.png"></th>
+        <th class="table-treasure-icon"><img src="pics/gem-turquise.png"></th>
+        <th class="table-treasure-icon"><img src="pics/treasure-chest.svg">Points</th>
+        <th class="table-treasure-icon"><img src="pics/gold-bag.png">Points</th>
+        <th class="table-treasure-icon"><img src="pics/gem-turquise.png">Points</th>
       </tr>
     </thead>
     <tbody>
@@ -1426,10 +1426,10 @@ function createSessionStatsTables(playersList) {
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
             <td>${player}</td>
+            <td>${stat.treasuresFound.total || 0}</td>
             <td>${stat.treasuresFound.chest || 0}</td>
             <td>${stat.treasuresFound.goldBag || 0}</td>
             <td>${stat.treasuresFound.gem || 0}</td>
-            <td>${stat.treasuresFound.total || 0}</td>
             <td>${stat.pointsPerTreasureType.chest || 0}</td>
             <td>${stat.pointsPerTreasureType.goldBag || 0}</td>
             <td>${stat.pointsPerTreasureType.gem || 0}</td>
