@@ -1724,6 +1724,24 @@ function setupEventListeners() {
     })
   }
 
+  // Go back to previous player when backspace key is pressed
+  document.addEventListener("keydown", function (event) {
+    // Check if backspace key is pressed (key code 8)
+    if (event.key === "Backspace") {
+      if (players.length === 0) {
+        return
+      }
+
+      // Prevent default backspace behavior
+      event.preventDefault()
+  
+      // Switch to previous player
+      currentPlayerIndex = (currentPlayerIndex - 1) % players.length
+
+      updatePlayerDisplay()
+    }
+  })
+
   // Update URL parameters when word set changes
   const wordSetDropdown = document.getElementById("word-set-dropdown")
   wordSetDropdown.addEventListener("change", (event) => {
