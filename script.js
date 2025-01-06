@@ -1663,7 +1663,6 @@ function updatePlayerDisplay() {
       playerElement.innerHTML = `
         <span class="player-name">${player}</span>
         <span class="player-level"></span>
-        <span>•</span>
         <span class="player-session-score" style="display: none;"></span>
         <span class="bullet" style="display: none;">•</span>
         <span class="player-score"></span>
