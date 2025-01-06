@@ -250,7 +250,7 @@ function updateTreasureStats(player, treasureType, points) {
 }
 
 // Update player stats at the end of a game
-function updatePlayerStats(winningPlayer) {
+function updatePlayerStats(winner) {
   if (players.length === 0) {
     return
   }
@@ -263,7 +263,7 @@ function updatePlayerStats(winningPlayer) {
     stats.currentSessionStats.gamesPlayed++
 
     // Update win statistics if player won
-    if (player === winningPlayer) {
+    if (winner.includes(player)) {
       stats.totalGamesWon++
       stats.currentSessionStats.gamesWon++
     }
@@ -294,7 +294,7 @@ function updatePlayerStats(winningPlayer) {
         stats.versusStats[opponent].gamesPlayed++
 
         // Update wins if player won
-        if (player === winningPlayer) {
+        if (winner.includes(player)) {
           stats.versusStats[opponent].gamesWon++
           stats.versusStats[opponent].winPercentage = Math.round(
             (stats.versusStats[opponent].gamesWon /
@@ -1064,12 +1064,20 @@ function endGame(currentPlayer) {
     sessionStatus = true
 
     // Find player with most points
-    winner = players.reduce((maxPointPlayer, currentPlayer) => {
-      return playerStats[currentPlayer].currentGamePoints >
-        playerStats[maxPointPlayer].currentGamePoints
-        ? currentPlayer
-        : maxPointPlayer
-    })
+    winner = players.reduce((acc, currentPlayer) => {
+      const currentPoints = playerStats[currentPlayer].currentGamePoints
+      const maxPoints = acc.length
+        ? playerStats[acc[0]].currentGamePoints
+        : -Infinity
+
+      if (currentPoints > maxPoints) {
+        return [currentPlayer]
+      }
+      if (currentPoints === maxPoints) {
+        return [...acc, currentPlayer]
+      }
+      return acc
+    }, [])
   }
 
   // Play a finished sound effect
@@ -1417,12 +1425,12 @@ function createSessionStatsTables(playersList) {
       <tr>
         <th></th>
         <th>Total<br>Treasures</th>
-        <th class="table-treasure-icon"><img src="pics/treasure-chest.svg"></th>
-        <th class="table-treasure-icon-goldbag"><img src="pics/gold-sack-ripped.png"></th>
-        <th class="table-treasure-icon"><img src="pics/gem-turquise.png"></th>
-        <th class="table-treasure-icon"><img src="pics/treasure-chest.svg">Points</th>
-        <th class="table-treasure-icon-goldbag"><img src="pics/gold-sack-ripped.png">Points</th>
-        <th class="table-treasure-icon"><img src="pics/gem-turquise.png">Points</th>
+        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg"></th>
+        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png"></th>
+        <th><img class="table-treasure-icon" src="pics/gem-turquise.png"></th>
+        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg">Points</th>
+        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png">Points</th>
+        <th><img class="table-treasure-icon" src="pics/gem-turquise.png">Points</th>
       </tr>
     </thead>
     <tbody>
@@ -1462,8 +1470,11 @@ function showCompletionModal(winner) {
       "completion-stats-container"
     )
 
-    // Set winner's name
-    winnerNameSpan.textContent = `${winner} is the winner!`
+    // Set winner's name based on number of winners
+    winnerNameSpan.textContent =
+      winner.length > 1
+        ? `It's a tie between ${winner.join(" and ")}!`
+        : `${winner[0]} is the winner!`
 
     // Clear existing stats
     completionModalStats.innerHTML = ""
