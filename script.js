@@ -1031,6 +1031,8 @@ function handleWordClick(wordCard, currentCell) {
             updatePlayerDisplay()
             gameActive = true
           }, 2000)
+        } else {
+          gameActive = true
         }
       }
     }, 300)
