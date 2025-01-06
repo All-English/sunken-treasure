@@ -681,7 +681,6 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  /* opacity: 0; */
   visibility: hidden;
   transition: opacity .3s ease;
   overflow-y: auto;
