@@ -1742,6 +1742,11 @@ function setupEventListeners() {
   document.addEventListener("keydown", function (event) {
     // Check if backspace key is pressed (key code 8)
     if (event.key === "Backspace") {
+      // Allow normal backspace in textarea
+      if (document.activeElement.tagName === "TEXTAREA") {
+        return
+      }
+
       if (players.length === 0) {
         return
       }
@@ -1750,7 +1755,8 @@ function setupEventListeners() {
       event.preventDefault()
 
       // Switch to previous player
-      currentPlayerIndex = (currentPlayerIndex - 1) % players.length
+      currentPlayerIndex =
+        (currentPlayerIndex - 1 + players.length) % players.length
 
       updatePlayerDisplay()
     }
