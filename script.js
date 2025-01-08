@@ -119,34 +119,39 @@ function shufflePlayers() {
   updatePlayerDisplay()
 }
 
-function togglePlayerDragging() {
+function enablePlayerDragging() {
   const playerDisplay = document.getElementById("player-display")
-  isDraggingEnabled = !isDraggingEnabled
+  isDraggingEnabled = true
 
-  if (isDraggingEnabled) {
-    console.log("Player dragging enabled")
-  } else {
-    console.log("Player dragging disabled")
-    const dragBtn = document.getElementById("drag-btn")
-    const shuffleBtn = document.getElementById("shuffle-btn")
-    if (shuffleBtn) shuffleBtn.classList.remove("visible")
-    if (dragBtn) dragBtn.classList.remove("visible")
-  }
+  console.log("Player dragging enabled")
 
   playerDisplay.querySelectorAll(".player-info").forEach((item) => {
-    if (isDraggingEnabled) {
-      item.draggable = true
-      item.addEventListener("dragstart", handleDragStart)
-      item.addEventListener("dragover", handleDragOver)
-      item.addEventListener("drop", handleDrop)
-      item.classList.add("draggable")
-    } else {
-      item.draggable = false
-      item.removeEventListener("dragstart", handleDragStart)
-      item.removeEventListener("dragover", handleDragOver)
-      item.removeEventListener("drop", handleDrop)
-      item.classList.remove("draggable")
-    }
+    item.draggable = true
+    item.addEventListener("dragstart", handleDragStart)
+    item.addEventListener("dragover", handleDragOver)
+    item.addEventListener("drop", handleDrop)
+    item.classList.add("draggable")
+  })
+}
+
+function disablePlayerDragging() {
+  const playerDisplay = document.getElementById("player-display")
+  isDraggingEnabled = false
+
+  console.log("Player dragging disabled")
+
+  // Hide drag and shuffle buttons
+  const dragBtn = document.getElementById("drag-btn")
+  const shuffleBtn = document.getElementById("shuffle-btn")
+  if (shuffleBtn) shuffleBtn.classList.remove("visible")
+  if (dragBtn) dragBtn.classList.remove("visible")
+
+  playerDisplay.querySelectorAll(".player-info").forEach((item) => {
+    item.draggable = false
+    item.removeEventListener("dragstart", handleDragStart)
+    item.removeEventListener("dragover", handleDragOver)
+    item.removeEventListener("drop", handleDrop)
+    item.classList.remove("draggable")
   })
 }
 
@@ -1029,6 +1034,8 @@ function handleWordClick(wordCard, currentCell) {
     const dragBtn = document.getElementById("drag-btn")
     if (shuffleBtn) shuffleBtn.classList.remove("visible")
     if (dragBtn) dragBtn.classList.remove("visible")
+    
+    disablePlayerDragging()
   }
 
   // Keep track of how many cards are left
@@ -1223,6 +1230,7 @@ function createGameboard() {
 
     updatePlayerDisplay()
 
+    // Show Buttons
     const showLeaderboardBtn = document.getElementById("leaderboard-btn")
     const shuffleBtn = document.getElementById("shuffle-btn")
     const dragBtn = document.getElementById("drag-btn")
@@ -1231,11 +1239,7 @@ function createGameboard() {
     shuffleBtn.classList.add("visible")
     dragBtn.classList.add("visible")
 
-    // Show reordering buttons when game starts
-    // document.getElementById("shuffle-btn").style.display = "inline-block"
-    // document.getElementById("drag-btn").style.display = "inline-block"
-
-    togglePlayerDragging()
+    enablePlayerDragging()
   }
 
   // Reset used images tracking
