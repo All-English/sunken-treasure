@@ -36,9 +36,11 @@ let cardsRemaining = 0
 let currentPlayerIndex = 0
 let gameActive = true
 let isDraggingEnabled = false
+let treasuresRemaining = 0
 let players = []
 let playerStats = {}
 let sessionStatus = false
+let totalTreasuresPlaced = 0
 let treasureIndex
 const winSounds = [
   new Audio("sounds/win/land-ho.mp3"),
@@ -174,7 +176,6 @@ function disablePlayerDragging() {
 
 function handleDragStart(e) {
   e.dataTransfer.setData("text/plain", e.target.dataset.player)
-  console.log("Started dragging player:", e.target.dataset.player)
 }
 
 function handleDragOver(e) {
@@ -682,6 +683,8 @@ function savePlayerStats() {
 function resetSessionStats() {
   sessionStatus = false
 
+  console.log("Session stats are being reset")
+
   players.forEach((player) => {
     if (playerStats[player]) {
       playerStats[player].currentSessionStats = {
@@ -1076,6 +1079,10 @@ function handleWordClick(wordCard, currentCell) {
 
     const currentPlayer = players[currentPlayerIndex] || "You"
 
+    treasuresRemaining--
+    document.getElementById("treasures-remaining").textContent =
+      treasuresRemaining.toString()
+
     console.log(
       currentPlayer,
       "found a",
@@ -1120,11 +1127,7 @@ function handleWordClick(wordCard, currentCell) {
       updateTreasureStats(currentPlayer, treasureType, points)
 
       // Check if all treasures are found
-      const remainingTreasures = document.querySelectorAll(
-        '.treasure-div:not([style*="display: flex"])'
-      )
-
-      if (remainingTreasures.length === 0) {
+      if (treasuresRemaining === 0) {
         console.log("All treasures found!")
         updatePlayerDisplay()
         endGame(currentPlayer)
@@ -1244,7 +1247,6 @@ function createGameboard() {
     players.forEach((player) => {
       playerStats[player].currentGamePoints = 0
     })
-
 
     // Show Buttons
     const showLeaderboardBtn = document.getElementById("leaderboard-btn")
@@ -1414,6 +1416,10 @@ function createGameboard() {
 
   cardsRemaining = wordCards.length
   document.getElementById("cards-remaining").textContent = cardsRemaining
+
+  treasuresRemaining = totalTreasuresPlaced
+  document.getElementById("treasures-remaining").textContent =
+    treasuresRemaining.toString()
 
   // Create bubbles
   createBubbles(25)
@@ -1790,7 +1796,6 @@ function updatePlayerDisplay() {
     })
 
     enablePlayerDragging()
-
   } else if (
     // checks if any player is in a new position
     currentPlayerElements.some(
