@@ -1048,13 +1048,12 @@ function handleWordClick(wordCard, currentCell) {
   if (!gameActive || wordCard.classList.contains("clicked")) return
   gameActive = false
 
-  if (players.length > 0) {
-    // Hide reordering buttons on first card click
+  // Hide reordering buttons on first card click
+  if (isDraggingEnabled) {
     const shuffleBtn = document.getElementById("shuffle-btn")
     const dragBtn = document.getElementById("drag-btn")
     if (shuffleBtn) shuffleBtn.classList.remove("visible")
     if (dragBtn) dragBtn.classList.remove("visible")
-
     disablePlayerDragging()
   }
 
