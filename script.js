@@ -35,6 +35,7 @@ const showUsedCellsCheckbox = document.getElementById("show-used-cells") // used
 let cardsRemaining = 0
 let currentPlayerIndex = 0
 let gameActive = true
+let isDraggingEnabled = false
 let players = []
 let playerStats = {}
 let sessionStatus = false
@@ -106,6 +107,80 @@ const usedTreasureImages = {
   chest: [],
   gem: [],
   goldBag: [],
+}
+
+function shufflePlayers() {
+  for (let i = players.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[players[i], players[j]] = [players[j], players[i]]
+  }
+
+  savePlayerstoLocalStorage()
+  updatePlayerDisplay()
+}
+
+function togglePlayerDragging() {
+  const playerDisplay = document.getElementById("player-display")
+  isDraggingEnabled = !isDraggingEnabled
+
+  if (isDraggingEnabled) {
+    console.log("Player dragging enabled")
+  } else {
+    console.log("Player dragging disabled")
+    const dragBtn = document.getElementById("drag-btn")
+    const shuffleBtn = document.getElementById("shuffle-btn")
+    if (shuffleBtn) shuffleBtn.classList.remove("visible")
+    if (dragBtn) dragBtn.classList.remove("visible")
+  }
+
+  playerDisplay.querySelectorAll(".player-info").forEach((item) => {
+    if (isDraggingEnabled) {
+      item.draggable = true
+      item.addEventListener("dragstart", handleDragStart)
+      item.addEventListener("dragover", handleDragOver)
+      item.addEventListener("drop", handleDrop)
+      item.classList.add("draggable")
+    } else {
+      item.draggable = false
+      item.removeEventListener("dragstart", handleDragStart)
+      item.removeEventListener("dragover", handleDragOver)
+      item.removeEventListener("drop", handleDrop)
+      item.classList.remove("draggable")
+    }
+  })
+}
+
+function handleDragStart(e) {
+  e.dataTransfer.setData("text/plain", e.target.dataset.player)
+  console.log("Started dragging player:", e.target.dataset.player)
+}
+
+function handleDragOver(e) {
+  e.preventDefault()
+}
+
+function handleDrop(e) {
+  e.preventDefault()
+  const draggedPlayer = e.dataTransfer.getData("text/plain")
+  const dropTarget = e.target.closest(".player-info")
+
+  if (dropTarget) {
+    const draggedIndex = players.indexOf(draggedPlayer)
+    const dropIndex = players.indexOf(dropTarget.dataset.player)
+
+    console.log(
+      `Reordering players: Moving ${draggedPlayer} to position ${dropIndex + 1}`
+    )
+
+    // Reorder array
+    players.splice(draggedIndex, 1)
+    players.splice(dropIndex, 0, draggedPlayer)
+
+    // console.log("New player order:", players)
+
+    savePlayerstoLocalStorage()
+    updatePlayerDisplay()
+  }
 }
 
 // Calculate player level using a quadratic formula
@@ -948,6 +1023,14 @@ function handleWordClick(wordCard, currentCell) {
   if (!gameActive || wordCard.classList.contains("clicked")) return
   gameActive = false
 
+  if (players.length > 0) {
+    // Hide reordering buttons on first card click
+    const shuffleBtn = document.getElementById("shuffle-btn")
+    const dragBtn = document.getElementById("drag-btn")
+    if (shuffleBtn) shuffleBtn.classList.remove("visible")
+    if (dragBtn) dragBtn.classList.remove("visible")
+  }
+
   // Keep track of how many cards are left
   cardsRemaining--
   document.getElementById("cards-remaining").textContent =
@@ -1139,6 +1222,20 @@ function createGameboard() {
     })
 
     updatePlayerDisplay()
+
+    const showLeaderboardBtn = document.getElementById("leaderboard-btn")
+    const shuffleBtn = document.getElementById("shuffle-btn")
+    const dragBtn = document.getElementById("drag-btn")
+
+    showLeaderboardBtn.classList.add("visible")
+    shuffleBtn.classList.add("visible")
+    dragBtn.classList.add("visible")
+
+    // Show reordering buttons when game starts
+    // document.getElementById("shuffle-btn").style.display = "inline-block"
+    // document.getElementById("drag-btn").style.display = "inline-block"
+
+    togglePlayerDragging()
   }
 
   // Reset used images tracking
@@ -1556,22 +1653,8 @@ function savePlayers() {
   players = [...new Set(filteredPlayers)]
 
   console.log("Player list:", players)
-  // Save to localStorage
-  try {
-    const playerData = {
-      players: players,
-      timestamp: Date.now(),
-    }
-    localStorage.setItem("treasureHuntPlayerData", JSON.stringify(playerData))
 
-    // localStorage.setItem("treasureHuntPlayers", JSON.stringify(players))
-    console.log("Players successfully saved to localStorage")
-    console.log("---")
-  } catch (error) {
-    console.error("Error saving players to localStorage:", error)
-    alert("Unable to save players. Local storage might be full or disabled.")
-    console.log("---")
-  }
+  savePlayerstoLocalStorage()
 
   // Ensure stats are initialized for each player
   players.forEach((player) => {
@@ -1585,11 +1668,24 @@ function savePlayers() {
   hidePlayersModal()
   createGameboard()
   updatePlayerDisplay()
-
-  // const showStatsBtn = document.getElementById("leaderboard-btn")
-  // showStatsBtn.classList.add("visible")
 }
 
+function savePlayerstoLocalStorage() {
+  // Save to localStorage
+  try {
+    const playerData = {
+      players: players,
+      timestamp: Date.now(),
+    }
+    localStorage.setItem("treasureHuntPlayerData", JSON.stringify(playerData))
+
+    // localStorage.setItem("treasureHuntPlayers", JSON.stringify(players))
+    console.log("Players successfully saved to localStorage")
+  } catch (error) {
+    console.error("Error saving players to localStorage:", error)
+    alert("Unable to save players. Local storage might be full or disabled.")
+  }
+}
 // Function to load players from localStorage
 function loadSavedPlayers() {
   // Get stored data
@@ -1649,7 +1745,7 @@ function updatePlayerDisplay() {
     currentPlayerElements.length !== players.length ||
     currentPlayerElements.some(
       (element) => !players.includes(element.dataset.player)
-    )
+    ) // checks if any displayed player isn't in players array
 
   // First time creation of player elements if they don't exist or if players have changed
   if (playerDisplayElement.children.length === 0 || playersHaveChanged) {
@@ -1670,9 +1766,32 @@ function updatePlayerDisplay() {
 
       playerDisplayElement.appendChild(playerElement)
     })
-  }
 
-  // Update existing elements
+    // Reattach drag handlers if enabled
+    if (isDraggingEnabled) {
+      playerDisplayElement.querySelectorAll(".player-info").forEach((item) => {
+        item.draggable = true
+        item.addEventListener("dragstart", handleDragStart)
+        item.addEventListener("dragover", handleDragOver)
+        item.addEventListener("drop", handleDrop)
+        item.classList.add("draggable")
+      })
+    }
+  } else if (
+    // checks if any player is in a new position
+    currentPlayerElements.some(
+      (element, index) => element.dataset.player !== players[index]
+    )
+  ) {
+    // Just reorder existing elements without recreating
+    players.forEach((player, index) => {
+      const playerElement = playerDisplayElement.querySelector(
+        `[data-player="${player}"]`
+      )
+      playerDisplayElement.appendChild(playerElement)
+    })
+  }
+  // Update stats and active state
   players.forEach((player, index) => {
     const playerElement = playerDisplayElement.querySelector(
       `[data-player="${player}"]`
