@@ -110,9 +110,26 @@ const usedTreasureImages = {
 }
 
 function shufflePlayers() {
-  for (let i = players.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[players[i], players[j]] = [players[j], players[i]]
+  const originalPositions = [...players]
+  let maxAttempts = 100
+  let validShuffle = false
+
+  while (!validShuffle && maxAttempts > 0) {
+    // Perform shuffle
+    for (let i = players.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[players[i], players[j]] = [players[j], players[i]]
+    }
+
+    // Check if any player is in original position
+    validShuffle = players.every(
+      (player, index) => player !== originalPositions[index]
+    )
+    maxAttempts--
+  }
+
+  if (!validShuffle) {
+    console.log("Could not find valid shuffle, using last attempt")
   }
 
   savePlayerstoLocalStorage()
@@ -1034,7 +1051,7 @@ function handleWordClick(wordCard, currentCell) {
     const dragBtn = document.getElementById("drag-btn")
     if (shuffleBtn) shuffleBtn.classList.remove("visible")
     if (dragBtn) dragBtn.classList.remove("visible")
-    
+
     disablePlayerDragging()
   }
 
@@ -1228,7 +1245,6 @@ function createGameboard() {
       playerStats[player].currentGamePoints = 0
     })
 
-    updatePlayerDisplay()
 
     // Show Buttons
     const showLeaderboardBtn = document.getElementById("leaderboard-btn")
@@ -1238,6 +1254,8 @@ function createGameboard() {
     showLeaderboardBtn.classList.add("visible")
     shuffleBtn.classList.add("visible")
     dragBtn.classList.add("visible")
+
+    updatePlayerDisplay()
 
     enablePlayerDragging()
   }
@@ -1771,16 +1789,8 @@ function updatePlayerDisplay() {
       playerDisplayElement.appendChild(playerElement)
     })
 
-    // Reattach drag handlers if enabled
-    if (isDraggingEnabled) {
-      playerDisplayElement.querySelectorAll(".player-info").forEach((item) => {
-        item.draggable = true
-        item.addEventListener("dragstart", handleDragStart)
-        item.addEventListener("dragover", handleDragOver)
-        item.addEventListener("drop", handleDrop)
-        item.classList.add("draggable")
-      })
-    }
+    enablePlayerDragging()
+
   } else if (
     // checks if any player is in a new position
     currentPlayerElements.some(
