@@ -36,12 +36,14 @@ let cardsRemaining = 0
 let currentPlayerIndex = 0
 let gameActive = true
 let isDraggingEnabled = false
-let treasuresRemaining = 0
+let lastWinSound = null
+let lastWrongSound = null
 let players = []
 let playerStats = {}
 let sessionStatus = false
 let totalTreasuresPlaced = 0
 let treasureIndex
+let treasuresRemaining = 0
 const winSounds = [
   new Audio("sounds/win/land-ho.mp3"),
   new Audio("sounds/win/shiver-me-timbers.mp3"),
@@ -627,13 +629,36 @@ function playNextSoundInQueue(soundsArray) {
   }
 }
 
-// Get next sound from queue, reshuffle if empty
+// Get next sound from queue, reshuffle if empty & don't repeat last sound
 function getNextSound(soundsArray, queueArray) {
   if (queueArray.length === 0) {
     // Queue is empty, reshuffle all sounds
     queueArray.push(...shuffleArray(soundsArray))
+
+    // Get last played sound for this type
+    const lastSound = soundsArray === winSounds ? lastWinSound : lastWrongSound
+
+    // If first sound matches last played, swap with random position
+    if (queueArray[0] === lastSound && queueArray.length > 1) {
+      const randomIndex =
+        1 + Math.floor(Math.random() * (queueArray.length - 1))
+      ;[queueArray[0], queueArray[randomIndex]] = [
+        queueArray[randomIndex],
+        queueArray[0],
+      ]
+    }
   }
-  return queueArray.pop()
+
+  const nextSound = queueArray.pop()
+
+  // Update last played sound
+  if (soundsArray === winSounds) {
+    lastWinSound = nextSound
+  } else {
+    lastWrongSound = nextSound
+  }
+
+  return nextSound
 }
 
 function createBubbles(numBubbles = 15) {
