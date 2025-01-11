@@ -454,6 +454,11 @@ body {
     &.draggable {
       cursor: move;
       border: 2px dashed #ccc;
+      transition: transform 0.2s ease;
+
+      &:active {
+        transform: scale(1.05);
+      }
     }
 
     .player-name,
