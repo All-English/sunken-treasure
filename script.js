@@ -147,6 +147,15 @@ function showCustomWordSetsModal() {
 function hideCustomWordSetsModal() {
   const customSetsModal = document.getElementById("custom-sets-modal")
   customSetsModal.classList.remove("visible")
+
+  const nameInput = document.getElementById("new-set-name")
+  const wordsArea = document.getElementById("new-set-words")
+  const saveButton = document.getElementById("save-set-btn")
+
+  // Reset form
+  nameInput.value = ""
+  wordsArea.value = ""
+  saveButton.textContent = "Save New Set"
 }
 
 function displayCustomSets() {
@@ -156,13 +165,12 @@ function displayCustomSets() {
   setsList.innerHTML = Object.entries(sets)
     .map(
       ([name, data]) => `
-            <div class="set-item">
-              <span>${name} (${data.words.length} words)</span>
-              <div class="set-actions">
-                <button data-set="${name}" class="edit-set-btn">Edit</button>
-                <button data-set="${name}" class="delete-set">Delete</button>
-              </div>
+          <div class="set-item">
+            <span class="set-name" data-set="${name}">${name} (${data.words.length} words)</span>
+            <div class="saved-set-delete" title="Delete" data-set="${name}">
+              <i class="trash-icon fa-regular fa-trash-can" aria-hidden="true" role="img"></i>
             </div>
+          </div>
           `
     )
     .join("")
@@ -172,6 +180,8 @@ function setupCustomSetsListeners() {
   const saveButton = document.getElementById("save-set-btn")
   const nameInput = document.getElementById("new-set-name")
   const wordsArea = document.getElementById("new-set-words")
+  const setsList = document.getElementById("sets-list")
+  const closeSetsBtn = document.getElementById("close-sets-btn")
 
   saveButton.addEventListener("click", () => {
     const name = nameInput.value.trim()
@@ -181,9 +191,9 @@ function setupCustomSetsListeners() {
       .filter((w) => w)
 
     if (name && words.length) {
-      if (editingSetName) {
+      if (name) {
         // Update existing set
-        deleteCustomWordSet(editingSetName)
+        deleteCustomWordSet(name)
       }
 
       saveCustomWordSet(name, words)
@@ -193,47 +203,33 @@ function setupCustomSetsListeners() {
       // Reset form
       nameInput.value = ""
       wordsArea.value = ""
-      editingSetName = null
       saveButton.textContent = "Save New Set"
     }
   })
 
-  document.getElementById("sets-list").addEventListener("click", (e) => {
-    if (e.target.classList.contains("delete-set")) {
-      const setName = e.target.dataset.set
+  setsList.addEventListener("click", (e) => {
+    const deleteBtn = e.target.closest(".saved-set-delete")
+    if (deleteBtn) {
+      const setName = deleteBtn.dataset.set
       deleteCustomWordSet(setName)
       displayCustomSets()
       populateWordSetDropdown()
     }
 
-    if (e.target.classList.contains("edit-set-btn")) {
+    if (e.target.classList.contains("set-name")) {
       const setName = e.target.dataset.set
       const sets = getCustomWordSets()
       const set = sets[setName]
 
-      // Load set data into form
       nameInput.value = setName
       wordsArea.value = set.words.join("\n")
-      editingSetName = setName
 
-      // Update button text
       saveButton.textContent = "Update Set"
     }
   })
 
-  // Add cancel edit button
-  const cancelBtn = document.createElement("button")
-  cancelBtn.id = "cancel-edit-btn"
-  cancelBtn.textContent = "Cancel Edit"
-  cancelBtn.style.display = "none"
-  document.querySelector(".modal-actions").appendChild(cancelBtn)
-
-  cancelBtn.addEventListener("click", () => {
-    nameInput.value = ""
-    wordsArea.value = ""
-    editingSetName = null
-    saveButton.textContent = "Save New Set"
-    cancelBtn.style.display = "none"
+  closeSetsBtn.addEventListener("click", () => {
+    hideCustomWordSetsModal()
   })
 }
 
@@ -2134,6 +2130,7 @@ function setupEventListeners() {
   const statsModal = document.getElementById("stats-modal")
   const playersModal = document.getElementById("players-modal")
   const customSetsModal = document.getElementById("custom-sets-modal")
+
   completionModal.addEventListener("click", (e) => {
     if (e.target.id === "completion-modal") {
       hideCompletionModal()
