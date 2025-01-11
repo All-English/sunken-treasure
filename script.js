@@ -113,6 +113,130 @@ const usedTreasureImages = {
   goldBag: [],
 }
 
+const STORAGE_KEY_CUSTOM_SETS = "treasureHunt_customSets"
+
+function saveCustomWordSet(name, words) {
+  const sets = getCustomWordSets()
+  sets[name] = {
+    words,
+    createdAt: new Date().toISOString(),
+  }
+  localStorage.setItem(STORAGE_KEY_CUSTOM_SETS, JSON.stringify(sets))
+}
+
+function getCustomWordSets() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTOM_SETS) || "{}")
+}
+
+function deleteCustomWordSet(name) {
+  const sets = getCustomWordSets()
+  delete sets[name]
+  localStorage.setItem(STORAGE_KEY_CUSTOM_SETS, JSON.stringify(sets))
+}
+
+function showCustomWordSetsModal() {
+  const sets = getCustomWordSets()
+
+  const customSetsModal = document.getElementById("custom-sets-modal")
+  customSetsModal.classList.add("visible")
+
+  displayCustomSets()
+  setupCustomSetsListeners()
+}
+
+function hideCustomWordSetsModal() {
+  const customSetsModal = document.getElementById("custom-sets-modal")
+  customSetsModal.classList.remove("visible")
+}
+
+function displayCustomSets() {
+  const setsList = document.getElementById("sets-list")
+  const sets = getCustomWordSets()
+
+  setsList.innerHTML = Object.entries(sets)
+    .map(
+      ([name, data]) => `
+            <div class="set-item">
+              <span>${name} (${data.words.length} words)</span>
+              <div class="set-actions">
+                <button data-set="${name}" class="edit-set-btn">Edit</button>
+                <button data-set="${name}" class="delete-set">Delete</button>
+              </div>
+            </div>
+          `
+    )
+    .join("")
+}
+
+function setupCustomSetsListeners() {
+  const saveButton = document.getElementById("save-set-btn")
+  const nameInput = document.getElementById("new-set-name")
+  const wordsArea = document.getElementById("new-set-words")
+
+  saveButton.addEventListener("click", () => {
+    const name = nameInput.value.trim()
+    const words = wordsArea.value
+      .split(/[,\n]/)
+      .map((w) => w.trim())
+      .filter((w) => w)
+
+    if (name && words.length) {
+      if (editingSetName) {
+        // Update existing set
+        deleteCustomWordSet(editingSetName)
+      }
+
+      saveCustomWordSet(name, words)
+      displayCustomSets()
+      populateWordSetDropdown()
+
+      // Reset form
+      nameInput.value = ""
+      wordsArea.value = ""
+      editingSetName = null
+      saveButton.textContent = "Save New Set"
+    }
+  })
+
+  document.getElementById("sets-list").addEventListener("click", (e) => {
+    if (e.target.classList.contains("delete-set")) {
+      const setName = e.target.dataset.set
+      deleteCustomWordSet(setName)
+      displayCustomSets()
+      populateWordSetDropdown()
+    }
+
+    if (e.target.classList.contains("edit-set-btn")) {
+      const setName = e.target.dataset.set
+      const sets = getCustomWordSets()
+      const set = sets[setName]
+
+      // Load set data into form
+      nameInput.value = setName
+      wordsArea.value = set.words.join("\n")
+      editingSetName = setName
+
+      // Update button text
+      saveButton.textContent = "Update Set"
+    }
+  })
+
+  // Add cancel edit button
+  const cancelBtn = document.createElement("button")
+  cancelBtn.id = "cancel-edit-btn"
+  cancelBtn.textContent = "Cancel Edit"
+  cancelBtn.style.display = "none"
+  document.querySelector(".modal-actions").appendChild(cancelBtn)
+
+  cancelBtn.addEventListener("click", () => {
+    nameInput.value = ""
+    wordsArea.value = ""
+    editingSetName = null
+    saveButton.textContent = "Save New Set"
+    cancelBtn.style.display = "none"
+  })
+}
+
 function shufflePlayers() {
   const originalPositions = [...players]
   let maxAttempts = 100
@@ -768,6 +892,14 @@ function populateWordSetDropdown() {
     })
   })
 
+  const customSets = getCustomWordSets()
+  Object.keys(customSets).forEach((setName) => {
+    const option = document.createElement("option")
+    option.value = `custom:${setName}:0` // Add unit placeholder
+    option.textContent = `Custom: ${setName}`
+    unitDropdown.appendChild(option)
+  })
+
   // Handle URL parameters first
   const urlParams = getUrlParameters()
   if (urlParams.level && urlParams.unit) {
@@ -957,118 +1089,6 @@ function addUnavailableCells(
   }
 }
 
-function selectWordsFromWordBank(
-  level,
-  unit,
-  maxWords = 30,
-  includeExtraWords = false
-) {
-  function shuffleArray(array) {
-    // Fisher-Yates (Knuth) shuffle algorithm
-    const shuffledArray = [...array] // Create a copy to avoid modifying original
-    for (let i = shuffledArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[shuffledArray[i], shuffledArray[j]] = [
-        shuffledArray[j],
-        shuffledArray[i],
-      ]
-    }
-    return shuffledArray
-  }
-
-  // Check if the specified level and unit exist
-  if (!smartPhonicsWordBank[level] || !smartPhonicsWordBank[level][unit]) {
-    console.error(`Invalid level or unit: ${level}, ${unit}`)
-    return { words: [] }
-  }
-
-  // Get all units for the current level
-  const unitsInLevel = Object.keys(smartPhonicsWordBank[level])
-
-  // Find the current unit's index
-  const currentUnitIndex = unitsInLevel.indexOf(unit)
-
-  let selectedWords = []
-
-  // Start with the current unit
-  let processingUnitIndex = currentUnitIndex
-
-  // Flag to track word selection phase
-  let wordPass = "regular"
-
-  // First pass: Add regular words (and extra words if specified)
-  // If not enough words, switch to 'extra' pass
-  // Add extra words from units, working backwards
-  while (
-    processingUnitIndex >= 0 &&
-    (!maxWords || selectedWords.length < maxWords)
-  ) {
-    const processingUnit = unitsInLevel[processingUnitIndex]
-    const unitData = smartPhonicsWordBank[level][processingUnit]
-
-    let wordsToAdd = []
-
-    // Determine which words to add based on the current pass
-    switch (wordPass) {
-      case "regular":
-        // Add regular words
-        wordsToAdd = shuffleArray(unitData.words)
-
-        // If includeExtraWords is true, also add extra words
-        if (includeExtraWords && unitData.extraWords) {
-          wordsToAdd = [...wordsToAdd, ...shuffleArray(unitData.extraWords)]
-        }
-
-        // If we've gone through all units and still need words, switch to extra words
-        if (processingUnitIndex === 0) {
-          wordPass = "extra"
-          processingUnitIndex = currentUnitIndex // Reset to current unit index
-        } else {
-          // Move to previous unit
-          processingUnitIndex--
-        }
-        break
-
-      case "extra":
-        // Only add extra words if they exist and we're still short on words
-        if (unitData.extraWords) {
-          wordsToAdd = shuffleArray(unitData.extraWords)
-        }
-
-        // If we've gone through all units, we're done
-        if (processingUnitIndex === 0) {
-          wordPass = "done"
-        } else {
-          // Move to previous unit
-          processingUnitIndex--
-        }
-        break
-
-      case "done":
-        // There are no more words to add
-
-        // If there are more words than needed, slice the array
-        if (selectedWords.length > maxWords) {
-          selectedWords = selectedWords.slice(0, maxWords)
-        }
-
-        return selectedWords
-    }
-
-    // Remove duplicates while maintaining order
-    const mergedSet = new Set([...selectedWords, ...wordsToAdd])
-    // Add words from this unit
-    selectedWords = [...mergedSet]
-  }
-
-  // If there are more words than needed, slice the array
-  if (selectedWords.length > maxWords) {
-    selectedWords = selectedWords.slice(0, maxWords)
-  }
-
-  return selectedWords
-}
-
 function handleWordClick(wordCard, currentCell) {
   if (!gameActive || wordCard.classList.contains("clicked")) return
   gameActive = false
@@ -1251,6 +1271,20 @@ function getUrlParameters() {
 }
 
 function validateWordSetSelection(level, unit) {
+  function isCustomSet(level) {
+    return level.startsWith("custom:")
+  }
+  // Check for custom word sets
+  if (isCustomSet(level)) {
+    const setName = unit // unit parameter contains set name for custom sets
+    const customSets = getCustomWordSets()
+    if (!customSets[setName]) {
+      console.warn(`Custom word set "${setName}" not found. Using default.`)
+      return false
+    }
+    return true
+  }
+
   // Check if the specified level and unit exist in the word bank
   if (!smartPhonicsWordBank[level] || !smartPhonicsWordBank[level][unit]) {
     console.warn(`Invalid level or unit: ${level}, ${unit}. Using default.`)
@@ -1259,9 +1293,129 @@ function validateWordSetSelection(level, unit) {
   return true
 }
 
+function selectWordsFromWordBank(
+  level,
+  unit,
+  maxWords = 30,
+  includeExtraWords = false
+) {
+  function shuffleArray(array) {
+    // Fisher-Yates (Knuth) shuffle algorithm
+    const shuffledArray = [...array] // Create a copy to avoid modifying original
+    for (let i = shuffledArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffledArray[i], shuffledArray[j]] = [
+        shuffledArray[j],
+        shuffledArray[i],
+      ]
+    }
+    return shuffledArray
+  }
+
+  if (level === "custom") {
+    const sets = getCustomWordSets()
+    const customWords = sets[unit]?.words.slice(0, maxWords) || []
+    return customWords
+  }
+
+  // Check if the specified level and unit exist
+  if (!smartPhonicsWordBank[level] || !smartPhonicsWordBank[level][unit]) {
+    console.error(`Invalid level or unit: ${level}, ${unit}`)
+    return { words: [] }
+  }
+
+  // Get all units for the current level
+  const unitsInLevel = Object.keys(smartPhonicsWordBank[level])
+
+  // Find the current unit's index
+  const currentUnitIndex = unitsInLevel.indexOf(unit)
+
+  let selectedWords = []
+
+  // Start with the current unit
+  let processingUnitIndex = currentUnitIndex
+
+  // Flag to track word selection phase
+  let wordPass = "regular"
+
+  // First pass: Add regular words (and extra words if specified)
+  // If not enough words, switch to 'extra' pass
+  // Add extra words from units, working backwards
+  while (
+    processingUnitIndex >= 0 &&
+    (!maxWords || selectedWords.length < maxWords)
+  ) {
+    const processingUnit = unitsInLevel[processingUnitIndex]
+    const unitData = smartPhonicsWordBank[level][processingUnit]
+
+    let wordsToAdd = []
+
+    // Determine which words to add based on the current pass
+    switch (wordPass) {
+      case "regular":
+        // Add regular words
+        wordsToAdd = shuffleArray(unitData.words)
+
+        // If includeExtraWords is true, also add extra words
+        if (includeExtraWords && unitData.extraWords) {
+          wordsToAdd = [...wordsToAdd, ...shuffleArray(unitData.extraWords)]
+        }
+
+        // If we've gone through all units and still need words, switch to extra words
+        if (processingUnitIndex === 0) {
+          wordPass = "extra"
+          processingUnitIndex = currentUnitIndex // Reset to current unit index
+        } else {
+          // Move to previous unit
+          processingUnitIndex--
+        }
+        break
+
+      case "extra":
+        // Only add extra words if they exist and we're still short on words
+        if (unitData.extraWords) {
+          wordsToAdd = shuffleArray(unitData.extraWords)
+        }
+
+        // If we've gone through all units, we're done
+        if (processingUnitIndex === 0) {
+          wordPass = "done"
+        } else {
+          // Move to previous unit
+          processingUnitIndex--
+        }
+        break
+
+      case "done":
+        // There are no more words to add
+
+        // If there are more words than needed, slice the array
+        if (selectedWords.length > maxWords) {
+          selectedWords = selectedWords.slice(0, maxWords)
+        }
+
+        return selectedWords
+    }
+
+    // Remove duplicates while maintaining order
+    const mergedSet = new Set([...selectedWords, ...wordsToAdd])
+    // Add words from this unit
+    selectedWords = [...mergedSet]
+  }
+
+  // If there are more words than needed, slice the array
+  if (selectedWords.length > maxWords) {
+    selectedWords = selectedWords.slice(0, maxWords)
+  }
+
+  return selectedWords
+}
+
 function createGameboard() {
   // console.clear()
   const gameBoard = document.getElementById("game-board")
+  const wordSetDropdown = document.getElementById("word-set-dropdown")
+  let selectedLevel, selectedUnit
 
   // Reset player turn to first player
   if (players.length > 0) {
@@ -1291,8 +1445,12 @@ function createGameboard() {
     usedTreasureImages[treasureType] = []
   })
 
-  const wordSetDropdown = document.getElementById("word-set-dropdown")
-  const [selectedLevel, selectedUnit] = wordSetDropdown.value.split(":")
+  if (wordSetDropdown.value.startsWith("custom:")) {
+    selectedLevel = "custom"
+    selectedUnit = wordSetDropdown.value.split(":")[1] // Get set name
+  } else {
+    ;[selectedLevel, selectedUnit] = wordSetDropdown.value.split(":")
+  }
 
   // Get extra words checkbox state
   const includeExtraWordsCheckbox = document.getElementById(
@@ -1975,6 +2133,7 @@ function setupEventListeners() {
   const completionModal = document.getElementById("completion-modal")
   const statsModal = document.getElementById("stats-modal")
   const playersModal = document.getElementById("players-modal")
+  const customSetsModal = document.getElementById("custom-sets-modal")
   completionModal.addEventListener("click", (e) => {
     if (e.target.id === "completion-modal") {
       hideCompletionModal()
@@ -1990,6 +2149,11 @@ function setupEventListeners() {
       hidePlayersModal()
     }
   })
+  customSetsModal.addEventListener("click", (e) => {
+    if (e.target.id === "custom-sets-modal") {
+      hideCustomWordSetsModal()
+    }
+  })
 
   // Add escape key support to modals
   document.addEventListener("keydown", (e) => {
@@ -1998,6 +2162,7 @@ function setupEventListeners() {
       hideCompletionModal()
       hidePlayerStatsModal()
       hidePlayersModal()
+      hideCustomWordSetsModal()
       // Reset current game
       createGameboard()
     }

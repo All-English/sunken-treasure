@@ -29,6 +29,9 @@
                 <!-- Word Set Selection -->
                 <select id="word-set-dropdown" class="word-set-select"></select>
 
+                <button id="custom-wordset-btn" class="custom-wordset-btn" onclick="showCustomWordSetsModal()">Manage
+                    Word Sets</button>
+
                 <!-- Max Words Selection -->
                 <label for="max-words" class="max-words-label">Max Words <select id="max-words"
                         class="max-words-select"></select></label>
@@ -98,6 +101,21 @@
                 <div class="modal-actions">
                     <button id="save-players-btn" class="save-players-btn">Save Players</button>
                     <button id="cancel-players-btn" class="cancel-players-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Word Sets Modal -->
+        <div id="custom-sets-modal" class="modal">
+            <div class="modal-content">
+                <h2>Custom Word Sets</h2>
+                <div id="sets-list" class="sets-list"></div>
+                <textarea id="new-set-words" class="new-set-words"
+                    placeholder="Enter words separated by commas or new lines"></textarea>
+                <input type="text" id="new-set-name" class="new-set-name" placeholder="Set name">
+                <div class="modal-actions">
+                    <button id="save-set-btn">Save New Set</button>
+                    <button id="close-sets-btn" onclick="hideCustomWordSetsModal()">Close</button>
                 </div>
             </div>
         </div>

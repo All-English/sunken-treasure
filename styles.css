@@ -380,7 +380,8 @@ body {
 .players-btn,
 .leaderboard-btn,
 .shuffle-btn,
-.drag-btn {
+.drag-btn,
+.custom-wordset-btn {
   border: none;
   padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--space-2xs);
@@ -415,22 +416,7 @@ body {
   }
 }
 
-/* .leaderboard-btn,
-.shuffle-btn,
-.drag-btn {
-  background-color: var(--button-secondary-bg);
-  color: var(--button-secondary-text);
-
-  &:hover {
-    background-color: var(--button-secondary-hover);
-  }
-} */
-
-/* .shuffle-btn,
-.drag-btn {
-  display: none;
-} */
-
+/* Player Display */
 .player-display {
   /* flex-basis: 100%; Get's added in the javascript */
   display: flex;
@@ -793,6 +779,45 @@ body {
     h3 {
       margin-block: var(--space-s);
       font-size: var(--fs-step-3);
+    }
+
+    /* Custom Sets Modal */
+    .sets-list {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: var(--space-s);
+      /* margin: var(--space-s) 0; */
+
+      .set-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+
+        .set-actions {
+
+          button {
+            margin-top: 0;
+            padding: var(--space-2xs);
+          }
+
+          .edit-set-btn {
+            background-color: var(--button-secondary-bg);
+            margin-right: var(--space-2xs);
+          }
+        }
+      }
+    }
+
+    .new-set-words {
+      width: 100%;
+      min-height: max(200px, min-content);
+    }
+
+    .new-set-name {
+      width: 100%;
+      margin: var(--space-xs) 0;
+      padding: var(--space-xs);
     }
 
     /* Completion Modal shows the winner's name */
