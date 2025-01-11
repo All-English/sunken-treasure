@@ -1799,11 +1799,21 @@ function showCompletionModal(winner) {
     completionModalStats.innerHTML = ""
 
     // Get all players from playerStats and sort by total points
-    const sortedPlayers = [...players].sort(
-      (a, b) =>
-        (playerStats[b].currentSessionStats.totalSessionPoints || 0) -
-        (playerStats[a].currentSessionStats.totalSessionPoints || 0)
-    )
+    const sortedPlayers = [...players].sort((a, b) => {
+      // Sort by total session points, if tie then by current game points
+      const aSessionPoints =
+        playerStats[a].currentSessionStats.totalSessionPoints || 0
+      const bSessionPoints =
+        playerStats[b].currentSessionStats.totalSessionPoints || 0
+
+      if (bSessionPoints === aSessionPoints) {
+        const aGamePoints = playerStats[a].currentGamePoints || 0
+        const bGamePoints = playerStats[b].currentGamePoints || 0
+        return bGamePoints - aGamePoints
+      }
+
+      return bSessionPoints - aSessionPoints
+    })
 
     // Show session stats for current players
     const statsTables = createSessionStatsTables(sortedPlayers)
@@ -1840,11 +1850,19 @@ function showPlayerStatsModal() {
   statsContainer.innerHTML = ""
 
   // Get all players from playerStats and sort by total points
-  const allPlayers = Object.keys(playerStats).sort(
-    (a, b) =>
-      (playerStats[b].totalPointsAllTime || 0) -
-      (playerStats[a].totalPointsAllTime || 0)
-  )
+  const allPlayers = Object.keys(playerStats).sort((a, b) => {
+    // Sort by total points, if tie then by games won
+    const aPoints = playerStats[a].totalPointsAllTime || 0
+    const bPoints = playerStats[b].totalPointsAllTime || 0
+
+    if (bPoints === aPoints) {
+      const aGamesWon = playerStats[a].totalGamesWon || 0
+      const bGamesWon = playerStats[b].totalGamesWon || 0
+      return bGamesWon - aGamesWon
+    }
+
+    return bPoints - aPoints
+  })
 
   const statsTables = createPlayerStatsTables(allPlayers)
   statsContainer.appendChild(statsTables)
