@@ -377,11 +377,19 @@ body {
   width: 20ch;
 }
 
+.word-set-select option[value="manage-sets"] {
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.word-set-select option[disabled] {
+  color: var(--border);
+}
+
 .players-btn,
 .leaderboard-btn,
 .shuffle-btn,
-.drag-btn,
-.custom-wordset-btn {
+.drag-btn {
   border: none;
   padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--space-2xs);
@@ -822,13 +830,17 @@ body {
       }
     }
 
-    .new-set-words {
+    .new-set-words,
+    .new-set-name {
       width: 100%;
-      min-height: max(200px, min-content);
+      font-size: var(--fs-step-1);
+    }
+
+    .new-set-words {
+      min-height: 200px;
     }
 
     .new-set-name {
-      width: 100%;
       margin: var(--space-xs) 0;
       padding: var(--space-xs);
     }

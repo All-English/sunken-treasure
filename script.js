@@ -865,11 +865,14 @@ function populateWordSetDropdown() {
 
   const allUnits = []
 
+  const separator = document.createElement("option")
+  separator.disabled = true
+  separator.value = ""
+  separator.textContent = "───────"
+
   Object.keys(smartPhonicsWordBank).forEach((level) => {
-    const separator = document.createElement("option")
-    separator.textContent = `---`
-    separator.disabled = true
     smartPhonicsGroup.appendChild(separator) // Append to optgroup instead of dropdown
+
     const unitsInLevel = Object.keys(smartPhonicsWordBank[level])
 
     unitsInLevel.forEach((unit) => {
@@ -888,6 +891,16 @@ function populateWordSetDropdown() {
     })
   })
 
+  // Add separator
+  unitDropdown.appendChild(separator)
+
+  // Add manage custom word sets option
+  const manageOption = document.createElement("option")
+  manageOption.value = "manage-sets"
+  manageOption.textContent = "📝 Manage Custom Word Sets..."
+  unitDropdown.appendChild(manageOption)
+
+  // Add custom word sets
   const customSets = getCustomWordSets()
   Object.keys(customSets).forEach((setName) => {
     const option = document.createElement("option")
@@ -905,6 +918,8 @@ function populateWordSetDropdown() {
     if (validateWordSetSelection(level, unit)) {
       const defaultValue = `${level}:${unit}`
       unitDropdown.value = defaultValue
+      unitDropdown.dataset.lastValue = defaultValue // Set initial lastValue
+
       return // Exit if we successfully set a valid value from URL params
     }
   }
@@ -914,6 +929,7 @@ function populateWordSetDropdown() {
     const randomIndex = Math.floor(Math.random() * allUnits.length)
     const selectedUnit = allUnits[randomIndex]
     unitDropdown.value = selectedUnit
+    unitDropdown.dataset.lastValue = selectedUnit // Set initial lastValue
 
     // Update URL with the random selection
     const [randomLevel, randomUnit] = selectedUnit.split(":")
@@ -2081,6 +2097,14 @@ function setupEventListeners() {
   // Update URL parameters when word set changes
   const wordSetDropdown = document.getElementById("word-set-dropdown")
   wordSetDropdown.addEventListener("change", (event) => {
+    if (event.target.value === "manage-sets") {
+      // Reset dropdown to previous selection
+      event.target.value = event.target.dataset.lastValue || "level2:unit1"
+      showCustomWordSetsModal()
+      return
+    }
+    event.target.dataset.lastValue = event.target.value
+
     const [level, unit] = event.target.value.split(":")
     updateUrlParameters(level, unit)
     createGameboard()
