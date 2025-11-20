@@ -1627,12 +1627,11 @@ function createPlayerStatsTables(playersList) {
   mainTable.innerHTML = `
     <thead>
       <tr>
-        <th></th>
+        <th>Player</th>
         <th>Level</th>
         <th>Total Points</th>
-        <th>Games Won</th>
-        <th>Games Played</th>
         <th>Win %</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -1644,9 +1643,18 @@ function createPlayerStatsTables(playersList) {
             <td>${player}</td>
             <td>${stat.playerLevel || 1}</td>
             <td>${stat.totalPointsAllTime || 0}</td>
-            <td>${stat.totalGamesWon || 0}</td>
-            <td>${stat.totalGamesPlayed || 0}</td>
             <td>${stat.winPercentage || 0}%</td>
+            <td class="actions-cell">
+                <button class="action-btn rename" onclick="openRenameModal('${player}')" title="Rename">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button class="action-btn merge" onclick="openMergeModal('${player}')" title="Merge Stats">
+                    <i class="fa-solid fa-code-merge"></i>
+                </button>
+                <button class="action-btn delete" onclick="deletePlayer('${player}')" title="Delete">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </td>
           </tr>
         `
         })
@@ -1667,9 +1675,6 @@ function createPlayerStatsTables(playersList) {
         <th><img class="table-treasure-icon" src="pics/treasure-chest.svg"></th>
         <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png"></th>
         <th><img class="table-treasure-icon" src="pics/gem-turquise.png"></th>
-        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg">Points</th>
-        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png">Points</th>
-        <th><img class="table-treasure-icon" src="pics/gem-turquise.png">Points</th>
       </tr>
     </thead>
     <tbody>
@@ -1683,9 +1688,6 @@ function createPlayerStatsTables(playersList) {
             <td>${stat.treasuresFound.chest || 0}</td>
             <td>${stat.treasuresFound.goldBag || 0}</td>
             <td>${stat.treasuresFound.gem || 0}</td>
-            <td>${stat.pointsPerTreasureType.chest || 0}</td>
-            <td>${stat.pointsPerTreasureType.goldBag || 0}</td>
-            <td>${stat.pointsPerTreasureType.gem || 0}</td>
           </tr>
         `
         })
@@ -1699,7 +1701,6 @@ function createPlayerStatsTables(playersList) {
 
   return container
 }
-
 function createSessionStatsTables(playersList) {
   const container = document.createElement("div")
 
@@ -2073,6 +2074,164 @@ window.addEventListener("load", () => {
   preloadSounds(wrongSounds)
 })
 
+// --- DELETE LOGIC ---
+function deletePlayer(player) {
+  if (
+    confirm(
+      `Are you sure you want to delete "${player}"? This cannot be undone.`
+    )
+  ) {
+    // Remove from players array
+    players = players.filter((p) => p !== player)
+
+    // Remove from stats
+    delete playerStats[player]
+
+    savePlayerstoLocalStorage()
+    savePlayerStats()
+    updatePlayerDisplay()
+
+    // Refresh the modal if it's open
+    showPlayerStatsModal()
+  }
+}
+
+// --- RENAME LOGIC ---
+let playerToRename = null
+
+function openRenameModal(player) {
+  playerToRename = player
+  const modal = document.getElementById("rename-player-modal")
+  document.getElementById("rename-target-name").textContent = player
+  document.getElementById("rename-new-name").value = player // Pre-fill
+  modal.classList.add("visible")
+}
+
+function handleRename() {
+  if (!playerToRename) return
+
+  const newName = document.getElementById("rename-new-name").value.trim()
+
+  if (!newName || newName === playerToRename) {
+    document.getElementById("rename-player-modal").classList.remove("visible")
+    return
+  }
+
+  if (playerStats[newName]) {
+    alert(
+      `Player "${newName}" already exists. Please use the "Merge" button if you want to combine them.`
+    )
+    return
+  }
+
+  // 1. Create new stats entry
+  playerStats[newName] = playerStats[playerToRename]
+
+  // 2. Remove old stats entry
+  delete playerStats[playerToRename]
+
+  // 3. Update players array (maintain position)
+  const index = players.indexOf(playerToRename)
+  if (index !== -1) {
+    players[index] = newName
+  }
+
+  // 4. Update active player index if needed
+  if (players.length > 0 && players[currentPlayerIndex] === newName) {
+    // Index stays the same, just name changed
+  }
+
+  savePlayerstoLocalStorage()
+  savePlayerStats()
+  updatePlayerDisplay()
+
+  document.getElementById("rename-player-modal").classList.remove("visible")
+  showPlayerStatsModal() // Refresh table
+}
+
+// --- MERGE LOGIC ---
+let playerToMerge = null
+
+function openMergeModal(player) {
+  playerToMerge = player
+  const modal = document.getElementById("merge-player-modal")
+  document.getElementById("merge-source-name").textContent = player
+  document.getElementById("merge-source-name-display").textContent = player
+
+  const select = document.getElementById("merge-target-select")
+  select.innerHTML = ""
+
+  // Populate select with all other players
+  Object.keys(playerStats).forEach((p) => {
+    if (p !== player) {
+      const option = document.createElement("option")
+      option.value = p
+      option.textContent = p
+      select.appendChild(option)
+    }
+  })
+
+  if (select.options.length === 0) {
+    alert("No other players to merge with!")
+    return
+  }
+
+  modal.classList.add("visible")
+}
+
+function handleMerge() {
+  if (!playerToMerge) return
+
+  const targetPlayer = document.getElementById("merge-target-select").value
+  const sourceStats = playerStats[playerToMerge]
+  const targetStats = playerStats[targetPlayer]
+
+  if (!sourceStats || !targetStats) return
+
+  // 1. Sum Numeric Stats
+  targetStats.totalPointsAllTime += sourceStats.totalPointsAllTime
+  targetStats.totalGamesPlayed += sourceStats.totalGamesPlayed
+  targetStats.totalGamesWon += sourceStats.totalGamesWon
+
+  // 2. Sum Treasure Stats
+  targetStats.treasuresFound.chest += sourceStats.treasuresFound.chest
+  targetStats.treasuresFound.goldBag += sourceStats.treasuresFound.goldBag
+  targetStats.treasuresFound.gem += sourceStats.treasuresFound.gem
+  targetStats.treasuresFound.total += sourceStats.treasuresFound.total
+
+  targetStats.pointsPerTreasureType.chest +=
+    sourceStats.pointsPerTreasureType.chest
+  targetStats.pointsPerTreasureType.goldBag +=
+    sourceStats.pointsPerTreasureType.goldBag
+  targetStats.pointsPerTreasureType.gem += sourceStats.pointsPerTreasureType.gem
+
+  // 3. Recalculate Derived Stats
+  targetStats.playerLevel = calculatePlayerLevel(targetStats.totalPointsAllTime)
+  targetStats.winPercentage =
+    targetStats.totalGamesPlayed > 0
+      ? Math.round(
+          (targetStats.totalGamesWon / targetStats.totalGamesPlayed) * 100
+        )
+      : 0
+
+  // 4. Delete Source
+  delete playerStats[playerToMerge]
+  players = players.filter((p) => p !== playerToMerge)
+
+  // Adjust current player index if we deleted a player before the current turn
+  if (currentPlayerIndex >= players.length) {
+    currentPlayerIndex = 0
+  }
+
+  // 5. Save & Update
+  savePlayerstoLocalStorage()
+  savePlayerStats()
+  updatePlayerDisplay()
+
+  document.getElementById("merge-player-modal").classList.remove("visible")
+  showPlayerStatsModal() // Refresh table
+}
+
 function setupEventListeners() {
   // for debugging - Add an event listener to clear existing used cell divs when unchecked
   // Only add the event listener if the checkbox exists
@@ -2205,6 +2364,35 @@ function setupEventListeners() {
       // Reset current game
       createGameboard()
     }
+  })
+
+  // Rename Modal Listeners
+  document
+    .getElementById("confirm-rename-btn")
+    .addEventListener("click", handleRename)
+  document.getElementById("cancel-rename-btn").addEventListener("click", () => {
+    document.getElementById("rename-player-modal").classList.remove("visible")
+  })
+
+  // Merge Modal Listeners
+  document
+    .getElementById("confirm-merge-btn")
+    .addEventListener("click", handleMerge)
+  document.getElementById("cancel-merge-btn").addEventListener("click", () => {
+    document.getElementById("merge-player-modal").classList.remove("visible")
+  })
+
+  // Click outside handling for new modals
+  const renameModal = document.getElementById("rename-player-modal")
+  const mergeModal = document.getElementById("merge-player-modal")
+
+  renameModal.addEventListener("click", (e) => {
+    if (e.target.id === "rename-player-modal")
+      renameModal.classList.remove("visible")
+  })
+  mergeModal.addEventListener("click", (e) => {
+    if (e.target.id === "merge-player-modal")
+      mergeModal.classList.remove("visible")
   })
 }
 // Call this when the page loads

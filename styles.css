@@ -895,6 +895,109 @@ body {
   }
 }
 
+/* ///////////////
+   Stats Management
+   ////////////// */
+
+.actions-cell {
+  display: flex;
+  gap: var(--space-2xs);
+  justify-content: center;
+  align-items: center;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-3xs);
+  font-size: var(--fs-step-0);
+  color: var(--secondary-text-color);
+  transition: all 0.2s ease;
+  border-radius: var(--space-3xs);
+}
+
+.action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.action-btn.rename:hover {
+  color: var(--color-sand);
+}
+
+.action-btn.merge:hover {
+  color: var(--color-seafoam);
+}
+
+.action-btn.delete:hover {
+  color: var(--color-coral);
+}
+
+/* Modal Specifics for Management */
+.highlight-text {
+  color: var(--color-sand);
+  font-weight: 700;
+}
+
+.warning-text {
+  color: #ffcc00;
+  /* Warning Yellow */
+  background-color: rgba(255, 0, 0, 0.2);
+  padding: var(--space-xs);
+  border-radius: var(--space-2xs);
+  border: 1px solid var(--color-coral);
+  margin-block: var(--space-s);
+  font-size: var(--fs-step--1);
+}
+
+.modal-hint {
+  font-size: var(--fs-step--1);
+  color: var(--color-gray);
+  margin-block-end: var(--space-s);
+  font-style: italic;
+}
+
+.modal-input,
+.modal-select {
+  font-size: var(--fs-step-0);
+  padding: var(--space-xs);
+  border-radius: var(--space-2xs);
+  border: 1px solid var(--color-light-blue);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-white);
+  width: 100%;
+  margin-block: var(--space-xs);
+}
+
+.modal-select option {
+  background-color: var(--color-deep-blue);
+}
+
+/* Action Buttons in Modals */
+.primary-btn {
+  background-color: var(--color-seafoam);
+  color: var(--color-navy);
+}
+
+.primary-btn:hover {
+  background-color: var(--color-seafoam-hover);
+}
+
+.danger-btn {
+  background-color: var(--color-coral);
+  color: var(--color-white);
+}
+
+.danger-btn:hover {
+  background-color: var(--color-coral-hover);
+}
+
+.secondary-btn {
+  background-color: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+}
+
 .level-up-notification {
   position: fixed;
   top: 75%;

@@ -120,6 +120,38 @@
             </div>
         </div>
 
+        <!-- Rename Player Modal -->
+        <div id="rename-player-modal" class="modal">
+            <div class="modal-content">
+                <h2>Rename Player</h2>
+                <p>Enter a new name for <span id="rename-target-name" class="highlight-text"></span></p>
+                <input type="text" id="rename-new-name" placeholder="New Name" class="modal-input">
+                <p class="modal-hint">Note: To combine with an existing player, use "Merge" instead.</p>
+                <div class="modal-actions">
+                    <button id="confirm-rename-btn" class="primary-btn">Rename</button>
+                    <button id="cancel-rename-btn" class="secondary-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Merge Player Modal -->
+        <div id="merge-player-modal" class="modal">
+            <div class="modal-content">
+                <h2>Merge Players</h2>
+                <p>Merge <span id="merge-source-name" class="highlight-text"></span> into:</p>
+                <select id="merge-target-select" class="modal-select"></select>
+                <p class="warning-text">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Warning: This cannot be undone.<br>
+                    <span id="merge-source-name-display"></span> will be deleted.
+                </p>
+                <div class="modal-actions">
+                    <button id="confirm-merge-btn" class="danger-btn">Merge</button>
+                    <button id="cancel-merge-btn" class="secondary-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Show Number of Treasures and Cards Remaining -->
         <div id="show-remaining" class="cards-remaining">
             <span id="treasures-remaining">0</span>/<span id="cards-remaining">0</span>
