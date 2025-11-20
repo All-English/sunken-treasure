@@ -1630,6 +1630,8 @@ function createPlayerStatsTables(playersList) {
         <th>Player</th>
         <th>Level</th>
         <th>Total Points</th>
+        <th>Games Won</th>
+        <th>Games Played</th>
         <th>Win %</th>
         <th class="actions-header">Actions</th>
       </tr>
@@ -1643,6 +1645,8 @@ function createPlayerStatsTables(playersList) {
             <td>${player}</td>
             <td>${stat.playerLevel || 1}</td>
             <td>${stat.totalPointsAllTime || 0}</td>
+            <td>${stat.totalGamesWon || 0}</td>
+            <td>${stat.totalGamesPlayed || 0}</td>
             <td>${stat.winPercentage || 0}%</td>
             <td class="actions-cell">
                 <button class="action-btn rename" onclick="openRenameModal('${player}')" title="Rename">
@@ -1675,6 +1679,9 @@ function createPlayerStatsTables(playersList) {
         <th><img class="table-treasure-icon" src="pics/treasure-chest.svg"></th>
         <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png"></th>
         <th><img class="table-treasure-icon" src="pics/gem-turquise.png"></th>
+        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg">Points</th>
+        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png">Points</th>
+        <th><img class="table-treasure-icon" src="pics/gem-turquise.png">Points</th>
       </tr>
     </thead>
     <tbody>
@@ -1688,6 +1695,9 @@ function createPlayerStatsTables(playersList) {
             <td>${stat.treasuresFound.chest || 0}</td>
             <td>${stat.treasuresFound.goldBag || 0}</td>
             <td>${stat.treasuresFound.gem || 0}</td>
+            <td>${stat.pointsPerTreasureType.chest || 0}</td>
+            <td>${stat.pointsPerTreasureType.goldBag || 0}</td>
+            <td>${stat.pointsPerTreasureType.gem || 0}</td>
           </tr>
         `
         })
@@ -1701,6 +1711,7 @@ function createPlayerStatsTables(playersList) {
 
   return container
 }
+
 function createSessionStatsTables(playersList) {
   const container = document.createElement("div")
 
