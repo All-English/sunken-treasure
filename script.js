@@ -2275,6 +2275,14 @@ function handleMerge() {
 }
 
 function setupEventListeners() {
+  // Helper to revert stats to the start of the round (prevents points from abandoned games)
+  const revertToRoundStart = () => {
+    if (roundStartStats) {
+      playerStats = JSON.parse(JSON.stringify(roundStartStats))
+      savePlayerStats()
+    }
+  }
+
   // for debugging - Add an event listener to clear existing used cell divs when unchecked
   // Only add the event listener if the checkbox exists
   if (showUsedCellsCheckbox) {
@@ -2322,6 +2330,9 @@ function setupEventListeners() {
       showCustomWordSetsModal()
       return
     }
+
+    revertToRoundStart()
+
     event.target.dataset.lastValue = event.target.value
 
     const [level, unit] = event.target.value.split(":")
@@ -2332,13 +2343,19 @@ function setupEventListeners() {
 
   // Max Words Select Event Listener
   const maxWordsSelect = document.getElementById("max-words")
-  maxWordsSelect.addEventListener("change", createGameboard)
+  maxWordsSelect.addEventListener("change", () => {
+    revertToRoundStart()
+    createGameboard()
+  })
 
   // Extra Words Checkbox Event Listener
   const includeExtraWordsCheckbox = document.getElementById(
     "include-extra-words"
   )
-  includeExtraWordsCheckbox.addEventListener("change", createGameboard)
+  includeExtraWordsCheckbox.addEventListener("change", () => {
+    revertToRoundStart()
+    createGameboard()
+  })
 
   // Stats Buttons Event Listenerers
   const showStatsBtn = document.getElementById("leaderboard-btn")
@@ -2370,13 +2387,8 @@ function setupEventListeners() {
 
   // Reset Game Button Listener
   document.getElementById("reset-game-btn").addEventListener("click", () => {
-    // NEW: Restore the stats to what they were at the start of the round
-    if (roundStartStats) {
-      playerStats = JSON.parse(JSON.stringify(roundStartStats))
-      savePlayerStats() // Persist the revert to local storage
-      updatePlayerDisplay() // Visually revert scores immediately
-    }
-
+    revertToRoundStart()
+    updatePlayerDisplay()
     createGameboard()
   })
 
@@ -2410,11 +2422,23 @@ function setupEventListeners() {
   // Add escape key support to modals
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      // Close the modal
+      // Check if ANY modal is currently visible
+      const isAnyModalOpen =
+        completionModal.classList.contains("visible") ||
+        statsModal.classList.contains("visible") ||
+        playersModal.classList.contains("visible") ||
+        customSetsModal.classList.contains("visible") ||
+        (renameModal && renameModal.classList.contains("visible")) ||
+        (mergeModal && mergeModal.classList.contains("visible"))
+
+      // Always hide everything
       hideCompletionModal()
       hidePlayerStatsModal()
       hidePlayersModal()
       hideCustomWordSetsModal()
+      if (renameModal) renameModal.classList.remove("visible")
+      if (mergeModal) mergeModal.classList.remove("visible")
+      
       // Reset current game
       // createGameboard()
     }
