@@ -1631,7 +1631,7 @@ function createPlayerStatsTables(playersList) {
         <th>Level</th>
         <th>Total Points</th>
         <th>Win %</th>
-        <th>Actions</th>
+        <th class="actions-header">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -1848,6 +1848,16 @@ function showPlayerStatsModal() {
   const statsContainer = document.getElementById("player-stats-container")
 
   // Clear existing stats
+  statsContainer.innerHTML = ""
+
+  // RESET EDIT MODE
+  const editModeCheckbox = document.getElementById("stats-edit-mode")
+  if (editModeCheckbox) {
+    editModeCheckbox.checked = false // Uncheck box
+    statsContainer.classList.remove("edit-mode-active") // Remove class
+  }
+
+  // Clear existing stats table
   statsContainer.innerHTML = ""
 
   // Get all players from playerStats and sort by total points
@@ -2385,6 +2395,17 @@ function setupEventListeners() {
   // Click outside handling for new modals
   const renameModal = document.getElementById("rename-player-modal")
   const mergeModal = document.getElementById("merge-player-modal")
+
+  // Edit Mode Toggle Listener
+  const editModeCheckbox = document.getElementById("stats-edit-mode")
+  editModeCheckbox.addEventListener("change", (e) => {
+    const container = document.getElementById("player-stats-container")
+    if (e.target.checked) {
+      container.classList.add("edit-mode-active")
+    } else {
+      container.classList.remove("edit-mode-active")
+    }
+  })
 
   renameModal.addEventListener("click", (e) => {
     if (e.target.id === "rename-player-modal")

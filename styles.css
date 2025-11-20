@@ -1013,6 +1013,44 @@ body {
   animation: fadeInOut 3s ease-in-out;
 }
 
+.modal-options-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-xs);
+  padding-inline: var(--space-xs);
+}
+
+.edit-mode-label {
+  font-size: var(--fs-step-0);
+  color: var(--color-gray);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.edit-mode-checkbox {
+  accent-color: var(--color-coral);
+  width: 1.2em;
+  height: 1.2em;
+}
+
+/* Toggle Visibility Logic */
+.actions-header,
+.actions-cell {
+  display: none;
+  /* Hidden by default */
+}
+
+/* When edit mode is active, show them */
+.edit-mode-active .actions-header {
+  display: table-cell;
+}
+
+.edit-mode-active .actions-cell {
+  display: flex;
+}
+
 @keyframes fadeInOut {
 
   0%,
