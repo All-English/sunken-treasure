@@ -1200,7 +1200,7 @@ function handleWordClick(wordCard, currentCell) {
             switchToNextPlayer()
             updatePlayerDisplay()
             gameActive = true
-          }, 2000)
+          }, 1500)
         } else {
           gameActive = true
         }
@@ -1219,10 +1219,12 @@ function handleWordClick(wordCard, currentCell) {
       playNextSoundInQueue(wrongSounds)
     }, 700)
 
-    switchToNextPlayer()
-    updatePlayerDisplay()
+    setTimeout(() => {
+      switchToNextPlayer()
+      updatePlayerDisplay()
+      gameActive = true
+    }, 1000)
 
-    gameActive = true
   }
 }
 
