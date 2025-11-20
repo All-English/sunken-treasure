@@ -459,7 +459,7 @@ function updateTreasureStats(player, treasureType, points) {
   // Check if level has increased
   if (stats.playerLevel > previousLevel) {
     // Create and show level up notification
-    
+
     // showLevelUpNotification(player, stats.playerLevel)
 
     console.log(
@@ -1688,7 +1688,7 @@ function createPlayerStatsTables(playersList) {
   treasureTable.innerHTML = `
     <thead>
       <tr>
-        <th></th>
+        <th class="rank-header">#</th> <th></th>
         <th>Total<br>Treasures</th>
         <th><img class="table-treasure-icon" src="pics/treasure-chest.svg"></th>
         <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png"></th>
@@ -1706,7 +1706,9 @@ function createPlayerStatsTables(playersList) {
 
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
-            <td class="${isCurrentPlayer ? "current-player-cell" : ""}">
+            <td class="rank-cell">${index + 1}</td> <td class="${
+            isCurrentPlayer ? "current-player-cell" : ""
+          }">
                 ${player}
             </td>
             <td>${stat.treasuresFound.total || 0}</td>
@@ -1738,7 +1740,8 @@ function createSessionStatsTables(playersList) {
   sessionMainTable.innerHTML = `
     <thead>
       <tr>
-        <th class="rank-header">#</th> <th>Player</th>
+        <th class="rank-header">#</th>
+        <th>Player</th>
         <th>Session Points</th>
         <th>Game Points</th>
         <th>Games Won</th>
@@ -1752,7 +1755,8 @@ function createSessionStatsTables(playersList) {
           const stat = playerStats[player]
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
-            <td class="rank-cell">${index + 1}</td> <td>${player}</td>
+            <td class="rank-cell">${index + 1}</td>
+            <td>${player}</td>
             <td>${stat.currentSessionStats.totalSessionPoints || 0}</td>
             <td>${stat.currentGamePoints || 0}</td>
             <td>${stat.currentSessionStats.gamesWon || 0}</td>
@@ -1764,6 +1768,7 @@ function createSessionStatsTables(playersList) {
         .join("")}
     </tbody>
   `
+
   // Create treasure stats section
   const treasureSection = document.createElement("div")
   treasureSection.innerHTML = "<h3>Treasure Stats</h3>"
@@ -1772,7 +1777,7 @@ function createSessionStatsTables(playersList) {
   treasureTable.innerHTML = `
     <thead>
       <tr>
-        <th></th>
+        <th class="rank-header">#</th> <th></th>
         <th>Total<br>Treasures</th>
         <th><img class="table-treasure-icon" src="pics/treasure-chest.svg"></th>
         <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png"></th>
@@ -1788,7 +1793,7 @@ function createSessionStatsTables(playersList) {
           const stat = playerStats[player].currentSessionStats
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
-            <td>${player}</td>
+            <td class="rank-cell">${index + 1}</td> <td>${player}</td>
             <td>${stat.treasuresFound.total || 0}</td>
             <td>${stat.treasuresFound.chest || 0}</td>
             <td>${stat.treasuresFound.goldBag || 0}</td>
@@ -2016,11 +2021,27 @@ function loadSavedPlayers() {
 }
 
 function updatePlayerDisplay() {
+  const playerDisplayElement = document.getElementById("player-display")
+
   if (players.length === 0) {
+    // 1. Clear the names from the screen
+    playerDisplayElement.innerHTML = ""
+    playerDisplayElement.style.flexBasis = "auto"
+
+    // 2. Hide the player control buttons
+    document.getElementById("leaderboard-btn").classList.remove("visible")
+    document.getElementById("shuffle-btn").classList.remove("visible")
+    document.getElementById("drag-btn").classList.remove("visible")
+
+    // 3. Reset the main button text back to "Add Players"
+    const addPlayersBtn = document.getElementById("add-players-btn")
+    if (addPlayersBtn) {
+      addPlayersBtn.textContent = "Add Players"
+    }
+
     return
   }
 
-  const playerDisplayElement = document.getElementById("player-display")
   // add flex-basis: 100% so it's on a new line
   playerDisplayElement.style.flexBasis = "100%"
 
