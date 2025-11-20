@@ -1648,9 +1648,13 @@ function createPlayerStatsTables(playersList) {
       ${playersList
         .map((player, index) => {
           const stat = playerStats[player]
+          const isCurrentPlayer = players.includes(player)
+
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
-            <td>${player}</td>
+            <td class="${isCurrentPlayer ? "current-player-cell" : ""}">
+                ${player}
+                </td>
             <td>${stat.playerLevel || 1}</td>
             <td>${stat.totalPointsAllTime || 0}</td>
             <td>${stat.totalGamesWon || 0}</td>
@@ -1696,9 +1700,13 @@ function createPlayerStatsTables(playersList) {
       ${playersList
         .map((player, index) => {
           const stat = playerStats[player]
+          const isCurrentPlayer = players.includes(player)
+
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
-            <td>${player}</td>
+            <td class="${isCurrentPlayer ? "current-player-cell" : ""}">
+                ${player}
+                </td>
             <td>${stat.treasuresFound.total || 0}</td>
             <td>${stat.treasuresFound.chest || 0}</td>
             <td>${stat.treasuresFound.goldBag || 0}</td>

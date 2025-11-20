@@ -1072,6 +1072,16 @@ body {
   }
 }
 
+.current-player-cell {
+  color: var(--color-sand);
+}
+
+.current-player-icon {
+  font-size: 0.8em;
+  color: var(--color-sand);
+  opacity: 0.9;
+}
+
 /* Show cards remaining in bottom right corner */
 .cards-remaining {
   position: fixed;
