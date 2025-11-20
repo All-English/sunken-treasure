@@ -1635,7 +1635,7 @@ function createPlayerStatsTables(playersList) {
   mainTable.innerHTML = `
     <thead>
       <tr>
-        <th>Player</th>
+        <th class="rank-header">#</th> <th>Player</th>
         <th>Level</th>
         <th>Total Points</th>
         <th>Games Won</th>
@@ -1652,9 +1652,11 @@ function createPlayerStatsTables(playersList) {
 
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
-            <td class="${isCurrentPlayer ? "current-player-cell" : ""}">
+            <td class="rank-cell">${index + 1}</td> <td class="${
+            isCurrentPlayer ? "current-player-cell" : ""
+          }">
                 ${player}
-                </td>
+            </td>
             <td>${stat.playerLevel || 1}</td>
             <td>${stat.totalPointsAllTime || 0}</td>
             <td>${stat.totalGamesWon || 0}</td>
@@ -1706,7 +1708,7 @@ function createPlayerStatsTables(playersList) {
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
             <td class="${isCurrentPlayer ? "current-player-cell" : ""}">
                 ${player}
-                </td>
+            </td>
             <td>${stat.treasuresFound.total || 0}</td>
             <td>${stat.treasuresFound.chest || 0}</td>
             <td>${stat.treasuresFound.goldBag || 0}</td>
@@ -1736,7 +1738,7 @@ function createSessionStatsTables(playersList) {
   sessionMainTable.innerHTML = `
     <thead>
       <tr>
-        <th></th>
+        <th class="rank-header">#</th> <th>Player</th>
         <th>Session Points</th>
         <th>Game Points</th>
         <th>Games Won</th>
@@ -1750,7 +1752,7 @@ function createSessionStatsTables(playersList) {
           const stat = playerStats[player]
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
-            <td>${player}</td>
+            <td class="rank-cell">${index + 1}</td> <td>${player}</td>
             <td>${stat.currentSessionStats.totalSessionPoints || 0}</td>
             <td>${stat.currentGamePoints || 0}</td>
             <td>${stat.currentSessionStats.gamesWon || 0}</td>
@@ -2438,7 +2440,7 @@ function setupEventListeners() {
       hideCustomWordSetsModal()
       if (renameModal) renameModal.classList.remove("visible")
       if (mergeModal) mergeModal.classList.remove("visible")
-      
+
       // Reset current game
       // createGameboard()
     }

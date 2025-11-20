@@ -898,6 +898,17 @@ body {
         .player-group-odd {
           background-color: rgba(74, 139, 186, 0.1);
         }
+
+        .rank-header,
+        .rank-cell {
+          width: 3ch;
+          color: var(--secondary-text-color);
+        }
+
+        .rank-cell {
+          font-weight: bold;
+          opacity: 0.7;
+        }
       }
     }
   }
