@@ -459,7 +459,9 @@ function updateTreasureStats(player, treasureType, points) {
   // Check if level has increased
   if (stats.playerLevel > previousLevel) {
     // Create and show level up notification
-    showLevelUpNotification(player, stats.playerLevel)
+    
+    // showLevelUpNotification(player, stats.playerLevel)
+
     console.log(
       player,
       "leveled up to",
@@ -1635,8 +1637,8 @@ function createPlayerStatsTables(playersList) {
   mainTable.innerHTML = `
     <thead>
       <tr>
-        <th class="rank-header">#</th> <th>Player</th>
-        <th>Level</th>
+        <th class="rank-header">#</th>
+        <th>Player</th>
         <th>Total Points</th>
         <th>Games Won</th>
         <th>Games Played</th>
@@ -1652,12 +1654,10 @@ function createPlayerStatsTables(playersList) {
 
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
-            <td class="rank-cell">${index + 1}</td> <td class="${
-            isCurrentPlayer ? "current-player-cell" : ""
-          }">
+            <td class="rank-cell">${index + 1}</td>
+            <td class="${isCurrentPlayer ? "current-player-cell" : ""}">
                 ${player}
             </td>
-            <td>${stat.playerLevel || 1}</td>
             <td>${stat.totalPointsAllTime || 0}</td>
             <td>${stat.totalGamesWon || 0}</td>
             <td>${stat.totalGamesPlayed || 0}</td>
