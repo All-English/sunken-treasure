@@ -1068,7 +1068,7 @@ body {
 .cards-remaining {
   position: fixed;
   bottom: var(--space-2xs);
-  right: var(--space-2xs);
+  right: var(--space-s);
   /* Translucent white */
   background-color: rgba(255, 255, 255, 0.2);
   color: var(--primary-text-color);
