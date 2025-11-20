@@ -236,30 +236,28 @@ function setupCustomSetsListeners() {
 }
 
 function shufflePlayers() {
-  const originalPositions = [...players]
-  let maxAttempts = 100
-  let validShuffle = false
+  // If 0 or 1 players, shuffling is impossible
+  if (players.length <= 1) return
 
-  while (!validShuffle && maxAttempts > 0) {
-    // Perform shuffle
+  const originalPositions = [...players]
+  let isSameAsOriginal = true
+
+  // Keep shuffling until we get a different order
+  while (isSameAsOriginal) {
+    // Standard Fisher-Yates shuffle
     for (let i = players.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[players[i], players[j]] = [players[j], players[i]]
     }
 
-    // Check if any player is in original position
-    validShuffle = players.every(
-      (player, index) => player !== originalPositions[index]
-    )
-    maxAttempts--
-  }
-
-  if (!validShuffle) {
-    console.log("Could not find valid shuffle, using last attempt")
+    // Check if the new order is exactly the same as the original
+    isSameAsOriginal = players.every((p, i) => p === originalPositions[i])
   }
 
   savePlayerstoLocalStorage()
   updatePlayerDisplay()
+
+  console.log("Players shuffled:", players)
 }
 
 function enablePlayerDragging() {
