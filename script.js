@@ -1942,7 +1942,7 @@ function savePlayers() {
     }
   })
 
-  resetSessionStats()
+  // resetSessionStats()
   hidePlayersModal()
   createGameboard()
   updatePlayerDisplay()
