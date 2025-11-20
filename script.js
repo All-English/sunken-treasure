@@ -66,6 +66,8 @@ const wrongSounds = [
 let winSoundsQueue = shuffleArray([...winSounds])
 let wrongSoundsQueue = shuffleArray([...wrongSounds])
 
+let roundStartStats = null
+
 // Define treasure types with their properties
 const TREASURE_TYPES = {
   CHEST: {
@@ -1440,6 +1442,9 @@ function createGameboard() {
       playerStats[player].currentGamePoints = 0
     })
 
+    // This creates a "clean slate" restore point for this specific game
+    roundStartStats = JSON.parse(JSON.stringify(playerStats))
+
     // Show Buttons
     const showLeaderboardBtn = document.getElementById("leaderboard-btn")
     const shuffleBtn = document.getElementById("shuffle-btn")
@@ -2349,6 +2354,18 @@ function setupEventListeners() {
     updatePlayerDisplay()
   })
 
+  // Reset Game Button Listener
+  document.getElementById("reset-game-btn").addEventListener("click", () => {
+    // NEW: Restore the stats to what they were at the start of the round
+    if (roundStartStats) {
+      playerStats = JSON.parse(JSON.stringify(roundStartStats))
+      savePlayerStats() // Persist the revert to local storage
+      updatePlayerDisplay() // Visually revert scores immediately
+    }
+
+    createGameboard()
+  })
+
   // Allow clicking outside the modals to close them
   const completionModal = document.getElementById("completion-modal")
   const statsModal = document.getElementById("stats-modal")
@@ -2385,7 +2402,7 @@ function setupEventListeners() {
       hidePlayersModal()
       hideCustomWordSetsModal()
       // Reset current game
-      createGameboard()
+      // createGameboard()
     }
   })
 

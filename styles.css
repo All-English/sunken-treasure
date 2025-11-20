@@ -389,7 +389,8 @@ body {
 .players-btn,
 .leaderboard-btn,
 .shuffle-btn,
-.drag-btn {
+.drag-btn,
+.reset-btn {
   border: none;
   padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--space-2xs);
@@ -422,6 +423,13 @@ body {
     display: inline-block;
     visibility: visible;
   }
+}
+
+.reset-btn:hover {
+  background-color: var(--color-coral);
+  /* Uses your existing warning/red color */
+  color: white;
+  border-color: var(--color-coral);
 }
 
 /* Player Display */
