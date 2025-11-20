@@ -925,11 +925,12 @@ body {
   align-items: center;
 }
 
-.action-btn {
+tbody .actions-cell .action-btn {
   background: none;
   border: none;
   cursor: pointer;
   padding: var(--space-3xs);
+  margin-top: 0;
   font-size: var(--fs-step-0);
   color: var(--secondary-text-color);
   transition: all 0.2s ease;
