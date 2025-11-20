@@ -1224,7 +1224,6 @@ function handleWordClick(wordCard, currentCell) {
       updatePlayerDisplay()
       gameActive = true
     }, 1000)
-
   }
 }
 
@@ -1981,6 +1980,11 @@ function loadSavedPlayers() {
       }
     })
     console.log("Loaded saved players within 30 minutes")
+
+    const addPlayersBtn = document.getElementById("add-players-btn")
+    if (addPlayersBtn) {
+      addPlayersBtn.textContent = "Edit Players"
+    }
 
     sessionStatus = true
     updatePlayerDisplay()
