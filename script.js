@@ -758,13 +758,15 @@ function getNextSound(soundsArray, queueArray) {
     // Get last played sound for this type
     const lastSound = soundsArray === winSounds ? lastWinSound : lastWrongSound
 
-    // If first sound matches last played, swap with random position
-    if (queueArray[0] === lastSound && queueArray.length > 1) {
-      const randomIndex =
-        1 + Math.floor(Math.random() * (queueArray.length - 1))
-      ;[queueArray[0], queueArray[randomIndex]] = [
+    // The next sound to be played is at the END of the array (because we use pop)
+    const nextIndex = queueArray.length - 1
+
+    // If the next sound matches the last played sound, swap it with a random other one
+    if (queueArray[nextIndex] === lastSound && queueArray.length > 1) {
+      const randomIndex = Math.floor(Math.random() * nextIndex)
+      ;[queueArray[nextIndex], queueArray[randomIndex]] = [
         queueArray[randomIndex],
-        queueArray[0],
+        queueArray[nextIndex],
       ]
     }
   }
