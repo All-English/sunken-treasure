@@ -828,35 +828,26 @@ function savePlayerStats() {
   localStorage.setItem("treasureHuntPlayerStats", JSON.stringify(playerStats))
 }
 
-// Reset session stats when starting a new game with players
-function resetSessionStats() {
+function resetAllSessionStats() {
   sessionStatus = false
+  console.log("Session expired: Resetting session stats for ALL players.")
 
-  console.log("Session stats are being reset")
-
-  players.forEach((player) => {
+  // Iterate over the entire playerStats object, not just the active players array
+  Object.keys(playerStats).forEach((player) => {
     if (playerStats[player]) {
       playerStats[player].currentSessionStats = {
         gamesPlayed: 0,
         gamesWon: 0,
         totalSessionPoints: 0,
         winPercentage: 0,
-
-        treasuresFound: {
-          chest: 0,
-          goldBag: 0,
-          gem: 0,
-          total: 0,
-        },
-
-        pointsPerTreasureType: {
-          chest: 0,
-          goldBag: 0,
-          gem: 0,
-        },
+        treasuresFound: { chest: 0, goldBag: 0, gem: 0, total: 0 },
+        pointsPerTreasureType: { chest: 0, goldBag: 0, gem: 0 },
       }
     }
   })
+
+  // Save the cleaned stats to storage immediately
+  savePlayerStats()
 }
 
 function populateWordSetDropdown() {
@@ -1252,6 +1243,12 @@ function endGame(currentPlayer) {
   }
 
   // Play a finished sound effect
+
+  // This ensures that if the user clicks "New Game" (Reset) after this,
+  // it won't revert back to before the game started (erasing the win).
+  if (playerStats) {
+    roundStartStats = JSON.parse(JSON.stringify(playerStats))
+  }
 
   // Update all players' stats
   updatePlayerStats(winner)
@@ -1947,7 +1944,8 @@ function savePlayers() {
     }
   })
 
-  // resetSessionStats()
+  // This is commented out because I didn't want to reset stats when editing players
+  // resetAllSessionStats()
   hidePlayersModal()
   createGameboard()
   updatePlayerDisplay()
@@ -2003,7 +2001,7 @@ function loadSavedPlayers() {
     updatePlayerDisplay()
   } else {
     console.log("Saved player data has expired")
-    resetSessionStats()
+    resetAllSessionStats()
   }
 
   if (playerData.players) {
