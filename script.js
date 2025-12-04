@@ -1242,16 +1242,16 @@ function endGame(currentPlayer) {
     }, [])
   }
 
-  // Play a finished sound effect
-
-  // This ensures that if the user clicks "New Game" (Reset) after this,
-  // it won't revert back to before the game started (erasing the win).
-  if (playerStats) {
-    roundStartStats = JSON.parse(JSON.stringify(playerStats))
-  }
+  // ToDo: Play a finished sound effect
 
   // Update all players' stats
   updatePlayerStats(winner)
+
+  // Update the "Restore Point" now that the game is officially over.
+  // This saves your win so the "New Game" button won't erase it.
+  if (typeof roundStartStats !== "undefined") {
+    roundStartStats = JSON.parse(JSON.stringify(playerStats))
+  }
 
   // Show completion modal
   setTimeout(() => {
