@@ -36,6 +36,7 @@ let cardsRemaining = 0
 let currentPlayerIndex = 0
 let gameActive = true
 let isDraggingEnabled = false
+let lastGamePlayerOrder = []
 let lastWinSound = null
 let lastWrongSound = null
 let players = []
@@ -236,22 +237,37 @@ function setupCustomSetsListeners() {
 }
 
 function shufflePlayers() {
-  // If 0 or 1 players, shuffling is impossible
   if (players.length <= 1) return
 
-  const originalPositions = [...players]
-  let isSameAsOriginal = true
+  const currentOrder = [...players]
+  let isValidShuffle = false
 
-  // Keep shuffling until we get a different order
-  while (isSameAsOriginal) {
+  // Safety break to prevent infinite loops (though unlikely with Fisher-Yates)
+  let attempts = 0
+  const maxAttempts = 50
+
+  while (!isValidShuffle && attempts < maxAttempts) {
+    attempts++
+
     // Standard Fisher-Yates shuffle
     for (let i = players.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[players[i], players[j]] = [players[j], players[i]]
     }
 
-    // Check if the new order is exactly the same as the original
-    isSameAsOriginal = players.every((p, i) => p === originalPositions[i])
+    // Rule 1: Must be different from what is CURRENTLY on screen (Visual feedback)
+    const isSameAsCurrent = players.every((p, i) => p === currentOrder[i])
+
+    // Rule 2: Must be different from the PREVIOUS GAME (Game logic)
+    // (Only enforce this if we have >2 players, otherwise we get stuck in a loop)
+    const isSameAsLastGame =
+      players.length > 2 &&
+      lastGamePlayerOrder.length === players.length &&
+      players.every((p, i) => p === lastGamePlayerOrder[i])
+
+    if (!isSameAsCurrent && !isSameAsLastGame) {
+      isValidShuffle = true
+    }
   }
 
   savePlayerstoLocalStorage()
@@ -1256,6 +1272,10 @@ function endGame(currentPlayer) {
   // This saves your win so the "New Game" button won't erase it.
   if (typeof roundStartStats !== "undefined") {
     roundStartStats = JSON.parse(JSON.stringify(playerStats))
+  }
+
+  if (players.length > 0) {
+    lastGamePlayerOrder = [...players]
   }
 
   // Show completion modal
