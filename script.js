@@ -1109,11 +1109,6 @@ function handleWordClick(wordCard, currentCell) {
     disablePlayerDragging()
   }
 
-  // Keep track of how many cards are left
-  cardsRemaining--
-  document.getElementById("cards-remaining").textContent =
-    cardsRemaining.toString()
-
   createBubbles(8)
 
   wordCard.classList.add("clicked")
@@ -1129,10 +1124,6 @@ function handleWordClick(wordCard, currentCell) {
     const points = parseInt(treasureDiv.dataset.points)
 
     const currentPlayer = players[currentPlayerIndex] || "You"
-
-    treasuresRemaining--
-    document.getElementById("treasures-remaining").textContent =
-      treasuresRemaining.toString()
 
     console.log(
       currentPlayer,
@@ -1177,25 +1168,35 @@ function handleWordClick(wordCard, currentCell) {
 
       updateTreasureStats(currentPlayer, treasureType, points)
 
-      // Check if all treasures are found
-      if (treasuresRemaining === 0) {
-        console.log("All treasures found!")
-        updatePlayerDisplay()
-        endGame(currentPlayer)
-        gameActive = true
-      } else {
-        // Don't delay if there are no players
-        if (players.length > 0) {
+      setTimeout(() => {
+        treasuresRemaining--
+        document.getElementById("treasures-remaining").textContent =
+          treasuresRemaining.toString()
+
+        cardsRemaining--
+        document.getElementById("cards-remaining").textContent =
+          cardsRemaining.toString()
+
+        // Check if all treasures are found
+        if (treasuresRemaining === 0) {
+          console.log("All treasures found!")
           updatePlayerDisplay()
-          setTimeout(() => {
-            switchToNextPlayer()
-            updatePlayerDisplay()
-            gameActive = true
-          }, 1500)
-        } else {
+          endGame(currentPlayer)
           gameActive = true
+        } else {
+          // Don't delay if there are no players
+          if (players.length > 0) {
+            updatePlayerDisplay()
+            setTimeout(() => {
+              switchToNextPlayer()
+              updatePlayerDisplay()
+              gameActive = true
+            }, 1500)
+          } else {
+            gameActive = true
+          }
         }
-      }
+      }, 500)
     }, 300)
   } else {
     // Wrong guess made
@@ -1214,6 +1215,10 @@ function handleWordClick(wordCard, currentCell) {
       switchToNextPlayer()
       updatePlayerDisplay()
       gameActive = true
+
+      cardsRemaining--
+      document.getElementById("cards-remaining").textContent =
+        cardsRemaining.toString()
     }, 1000)
   }
 }
