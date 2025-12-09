@@ -923,13 +923,24 @@ function populateWordSetDropdown() {
   // Handle URL parameters first
   const urlParams = getUrlParameters()
   if (urlParams.level && urlParams.unit) {
-    const level = `${urlParams.level}`
-    const unit = `${urlParams.unit}`
+    const level = `${urlParams.level}` // e.g., "custom" or "level2"
+    const unit = `${urlParams.unit}` // e.g., "SetName" or "unit1"
+
+    // Reconstruct the full option value (custom:SetName:0) when loading from URL params
+    let defaultValue
+
+    if (level === "custom") {
+      // The option value for custom sets is in the format custom:SetName:0
+      defaultValue = `custom:${unit}:0`
+    } else {
+      // Standard option value is in the format levelX:unitY
+      defaultValue = `${level}:${unit}`
+    }
 
     if (validateWordSetSelection(level, unit)) {
-      const defaultValue = `${level}:${unit}`
-      unitDropdown.value = defaultValue
-      unitDropdown.dataset.lastValue = defaultValue // Set initial lastValue
+      const selectedValue = defaultValue // Use the correctly reconstructed defaultValue
+      unitDropdown.value = selectedValue
+      unitDropdown.dataset.lastValue = selectedValue // Set initial lastValue
 
       return // Exit if we successfully set a valid value from URL params
     }
@@ -1285,7 +1296,17 @@ function endGame(currentPlayer) {
 }
 
 function updateUrlParameters(level, unit) {
-  // Remove 'level' and 'unit' prefixes for the URL
+  // 1. Handle custom set value format (e.g., custom:SetName:0)
+  if (level.startsWith("custom:")) {
+    const setName = level.split(":")[1]
+    const newUrl = new URL(window.location.href)
+    newUrl.searchParams.set("level", "custom")
+    newUrl.searchParams.set("unit", setName)
+    window.history.pushState({}, "", newUrl)
+    return
+  }
+
+  // Remove 'level' and 'unit' prefixes for the URL (for standard phonics sets)
   const cleanLevel = level.replace("level", "")
   const cleanUnit = unit.replace("unit", "")
 
@@ -1303,19 +1324,26 @@ function getUrlParameters() {
   const level = urlParams.get("level")
   const unit = urlParams.get("unit")
 
+  // Check if it's a custom set from the URL. If so, do not prepend prefixes.
+  const isCustomSet = level === "custom"
+
   return {
-    level: level ? `level${level}` : null,
-    unit: unit ? `unit${unit}` : null,
+    level: level ? (isCustomSet ? level : `level${level}`) : null,
+    unit: unit ? (isCustomSet ? unit : `unit${unit}`) : null,
   }
 }
 
 function validateWordSetSelection(level, unit) {
   function isCustomSet(level) {
-    return level.startsWith("custom:")
+    // Check for dropdown value format (custom:SetName:0) OR URL param format (custom)
+    return level.startsWith("custom:") || level === "custom"
   }
   // Check for custom word sets
   if (isCustomSet(level)) {
-    const setName = unit // unit parameter contains set name for custom sets
+    // If from URL, level is "custom" and unit is the set name.
+    // If from dropdown, level is "custom:SetName:0" and unit is "0".
+    const setName = level === "custom" ? unit : level.split(":")[1]
+
     const customSets = getCustomWordSets()
     if (!customSets[setName]) {
       console.warn(`Custom word set "${setName}" not found. Using default.`)
