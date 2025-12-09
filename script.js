@@ -45,6 +45,7 @@ let sessionStatus = false
 let totalTreasuresPlaced = 0
 let treasureIndex
 let treasuresRemaining = 0
+let usedPlayerOrders = []
 const winSounds = [
   new Audio("sounds/win/land-ho.mp3"),
   new Audio("sounds/win/shiver-me-timbers.mp3"),
@@ -246,6 +247,9 @@ function shufflePlayers() {
   let attempts = 0
   const maxAttempts = 50
 
+  // Convert to Set for faster lookup
+  const usedOrderSet = new Set(usedPlayerOrders)
+
   while (!isValidShuffle && attempts < maxAttempts) {
     attempts++
 
@@ -255,19 +259,30 @@ function shufflePlayers() {
       ;[players[i], players[j]] = [players[j], players[i]]
     }
 
-    // Rule 1: Must be different from what is CURRENTLY on screen (Visual feedback)
+    // Rule 1: Visual feedback - Must change from current screen
     const isSameAsCurrent = players.every((p, i) => p === currentOrder[i])
 
-    // Rule 2: Must be different from the PREVIOUS GAME (Game logic)
-    // (Only enforce this if we have >2 players, otherwise we get stuck in a loop)
-    const isSameAsLastGame =
-      players.length > 2 &&
-      lastGamePlayerOrder.length === players.length &&
-      players.every((p, i) => p === lastGamePlayerOrder[i])
+    // Rule 2: Exhaustion - Must not have been used in this session
+    const newOrderKey = getPlayerOrderKey(players)
+    const isUsedOrder = usedOrderSet.has(newOrderKey)
 
-    if (!isSameAsCurrent && !isSameAsLastGame) {
+    if (!isSameAsCurrent && !isUsedOrder) {
       isValidShuffle = true
     }
+  }
+
+  // If we couldn't find a unique order (all combos exhausted), reset and start over
+  if (!isValidShuffle) {
+    console.warn("All player orders exhausted. Resetting pool.")
+    usedPlayerOrders = []
+
+    // Re-seed the new list with the LAST game played
+    // so we don't accidentally repeat the game we just finished immediately after a reset.
+    if (lastGamePlayerOrder && lastGamePlayerOrder.length > 0) {
+      usedPlayerOrders.push(getPlayerOrderKey(lastGamePlayerOrder))
+    }
+
+    // Note: We keep the shuffled result we have now, effectively starting the new cycle
   }
 
   savePlayerstoLocalStorage()
@@ -342,6 +357,11 @@ function handleDrop(e) {
     savePlayerstoLocalStorage()
     updatePlayerDisplay()
   }
+}
+
+function getPlayerOrderKey(playerArray) {
+  // Creates a unique string for the current order (e.g., "Alice|Bob|Charlie")
+  return playerArray.join("|")
 }
 
 // Calculate player level using a quadratic formula
@@ -1283,8 +1303,17 @@ function endGame(currentPlayer) {
     roundStartStats = JSON.parse(JSON.stringify(playerStats))
   }
 
+  // Update last game order
   if (players.length > 0) {
     lastGamePlayerOrder = [...players]
+
+    const currentOrderKey = getPlayerOrderKey(players)
+    // Only add if not already in list (sanity check)
+    if (!usedPlayerOrders.includes(currentOrderKey)) {
+      usedPlayerOrders.push(currentOrderKey)
+    }
+
+    savePlayerstoLocalStorage()
   }
 
   // Show completion modal
@@ -2005,10 +2034,10 @@ function savePlayerstoLocalStorage() {
     const playerData = {
       players: players,
       timestamp: Date.now(),
+      lastGamePlayerOrder: lastGamePlayerOrder,
+      usedPlayerOrders: usedPlayerOrders,
     }
     localStorage.setItem("treasureHuntPlayerData", JSON.stringify(playerData))
-
-    // localStorage.setItem("treasureHuntPlayers", JSON.stringify(players))
     console.log("Players successfully saved to localStorage")
   } catch (error) {
     console.error("Error saving players to localStorage:", error)
@@ -2027,10 +2056,12 @@ function loadSavedPlayers() {
   // 30 minutes in milliseconds = 30 * 60 * 1000
   const CLASS_DURATION = 30 * 60 * 1000
 
+  players = playerData.players || []
+  lastGamePlayerOrder = playerData.lastGamePlayerOrder || []
+  usedPlayerOrders = playerData.usedPlayerOrders || []
+
   // Check if data is still valid (within time window)
   if (currentTime - playerData.timestamp < CLASS_DURATION) {
-    players = playerData.players
-
     // Initialize any missing stats
     players.forEach((player) => {
       if (!playerStats[player]) {
@@ -2050,6 +2081,8 @@ function loadSavedPlayers() {
   } else {
     console.log("Saved player data has expired")
     resetAllSessionStats()
+    usedPlayerOrders = []
+    lastGamePlayerOrder = []
   }
 
   if (playerData.players) {
