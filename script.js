@@ -1403,11 +1403,17 @@ function selectWordsFromWordBank(
     return shuffledArray
   }
 
-  if (level === "custom") {
-    const sets = getCustomWordSets()
-    const customWords = sets[unit]?.words.slice(0, maxWords) || []
-    return customWords
-  }
+ if (level === "custom") {
+   const sets = getCustomWordSets()
+   const allWords = sets[unit]?.words || []
+
+   // 1. Shuffle ALL available words first
+   const shuffledWords = shuffleArray(allWords)
+
+   // 2. Then slice the number of words needed
+   // (This ensures we pick a random selection from the whole list)
+   return shuffledWords.slice(0, maxWords)
+ }
 
   // Check if the specified level and unit exist
   if (!smartPhonicsWordBank[level] || !smartPhonicsWordBank[level][unit]) {
