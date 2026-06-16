@@ -3231,7 +3231,24 @@ document.addEventListener("DOMContentLoaded", () => {
         if (apiSettingsSummary) {
           apiSettingsSummary.textContent = "ElevenLabs API Settings (Error)"
         }
-        saveElevenlabsBtn.disabled = false
+      }
+    })
+  }
+
+  const flushVoicesBtn = document.getElementById("flush-voices-btn")
+  if (flushVoicesBtn) {
+    flushVoicesBtn.addEventListener("click", () => {
+      resetCachedTurnVoices()
+      precachePlayerTurnAudios()
+
+      if (elevenlabsStatus) {
+        elevenlabsStatus.textContent = "Audio cache flushed successfully!"
+        elevenlabsStatus.style.color = "lightgreen"
+        setTimeout(() => {
+          if (elevenlabsStatus.textContent === "Audio cache flushed successfully!") {
+            elevenlabsStatus.textContent = ""
+          }
+        }, 3000)
       }
     })
   }
