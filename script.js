@@ -2611,8 +2611,9 @@ function setupEventListeners() {
   document.addEventListener("keydown", function (event) {
     // Check if backspace key is pressed (key code 8)
     if (event.key === "Backspace") {
-      // Allow normal backspace in textarea
-      if (document.activeElement.tagName === "TEXTAREA") {
+      // Allow normal backspace in input and textarea fields
+      const activeTag = document.activeElement.tagName
+      if (activeTag === "INPUT" || activeTag === "TEXTAREA" || document.activeElement.isContentEditable) {
         return
       }
 
