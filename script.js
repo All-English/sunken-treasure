@@ -46,6 +46,27 @@ let totalTreasuresPlaced = 0
 let treasureIndex
 let treasuresRemaining = 0
 let usedPlayerOrders = []
+const englishVoices = [
+  { name: "Jessica", voice_id: "cgSgspJ2msm6clMCkdW9" },
+  { name: "Laura", voice_id: "FGY2WhTYpPnrIDTdsKH5" },
+  { name: "Sarah", voice_id: "EXAVITQu4vr4xnSDxMaL" },
+  { name: "Bella", voice_id: "hpp4J3VqNfWAUOO0d1Us" },
+  { name: "Matilda", voice_id: "XrExE9yKIg1WjnnlVkGX" },
+  { name: "River", voice_id: "SAz9YHcvj6GT2YYXdXww" },
+  { name: "Chris", voice_id: "iP95p4xoKVk53GoZ742B" },
+  { name: "Liam", voice_id: "TX3LPaxmHKxFdv7VOQHJ" },
+  { name: "Brian", voice_id: "nPczCjzI2devNBz1zQrb" },
+  { name: "Bill", voice_id: "pqHfZKP75CvOlQylNhV4" },
+  { name: "Will", voice_id: "bIHbv24MWmeRgasZH58o" },
+  { name: "Adam", voice_id: "pNInz6obpgDQGcFmaJgB" },
+  { name: "Roger", voice_id: "CwhRBWXzGAHq8TQ4Fs17" }
+]
+let playerDetails = {}
+let currentTurnCellClicked = false
+let playingTurnAudio = null
+let pendingTurnAnnouncementTimeout = null
+let activeGameSound = null
+let userApiKey = ""
 const winSounds = [
   new Audio("sounds/win/land-ho.mp3"),
   new Audio("sounds/win/shiver-me-timbers.mp3"),
@@ -769,11 +790,160 @@ function setupSoundMuteControl() {
 // Safe sound play function
 function playSoundSafely(sound) {
   if (sound instanceof HTMLAudioElement && !window.isSoundsMuted) {
+    activeGameSound = sound
     sound.play().catch((error) => {
       // Silently handle any playback errors
       console.error("Sound play error:", error)
     })
   }
+}
+
+function updatePlayerDetails() {
+  players.forEach((playerName, index) => {
+    if (!playerDetails[playerName]) {
+      const voiceId = englishVoices[index % englishVoices.length].voice_id
+      playerDetails[playerName] = {
+        voiceId: voiceId,
+        turnAudio: null
+      }
+    }
+  })
+}
+
+async function fetchElevenLabsAudio(text, voiceId) {
+  if (!userApiKey) return null
+
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`
+  const payload = {
+    text: text,
+    model_id: "eleven_flash_v2",
+    voice_settings: {
+      stability: 0.5,
+      similarity_boost: 0.75,
+      speed: 0.85
+    }
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "xi-api-key": userApiKey
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (response.ok) {
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      return new Audio(blobUrl)
+    } else {
+      console.error(`ElevenLabs generation failed for "${text}":`, response.statusText)
+    }
+  } catch (e) {
+    console.error(`Error generating ElevenLabs audio for "${text}":`, e)
+  }
+  return null
+}
+
+function stopAllTurnVoices() {
+  if (playingTurnAudio) {
+    try {
+      playingTurnAudio.pause()
+      playingTurnAudio.currentTime = 0
+    } catch (e) {}
+    playingTurnAudio = null
+  }
+}
+
+function resetCachedTurnVoices() {
+  Object.keys(playerDetails).forEach((playerName) => {
+    const details = playerDetails[playerName]
+    if (details.turnAudio) {
+      try {
+        URL.revokeObjectURL(details.turnAudio.src)
+      } catch (e) {}
+      details.turnAudio = null
+    }
+  })
+}
+
+async function precachePlayerTurnAudios() {
+  updatePlayerDetails()
+  if (!userApiKey || players.length === 0) return
+
+  for (const playerName of players) {
+    const details = playerDetails[playerName]
+    if (!details || details.turnAudio) continue
+
+    const audio = await fetchElevenLabsAudio(`${playerName}'s turn`, details.voiceId)
+    if (audio) {
+      details.turnAudio = audio
+    }
+  }
+}
+
+async function announceCurrentPlayerTurn() {
+  if (window.isSoundsMuted || !userApiKey || players.length === 0) return
+
+  const activePlayerName = players[currentPlayerIndex]
+  if (!activePlayerName) return
+
+  const targetPlayerName = activePlayerName
+
+  // If player clicked a cell before the announcement is made, skip it
+  if (currentTurnCellClicked) return
+
+  // If activeGameSound is playing, wait for it to finish
+  if (activeGameSound && !activeGameSound.paused && !activeGameSound.ended) {
+    await new Promise((resolve) => {
+      const onEnded = () => {
+        activeGameSound.removeEventListener("ended", onEnded)
+        activeGameSound.removeEventListener("error", onEnded)
+        resolve()
+      }
+      activeGameSound.addEventListener("ended", onEnded)
+      activeGameSound.addEventListener("error", onEnded)
+    })
+  }
+
+  // Final check before playing
+  if (window.isSoundsMuted || currentTurnCellClicked || players[currentPlayerIndex] !== targetPlayerName) return
+
+  updatePlayerDetails()
+  const details = playerDetails[activePlayerName]
+  if (!details) return
+
+  if (details.turnAudio) {
+    details.turnAudio.currentTime = 0
+    playingTurnAudio = details.turnAudio
+    if (currentTurnCellClicked || players[currentPlayerIndex] !== targetPlayerName) return
+    details.turnAudio.play().catch((e) => console.error("Error playing turn audio:", e))
+    return
+  }
+
+  const audio = await fetchElevenLabsAudio(`${activePlayerName}'s turn`, details.voiceId)
+  if (audio) {
+    details.turnAudio = audio
+    if (currentTurnCellClicked || players[currentPlayerIndex] !== targetPlayerName) return
+    playingTurnAudio = audio
+    audio.play().catch((e) => console.error("Error playing turn audio:", e))
+  }
+}
+
+function announceCurrentPlayerTurnWithDelay(delay) {
+  if (pendingTurnAnnouncementTimeout) {
+    clearTimeout(pendingTurnAnnouncementTimeout)
+    pendingTurnAnnouncementTimeout = null
+  }
+
+  const targetPlayerName = players[currentPlayerIndex]
+
+  pendingTurnAnnouncementTimeout = setTimeout(() => {
+    if (currentTurnCellClicked || players[currentPlayerIndex] !== targetPlayerName) return
+    announceCurrentPlayerTurn()
+  }, delay)
 }
 
 // Play a sound from a queued list
@@ -1144,6 +1314,14 @@ function addUnavailableCells(
 function handleWordClick(wordCard, currentCell) {
   if (!gameActive || wordCard.classList.contains("clicked")) return
   gameActive = false
+
+  // Silence active turn announcement and prevent any pending ones
+  currentTurnCellClicked = true
+  stopAllTurnVoices()
+  if (pendingTurnAnnouncementTimeout) {
+    clearTimeout(pendingTurnAnnouncementTimeout)
+    pendingTurnAnnouncementTimeout = null
+  }
 
   // Hide reordering buttons on first card click
   if (isDraggingEnabled) {
@@ -1538,6 +1716,16 @@ function createGameboard() {
     updatePlayerDisplay()
 
     enablePlayerDragging()
+
+    // Precache player turn audios and trigger the first player's turn announcement
+    currentTurnCellClicked = false
+    stopAllTurnVoices()
+    if (pendingTurnAnnouncementTimeout) {
+      clearTimeout(pendingTurnAnnouncementTimeout)
+      pendingTurnAnnouncementTimeout = null
+    }
+    precachePlayerTurnAudios()
+    announceCurrentPlayerTurnWithDelay(500)
   }
 
   // Reset used images tracking
@@ -2045,60 +2233,67 @@ function savePlayerstoLocalStorage() {
     }
     localStorage.setItem("treasureHuntPlayerData", JSON.stringify(playerData))
     console.log("Players successfully saved to localStorage")
+    saveActiveSessionPlayers(players)
   } catch (error) {
     console.error("Error saving players to localStorage:", error)
     alert("Unable to save players. Local storage might be full or disabled.")
   }
 }
-// Function to load players from localStorage
+
 function loadSavedPlayers() {
-  // Get stored data
+  let names = []
+  const sharedActive = localStorage.getItem(SHARED_ACTIVE_PLAYERS_KEY)
+  if (sharedActive) {
+    try {
+      const parsed = JSON.parse(sharedActive)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        names = parsed
+      }
+    } catch (e) {
+      console.error("Error parsing shared active players:", e)
+    }
+  }
+
   const storedData = localStorage.getItem("treasureHuntPlayerData")
-  if (!storedData) return null
+  const playerData = storedData ? JSON.parse(storedData) : {}
 
-  const playerData = JSON.parse(storedData)
-  const currentTime = Date.now()
+  if (names.length > 0) {
+    players = names
+    lastGamePlayerOrder = playerData.lastGamePlayerOrder || []
+    usedPlayerOrders = playerData.usedPlayerOrders || []
+  } else if (storedData) {
+    const currentTime = Date.now()
+    const CLASS_DURATION = 30 * 60 * 1000
+    if (currentTime - playerData.timestamp < CLASS_DURATION) {
+      players = playerData.players || []
+      lastGamePlayerOrder = playerData.lastGamePlayerOrder || []
+      usedPlayerOrders = playerData.usedPlayerOrders || []
+    }
+  }
 
-  // 30 minutes in milliseconds = 30 * 60 * 1000
-  const CLASS_DURATION = 30 * 60 * 1000
-
-  players = playerData.players || []
-  lastGamePlayerOrder = playerData.lastGamePlayerOrder || []
-  usedPlayerOrders = playerData.usedPlayerOrders || []
-
-  // Check if data is still valid (within time window)
-  if (currentTime - playerData.timestamp < CLASS_DURATION) {
-    // Initialize any missing stats
+  if (players.length > 0) {
     players.forEach((player) => {
       if (!playerStats[player]) {
-        console.log("Initializing player stats for", player)
         playerStats[player] = initializePlayerStats(player)
       }
     })
-    console.log("Loaded saved players within 30 minutes")
 
     const addPlayersBtn = document.getElementById("add-players-btn")
     if (addPlayersBtn) {
       addPlayersBtn.textContent = "Edit Players"
     }
 
-    sessionStatus = true
-    updatePlayerDisplay()
-  } else {
-    console.log("Saved player data has expired")
-    resetAllSessionStats()
     usedPlayerOrders = []
     lastGamePlayerOrder = []
   }
 
-  if (playerData.players) {
-    // Pre-fill textarea with saved players
+  const namesToPrefill = players.length > 0 ? players : (playerData.players || [])
+  if (namesToPrefill.length > 0) {
+    // Pre-fill textarea with active players (or saved players fallback)
     const textarea = document.getElementById("players-textarea")
     if (textarea) {
-      textarea.value = playerData.players.join(", ")
-
-      // log that saved players loaded
-      console.log("Saved players:", textarea.value)
+      textarea.value = namesToPrefill.join(", ")
+      console.log("Saved players prefilled in textarea:", textarea.value)
     }
   }
 }
@@ -2215,6 +2410,15 @@ function switchToNextPlayer() {
   }
 
   currentPlayerIndex = (currentPlayerIndex + 1) % players.length
+
+  // Announce the next player's turn
+  currentTurnCellClicked = false
+  stopAllTurnVoices()
+  if (pendingTurnAnnouncementTimeout) {
+    clearTimeout(pendingTurnAnnouncementTimeout)
+    pendingTurnAnnouncementTimeout = null
+  }
+  announceCurrentPlayerTurnWithDelay(100)
 }
 // Preload when the page loads
 window.addEventListener("load", () => {
@@ -2424,6 +2628,15 @@ function setupEventListeners() {
         (currentPlayerIndex - 1 + players.length) % players.length
 
       updatePlayerDisplay()
+
+      // Announce turn since it was reverted
+      currentTurnCellClicked = false
+      stopAllTurnVoices()
+      if (pendingTurnAnnouncementTimeout) {
+        clearTimeout(pendingTurnAnnouncementTimeout)
+        pendingTurnAnnouncementTimeout = null
+      }
+      announceCurrentPlayerTurnWithDelay(500)
     }
   })
 
@@ -2590,6 +2803,346 @@ function setupEventListeners() {
       mergeModal.classList.remove("visible")
   })
 }
+
+// --- UPSTASH REDIS SYNC MANAGEMENT ---
+const SHARED_SETS_KEY = "shared_player_sets"
+const OLD_SETS_KEY = "phonics_player_sets"
+const SHARED_ACTIVE_PLAYERS_KEY = "shared_active_players"
+const UPSTASH_URL_KEY = "upstash_redis_url"
+const UPSTASH_TOKEN_KEY = "upstash_redis_token"
+
+function getUpstashCredentials() {
+  let url = localStorage.getItem(UPSTASH_URL_KEY)
+  const token = localStorage.getItem(UPSTASH_TOKEN_KEY)
+  if (url && url.endsWith("/")) {
+    url = url.slice(0, -1)
+  }
+  return { url, token }
+}
+
+function getPlayerSets() {
+  const setsJSON = localStorage.getItem(SHARED_SETS_KEY) || localStorage.getItem(OLD_SETS_KEY)
+  return setsJSON ? JSON.parse(setsJSON) : {}
+}
+
+function savePlayerSets(sets) {
+  localStorage.setItem(SHARED_SETS_KEY, JSON.stringify(sets))
+  syncToUpstash(SHARED_SETS_KEY, sets)
+}
+
+function saveActiveSessionPlayers(namesArray) {
+  localStorage.setItem(SHARED_ACTIVE_PLAYERS_KEY, JSON.stringify(namesArray))
+  syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, namesArray)
+}
+
+function handleUpstashError(errorMessage) {
+  localStorage.removeItem(UPSTASH_URL_KEY)
+  localStorage.removeItem(UPSTASH_TOKEN_KEY)
+  
+  const statusEl = document.getElementById("sync-status")
+  const syncSummary = document.getElementById("sync-settings-summary")
+  const syncDetails = document.getElementById("sync-settings-details")
+  
+  if (statusEl) {
+    statusEl.textContent = errorMessage || "Sync credentials invalid. Cleared."
+    statusEl.style.color = "red"
+  }
+  if (syncSummary) {
+    syncSummary.textContent = "Upstash Redis Sync (Error)"
+  }
+  if (syncDetails) {
+    syncDetails.open = true
+  }
+}
+
+async function syncToUpstash(key, data) {
+  const { url, token } = getUpstashCredentials()
+  if (!url || !token) return
+
+  try {
+    const response = await fetch(`${url}/set/${key}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    })
+    if (!response.ok) {
+      console.error(`Upstash Sync failed for ${key}:`, response.statusText)
+      if (response.status === 401 || response.status === 403) {
+        handleUpstashError("Upstash token is invalid or expired. Disconnected.")
+      }
+    }
+  } catch (error) {
+    console.error(`Upstash Sync error for ${key}:`, error)
+  }
+}
+
+async function fetchFromUpstash(key) {
+  const { url, token } = getUpstashCredentials()
+  if (!url || !token) return null
+
+  try {
+    const response = await fetch(`${url}/get/${key}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    if (response.ok) {
+      const resData = await response.json()
+      if (resData && resData.result !== undefined && resData.result !== null) {
+        return JSON.parse(resData.result)
+      }
+    } else {
+      console.error(`Upstash fetch failed for ${key}:`, response.statusText)
+      if (response.status === 401 || response.status === 403) {
+        handleUpstashError("Upstash token is invalid or expired. Disconnected.")
+      }
+    }
+  } catch (error) {
+    console.error(`Upstash fetch error for ${key}:`, error)
+  }
+  return null
+}
+
+async function syncWithUpstashOnLoad() {
+  const { url, token } = getUpstashCredentials()
+  if (!url || !token) return
+
+  const statusEl = document.getElementById("sync-status")
+  const syncSummary = document.getElementById("sync-settings-summary")
+  if (statusEl) {
+    statusEl.textContent = "Syncing..."
+    statusEl.style.color = "white"
+  }
+
+  try {
+    // 1. Sync sets (Database is source of truth if it exists)
+    const dbSets = await fetchFromUpstash(SHARED_SETS_KEY)
+    if (!localStorage.getItem(UPSTASH_URL_KEY)) return
+
+    if (dbSets) {
+      localStorage.setItem(SHARED_SETS_KEY, JSON.stringify(dbSets))
+      populatePlayerSetSelect()
+    } else {
+      const localSets = getPlayerSets()
+      if (Object.keys(localSets).length > 0) {
+        await syncToUpstash(SHARED_SETS_KEY, localSets)
+      }
+    }
+
+    // 2. Sync active session (Database is source of truth if it exists)
+    const dbActive = await fetchFromUpstash(SHARED_ACTIVE_PLAYERS_KEY)
+    if (!localStorage.getItem(UPSTASH_URL_KEY)) return
+
+    if (dbActive && Array.isArray(dbActive)) {
+      localStorage.setItem(SHARED_ACTIVE_PLAYERS_KEY, JSON.stringify(dbActive))
+      loadSavedPlayers()
+      updatePlayerDisplay()
+    } else {
+      const localActiveJSON = localStorage.getItem(SHARED_ACTIVE_PLAYERS_KEY)
+      if (localActiveJSON) {
+        try {
+          const localActive = JSON.parse(localActiveJSON)
+          if (Array.isArray(localActive) && localActive.length > 0) {
+            await syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, localActive)
+          }
+        } catch (e) {
+          console.error(e)
+        }
+      }
+    }
+
+    if (statusEl) {
+      statusEl.textContent = "Synced successfully!"
+      statusEl.style.color = "lightgreen"
+    }
+    if (syncSummary) {
+      syncSummary.textContent = "Upstash Redis Sync (Connected)"
+    }
+  } catch (err) {
+    console.error("Error running onload sync:", err)
+    if (statusEl) {
+      statusEl.textContent = "Sync failed."
+      statusEl.style.color = "red"
+    }
+    if (syncSummary) {
+      syncSummary.textContent = "Upstash Redis Sync (Error)"
+    }
+  }
+}
+
+function populatePlayerSetSelect() {
+  const select = document.getElementById("player-set-select")
+  const deleteBtn = document.getElementById("delete-set-btn")
+  if (!select) return
+
+  select.innerHTML = '<option value="">-- Load Saved List --</option>'
+
+  const sets = getPlayerSets()
+  Object.keys(sets).sort().forEach((setName) => {
+    const opt = document.createElement("option")
+    opt.value = setName
+    opt.textContent = setName
+    select.appendChild(opt)
+  })
+
+  if (deleteBtn) deleteBtn.style.display = "none"
+}
+
+function setupPlayerSetsSyncEventListeners() {
+  const playerSetSelect = document.getElementById("player-set-select")
+  const deleteSetBtn = document.getElementById("delete-set-btn")
+  const newSetNameInput = document.getElementById("new-player-set-name")
+  const saveSetBtn = document.getElementById("save-player-set-btn")
+
+  if (playerSetSelect) {
+    playerSetSelect.addEventListener("change", () => {
+      const selectedSetName = playerSetSelect.value
+      if (selectedSetName) {
+        const sets = getPlayerSets()
+        const names = sets[selectedSetName]
+        if (names && Array.isArray(names)) {
+          const playersTextarea = document.getElementById("players-textarea")
+          if (playersTextarea) {
+            playersTextarea.value = names.join(", ")
+          }
+        }
+        if (deleteSetBtn) deleteSetBtn.style.display = "inline-block"
+      } else {
+        if (deleteSetBtn) deleteSetBtn.style.display = "none"
+      }
+    })
+  }
+
+  if (saveSetBtn && newSetNameInput) {
+    saveSetBtn.addEventListener("click", () => {
+      const setName = newSetNameInput.value.trim()
+      const namesInput = document.getElementById("players-textarea").value.trim()
+
+      if (!setName) {
+        alert("Please enter a name for your list.")
+        return
+      }
+      if (!namesInput) {
+        alert("Please enter at least one player name before saving.")
+        return
+      }
+
+      const names = namesInput
+        .split(/[,\n]/)
+        .map((name) => name.trim())
+        .filter((name) => name.length > 0)
+
+      if (names.length === 0) {
+        alert("Please enter valid player names.")
+        return
+      }
+
+      const sets = getPlayerSets()
+      sets[setName] = names
+      savePlayerSets(sets)
+
+      newSetNameInput.value = ""
+      populatePlayerSetSelect()
+      playerSetSelect.value = setName
+      if (deleteSetBtn) deleteSetBtn.style.display = "inline-block"
+      alert(`Saved list "${setName}" successfully!`)
+    })
+  }
+
+  if (deleteSetBtn && playerSetSelect) {
+    deleteSetBtn.addEventListener("click", () => {
+      const selectedSetName = playerSetSelect.value
+      if (!selectedSetName) return
+
+      if (confirm(`Are you sure you want to delete the list "${selectedSetName}"?`)) {
+        const sets = getPlayerSets()
+        delete sets[selectedSetName]
+        savePlayerSets(sets)
+
+        populatePlayerSetSelect()
+        playerSetSelect.value = ""
+        deleteSetBtn.style.display = "none"
+      }
+    })
+  }
+
+  // Upstash Config event listeners
+  const saveSyncBtn = document.getElementById("save-sync-btn")
+  const syncStatus = document.getElementById("sync-status")
+  const syncDetails = document.getElementById("sync-settings-details")
+  const syncSummary = document.getElementById("sync-settings-summary")
+  const upstashUrlInput = document.getElementById("upstash-url-input")
+  const upstashTokenInput = document.getElementById("upstash-token-input")
+
+  if (saveSyncBtn && upstashUrlInput && upstashTokenInput) {
+    const savedUrl = localStorage.getItem(UPSTASH_URL_KEY)
+    const savedToken = localStorage.getItem(UPSTASH_TOKEN_KEY)
+    if (savedUrl) upstashUrlInput.value = savedUrl
+    if (savedToken) upstashTokenInput.value = savedToken
+    if (savedUrl && savedToken) {
+      if (syncSummary) syncSummary.textContent = "Upstash Redis Sync (Saved)"
+    }
+
+    saveSyncBtn.addEventListener("click", async () => {
+      let url = upstashUrlInput.value.trim()
+      if (url.endsWith("/")) {
+        url = url.slice(0, -1)
+      }
+      const token = upstashTokenInput.value.trim()
+
+      if (!url || !token) {
+        if (syncStatus) {
+          syncStatus.textContent = "Please fill in both URL and Token"
+          syncStatus.style.color = "red"
+        }
+        return
+      }
+
+      if (syncStatus) {
+        syncStatus.textContent = "Connecting & Syncing..."
+        syncStatus.style.color = "white"
+      }
+      saveSyncBtn.disabled = true
+
+      try {
+        const testRes = await fetch(`${url}/get/${SHARED_ACTIVE_PLAYERS_KEY}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (testRes.ok) {
+          localStorage.setItem(UPSTASH_URL_KEY, url)
+          localStorage.setItem(UPSTASH_TOKEN_KEY, token)
+
+          if (syncStatus) {
+            syncStatus.textContent = "Connected & synced successfully!"
+            syncStatus.style.color = "lightgreen"
+          }
+          if (syncSummary) syncSummary.textContent = "Upstash Redis Sync (Connected)"
+          
+          saveSyncBtn.disabled = false
+
+          await syncWithUpstashOnLoad()
+          
+          setTimeout(() => {
+            if (syncDetails) syncDetails.open = false
+          }, 1500)
+        } else {
+          throw new Error("Invalid credentials")
+        }
+      } catch (err) {
+        console.error("Upstash verification error:", err)
+        if (syncStatus) {
+          syncStatus.textContent = "Connection failed. Please check your credentials."
+          syncStatus.style.color = "red"
+        }
+        if (syncSummary) syncSummary.textContent = "Upstash Redis Sync (Error)"
+        saveSyncBtn.disabled = false
+      }
+    })
+  }
+}
+
 // Call this when the page loads
 document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners()
@@ -2600,4 +3153,25 @@ document.addEventListener("DOMContentLoaded", () => {
   populateWordSetDropdown()
   setupSoundMuteControl()
   createGameboard()
+
+  populatePlayerSetSelect()
+  syncWithUpstashOnLoad()
+  setupPlayerSetsSyncEventListeners()
+
+  // Load ElevenLabs API Key
+  const elevenlabsApiKeyInput = document.getElementById("elevenlabs-api-key")
+  if (elevenlabsApiKeyInput) {
+    const savedKey = localStorage.getItem("elevenlabs_api_key")
+    if (savedKey) {
+      userApiKey = savedKey
+      elevenlabsApiKeyInput.value = userApiKey
+    }
+
+    elevenlabsApiKeyInput.addEventListener("input", () => {
+      userApiKey = elevenlabsApiKeyInput.value
+      localStorage.setItem("elevenlabs_api_key", userApiKey)
+      resetCachedTurnVoices()
+      precachePlayerTurnAudios()
+    })
+  }
 })
