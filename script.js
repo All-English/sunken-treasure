@@ -946,6 +946,21 @@ function announceCurrentPlayerTurnWithDelay(delay) {
   }, delay)
 }
 
+function resetAndAnnounceFirstPlayerTurn() {
+  if (players.length > 0) {
+    currentPlayerIndex = 0
+    updatePlayerDisplay()
+    currentTurnCellClicked = false
+    stopAllTurnVoices()
+    if (pendingTurnAnnouncementTimeout) {
+      clearTimeout(pendingTurnAnnouncementTimeout)
+      pendingTurnAnnouncementTimeout = null
+    }
+    precachePlayerTurnAudios()
+    announceCurrentPlayerTurnWithDelay(500)
+  }
+}
+
 // Play a sound from a queued list
 function playNextSoundInQueue(soundsArray) {
   if (soundsArray === winSounds) {
@@ -1686,7 +1701,7 @@ function selectWordsFromWordBank(
   return selectedWords
 }
 
-function createGameboard() {
+function createGameboard(isInitialLoad = false) {
   // console.clear()
   const gameBoard = document.getElementById("game-board")
   const wordSetDropdown = document.getElementById("word-set-dropdown")
@@ -1724,8 +1739,10 @@ function createGameboard() {
       clearTimeout(pendingTurnAnnouncementTimeout)
       pendingTurnAnnouncementTimeout = null
     }
-    precachePlayerTurnAudios()
-    announceCurrentPlayerTurnWithDelay(500)
+    if (!isInitialLoad) {
+      precachePlayerTurnAudios()
+      announceCurrentPlayerTurnWithDelay(500)
+    }
   }
 
   // Reset used images tracking
@@ -3124,6 +3141,7 @@ function setupPlayerSetsSyncEventListeners() {
           saveSyncBtn.disabled = false
 
           await syncWithUpstashOnLoad()
+          resetAndAnnounceFirstPlayerTurn()
           
           setTimeout(() => {
             if (syncDetails) syncDetails.open = false
@@ -3145,7 +3163,7 @@ function setupPlayerSetsSyncEventListeners() {
 }
 
 // Call this when the page loads
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   setupEventListeners()
   setupGridColumnControl() // For Debuging
   loadPlayerStats()
@@ -3153,11 +3171,6 @@ document.addEventListener("DOMContentLoaded", () => {
   populateMaxWordsDropdown()
   populateWordSetDropdown()
   setupSoundMuteControl()
-  createGameboard()
-
-  populatePlayerSetSelect()
-  syncWithUpstashOnLoad()
-  setupPlayerSetsSyncEventListeners()
 
   // Load ElevenLabs API Key
   const elevenlabsApiKeyInput = document.getElementById("elevenlabs-api-key")
@@ -3174,6 +3187,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (apiSettingsSummary) apiSettingsSummary.textContent = "ElevenLabs API Settings (Saved)"
     }
   }
+
+  createGameboard(true)
+
+  populatePlayerSetSelect()
+  await syncWithUpstashOnLoad()
+  setupPlayerSetsSyncEventListeners()
+
+  resetAndAnnounceFirstPlayerTurn()
 
   if (saveElevenlabsBtn && elevenlabsApiKeyInput) {
     saveElevenlabsBtn.addEventListener("click", async () => {
