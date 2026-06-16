@@ -3160,18 +3160,78 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Load ElevenLabs API Key
   const elevenlabsApiKeyInput = document.getElementById("elevenlabs-api-key")
+  const saveElevenlabsBtn = document.getElementById("save-elevenlabs-btn")
+  const elevenlabsStatus = document.getElementById("elevenlabs-status")
+  const apiSettingsSummary = document.getElementById("api-settings-summary")
+  const apiSettingsDetails = document.getElementById("api-settings-details")
+
   if (elevenlabsApiKeyInput) {
     const savedKey = localStorage.getItem("elevenlabs_api_key")
     if (savedKey) {
       userApiKey = savedKey
       elevenlabsApiKeyInput.value = userApiKey
+      if (apiSettingsSummary) apiSettingsSummary.textContent = "ElevenLabs API Settings (Saved)"
     }
+  }
 
-    elevenlabsApiKeyInput.addEventListener("input", () => {
-      userApiKey = elevenlabsApiKeyInput.value
-      localStorage.setItem("elevenlabs_api_key", userApiKey)
-      resetCachedTurnVoices()
-      precachePlayerTurnAudios()
+  if (saveElevenlabsBtn && elevenlabsApiKeyInput) {
+    saveElevenlabsBtn.addEventListener("click", async () => {
+      const key = elevenlabsApiKeyInput.value.trim()
+      if (!key) {
+        if (elevenlabsStatus) {
+          elevenlabsStatus.textContent = "Please enter an API Key."
+          elevenlabsStatus.style.color = "red"
+        }
+        return
+      }
+
+      if (elevenlabsStatus) {
+        elevenlabsStatus.textContent = "Verifying..."
+        elevenlabsStatus.style.color = "white"
+      }
+      saveElevenlabsBtn.disabled = true
+
+      try {
+        const response = await fetch("https://api.elevenlabs.io/v1/voices", {
+          method: "GET",
+          headers: {
+            "xi-api-key": key
+          }
+        })
+
+        if (response.ok) {
+          userApiKey = key
+          localStorage.setItem("elevenlabs_api_key", userApiKey)
+          resetCachedTurnVoices()
+          precachePlayerTurnAudios()
+
+          if (elevenlabsStatus) {
+            elevenlabsStatus.textContent = "Connected successfully!"
+            elevenlabsStatus.style.color = "lightgreen"
+          }
+          if (apiSettingsSummary) {
+            apiSettingsSummary.textContent = "ElevenLabs API Settings (Connected)"
+          }
+
+          saveElevenlabsBtn.disabled = false
+
+          setTimeout(() => {
+            if (apiSettingsDetails) apiSettingsDetails.open = false
+          }, 1500)
+        } else {
+          throw new Error("Invalid API Key")
+        }
+      } catch (err) {
+        console.error("ElevenLabs verification error:", err)
+        if (elevenlabsStatus) {
+          elevenlabsStatus.textContent = "Verification failed. Invalid API Key."
+          elevenlabsStatus.style.color = "red"
+        }
+        if (apiSettingsSummary) {
+          apiSettingsSummary.textContent = "ElevenLabs API Settings (Error)"
+        }
+        saveElevenlabsBtn.disabled = false
+      }
     })
   }
 })
