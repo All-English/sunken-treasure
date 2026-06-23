@@ -1041,6 +1041,13 @@ function loadPlayerStats() {
   const savedStats = localStorage.getItem("treasureHuntPlayerStats")
   if (savedStats) {
     playerStats = JSON.parse(savedStats)
+    // Restore sessionStatus if games have been played in the current session
+    const hasPlayed = Object.values(playerStats).some(
+      (stats) => stats.currentSessionStats && stats.currentSessionStats.gamesPlayed > 0
+    )
+    if (hasPlayed) {
+      sessionStatus = true
+    }
   }
 }
 
@@ -1069,6 +1076,32 @@ function resetAllSessionStats() {
 
   // Save the cleaned stats to storage immediately
   savePlayerStats()
+}
+
+function checkSessionExpiration() {
+  const storedData = localStorage.getItem("treasureHuntPlayerData")
+  if (!storedData) return false
+
+  try {
+    const playerData = JSON.parse(storedData)
+    const currentTime = Date.now()
+    const CLASS_DURATION = 30 * 60 * 1000
+    const timestamp = playerData.timestamp || 0
+    if (currentTime - timestamp >= CLASS_DURATION) {
+      console.log("Session expired. Resetting session stats.")
+      resetAllSessionStats()
+      localStorage.removeItem(SHARED_ACTIVE_PLAYERS_KEY)
+      
+      const { url, token } = getUpstashCredentials()
+      if (url && token) {
+        syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, [])
+      }
+      return true
+    }
+  } catch (e) {
+    console.error("Error checking session expiration:", e)
+  }
+  return false
 }
 
 function populateWordSetDropdown() {
@@ -1702,6 +1735,7 @@ function selectWordsFromWordBank(
 }
 
 function createGameboard(isInitialLoad = false) {
+  checkSessionExpiration()
   // console.clear()
   const gameBoard = document.getElementById("game-board")
   const wordSetDropdown = document.getElementById("word-set-dropdown")
@@ -2258,16 +2292,20 @@ function savePlayerstoLocalStorage() {
 }
 
 function loadSavedPlayers() {
+  const isExpired = checkSessionExpiration()
+
   let names = []
-  const sharedActive = localStorage.getItem(SHARED_ACTIVE_PLAYERS_KEY)
-  if (sharedActive) {
-    try {
-      const parsed = JSON.parse(sharedActive)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        names = parsed
+  if (!isExpired) {
+    const sharedActive = localStorage.getItem(SHARED_ACTIVE_PLAYERS_KEY)
+    if (sharedActive) {
+      try {
+        const parsed = JSON.parse(sharedActive)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          names = parsed
+        }
+      } catch (e) {
+        console.error("Error parsing shared active players:", e)
       }
-    } catch (e) {
-      console.error("Error parsing shared active players:", e)
     }
   }
 
@@ -2279,13 +2317,9 @@ function loadSavedPlayers() {
     lastGamePlayerOrder = playerData.lastGamePlayerOrder || []
     usedPlayerOrders = playerData.usedPlayerOrders || []
   } else if (storedData) {
-    const currentTime = Date.now()
-    const CLASS_DURATION = 30 * 60 * 1000
-    if (currentTime - playerData.timestamp < CLASS_DURATION) {
-      players = playerData.players || []
-      lastGamePlayerOrder = playerData.lastGamePlayerOrder || []
-      usedPlayerOrders = playerData.usedPlayerOrders || []
-    }
+    players = playerData.players || []
+    lastGamePlayerOrder = playerData.lastGamePlayerOrder || []
+    usedPlayerOrders = playerData.usedPlayerOrders || []
   }
 
   if (players.length > 0) {
