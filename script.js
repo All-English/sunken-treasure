@@ -43,6 +43,14 @@ let players = []
 let playerStats = {}
 let sessionStatus = false
 let totalTreasuresPlaced = 0
+
+function escapeHTML(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/[&<>"']/g, (m) => {
+    const chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return chars[m] || m;
+  });
+}
 let treasureIndex
 let treasuresRemaining = 0
 let usedPlayerOrders = []
@@ -150,7 +158,12 @@ function saveCustomWordSet(name, words) {
 }
 
 function getCustomWordSets() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTOM_SETS) || "{}")
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTOM_SETS) || "{}")
+  } catch (e) {
+    console.error("Error parsing custom word sets from localStorage:", e)
+    return {}
+  }
 }
 
 function deleteCustomWordSet(name) {
@@ -166,7 +179,6 @@ function showCustomWordSetsModal() {
   customSetsModal.classList.add("visible")
 
   displayCustomSets()
-  setupCustomSetsListeners()
 }
 
 function hideCustomWordSetsModal() {
@@ -181,6 +193,7 @@ function hideCustomWordSetsModal() {
   nameInput.value = ""
   wordsArea.value = ""
   saveButton.textContent = "Save New Set"
+  delete saveButton.dataset.originalName
 }
 
 function displayCustomSets() {
@@ -191,8 +204,8 @@ function displayCustomSets() {
     .map(
       ([name, data]) => `
           <div class="set-item">
-            <span class="set-name" data-set="${name}">${name} (${data.words.length} words)</span>
-            <div class="saved-set-delete" title="Delete" data-set="${name}">
+            <span class="set-name" data-set="${escapeHTML(name)}">${escapeHTML(name)} (${data.words.length} words)</span>
+            <div class="saved-set-delete" title="Delete" data-set="${escapeHTML(name)}">
               <i class="trash-icon fa-regular fa-trash-can" aria-hidden="true" role="img"></i>
             </div>
           </div>
@@ -216,8 +229,13 @@ function setupCustomSetsListeners() {
       .filter((w) => w)
 
     if (name && words.length) {
-      if (name) {
-        // Update existing set
+      const originalName = saveButton.dataset.originalName
+      if (originalName) {
+        // Delete the original name if we renamed/updated it
+        deleteCustomWordSet(originalName)
+        delete saveButton.dataset.originalName
+      } else {
+        // If it's a new set, overwrite if name matches existing
         deleteCustomWordSet(name)
       }
 
@@ -250,6 +268,7 @@ function setupCustomSetsListeners() {
       wordsArea.value = set.words.join("\n")
 
       saveButton.textContent = "Update Set"
+      saveButton.dataset.originalName = setName
     }
   })
 
@@ -776,9 +795,15 @@ function setupSoundMuteControl() {
     // Initialize mute state from localStorage
     const savedMuteState = localStorage.getItem("treasureHuntMuted")
     if (savedMuteState !== null) {
-      const isMuted = JSON.parse(savedMuteState)
-      muteCheckbox.checked = isMuted
-      window.isSoundsMuted = isMuted
+      try {
+        const isMuted = JSON.parse(savedMuteState)
+        muteCheckbox.checked = isMuted
+        window.isSoundsMuted = isMuted
+      } catch (e) {
+        console.error("Error parsing mute state from localStorage:", e)
+        muteCheckbox.checked = false
+        window.isSoundsMuted = false
+      }
     } else {
       // Ensure it's unchecked by default if no saved state
       muteCheckbox.checked = false
@@ -1040,13 +1065,18 @@ function createBubbles(numBubbles = 15) {
 function loadPlayerStats() {
   const savedStats = localStorage.getItem("treasureHuntPlayerStats")
   if (savedStats) {
-    playerStats = JSON.parse(savedStats)
-    // Restore sessionStatus if games have been played in the current session
-    const hasPlayed = Object.values(playerStats).some(
-      (stats) => stats.currentSessionStats && stats.currentSessionStats.gamesPlayed > 0
-    )
-    if (hasPlayed) {
-      sessionStatus = true
+    try {
+      playerStats = JSON.parse(savedStats)
+      // Restore sessionStatus if games have been played in the current session
+      const hasPlayed = Object.values(playerStats).some(
+        (stats) => stats.currentSessionStats && stats.currentSessionStats.gamesPlayed > 0
+      )
+      if (hasPlayed) {
+        sessionStatus = true
+      }
+    } catch (e) {
+      console.error("Error parsing player stats from localStorage:", e)
+      playerStats = {}
     }
   }
 }
@@ -1973,20 +2003,20 @@ function createPlayerStatsTables(playersList) {
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
             <td class="rank-cell">${index + 1}</td>
             <td class="${isCurrentPlayer ? "current-player-cell" : ""}">
-                ${player}
+                ${escapeHTML(player)}
             </td>
             <td>${stat.totalPointsAllTime || 0}</td>
             <td>${stat.totalGamesWon || 0}</td>
             <td>${stat.totalGamesPlayed || 0}</td>
             <td>${stat.winPercentage || 0}%</td>
             <td class="actions-cell">
-                <button class="action-btn rename" onclick="openRenameModal('${player}')" title="Rename">
+                <button class="action-btn rename" data-player="${escapeHTML(player)}" title="Rename">
                     <i class="fa-solid fa-pen-to-square"></i>
                 </button>
-                <button class="action-btn merge" onclick="openMergeModal('${player}')" title="Merge Stats">
+                <button class="action-btn merge" data-player="${escapeHTML(player)}" title="Merge Stats">
                     <i class="fa-solid fa-code-merge"></i>
                 </button>
-                <button class="action-btn delete" onclick="deletePlayer('${player}')" title="Delete">
+                <button class="action-btn delete" data-player="${escapeHTML(player)}" title="Delete">
                     <i class="fa-solid fa-trash-can"></i>
                 </button>
             </td>
@@ -2026,7 +2056,7 @@ function createPlayerStatsTables(playersList) {
             <td class="rank-cell">${index + 1}</td> <td class="${
             isCurrentPlayer ? "current-player-cell" : ""
           }">
-                ${player}
+                ${escapeHTML(player)}
             </td>
             <td>${stat.treasuresFound.total || 0}</td>
             <td>${stat.treasuresFound.chest || 0}</td>
@@ -2073,7 +2103,7 @@ function createSessionStatsTables(playersList) {
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
             <td class="rank-cell">${index + 1}</td>
-            <td>${player}</td>
+            <td>${escapeHTML(player)}</td>
             <td>${stat.currentSessionStats.totalSessionPoints || 0}</td>
             <td>${stat.currentGamePoints || 0}</td>
             <td>${stat.currentSessionStats.gamesWon || 0}</td>
@@ -2110,7 +2140,7 @@ function createSessionStatsTables(playersList) {
           const stat = playerStats[player].currentSessionStats
           return `
           <tr class="player-group-${index % 2 === 0 ? "even" : "odd"}">
-            <td class="rank-cell">${index + 1}</td> <td>${player}</td>
+            <td class="rank-cell">${index + 1}</td> <td>${escapeHTML(player)}</td>
             <td>${stat.treasuresFound.total || 0}</td>
             <td>${stat.treasuresFound.chest || 0}</td>
             <td>${stat.treasuresFound.goldBag || 0}</td>
@@ -2310,7 +2340,14 @@ function loadSavedPlayers() {
   }
 
   const storedData = localStorage.getItem("treasureHuntPlayerData")
-  const playerData = storedData ? JSON.parse(storedData) : {}
+  let playerData = {}
+  if (storedData) {
+    try {
+      playerData = JSON.parse(storedData)
+    } catch (e) {
+      console.error("Error parsing player data from localStorage:", e)
+    }
+  }
 
   if (names.length > 0) {
     players = names
@@ -2392,7 +2429,7 @@ function updatePlayerDisplay() {
       playerElement.dataset.player = player
 
       playerElement.innerHTML = `
-        <span class="player-name">${player}</span>
+        <span class="player-name">${escapeHTML(player)}</span>
         <span class="player-level"></span>
         <span class="player-session-score" style="display: none;"></span>
         <span class="bullet" style="display: none;">•</span>
@@ -2734,6 +2771,24 @@ function setupEventListeners() {
   const closeStatsBtn = document.getElementById("close-stats-btn")
   closeStatsBtn.addEventListener("click", hidePlayerStatsModal)
 
+  // Event delegation for leaderboard action buttons
+  const statsContainer = document.getElementById("player-stats-container")
+  if (statsContainer) {
+    statsContainer.addEventListener("click", (e) => {
+      const btn = e.target.closest(".action-btn")
+      if (!btn) return
+      
+      const player = btn.dataset.player
+      if (btn.classList.contains("rename")) {
+        openRenameModal(player)
+      } else if (btn.classList.contains("merge")) {
+        openMergeModal(player)
+      } else if (btn.classList.contains("delete")) {
+        deletePlayer(player)
+      }
+    })
+  }
+
   // Add/Save Player Buttons Event Listeners
   const addPlayersBtn = document.getElementById("add-players-btn")
   const savePlayersBtn = document.getElementById("save-players-btn")
@@ -2874,7 +2929,14 @@ function getUpstashCredentials() {
 
 function getPlayerSets() {
   const setsJSON = localStorage.getItem(SHARED_SETS_KEY) || localStorage.getItem(OLD_SETS_KEY)
-  return setsJSON ? JSON.parse(setsJSON) : {}
+  if (setsJSON) {
+    try {
+      return JSON.parse(setsJSON)
+    } catch (e) {
+      console.error("Error parsing player sets from localStorage:", e)
+    }
+  }
+  return {}
 }
 
 function savePlayerSets(sets) {
@@ -3205,6 +3267,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   populateMaxWordsDropdown()
   populateWordSetDropdown()
   setupSoundMuteControl()
+  setupCustomSetsListeners()
 
   // Load ElevenLabs API Key
   const elevenlabsApiKeyInput = document.getElementById("elevenlabs-api-key")
