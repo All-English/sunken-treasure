@@ -109,74 +109,55 @@
         <div id="players-modal" class="players-modal modal">
             <div class="modal-content">
                 <h2>Add Players</h2>
-                <div class="player-set-loader-container"
-                    style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px; width: 100%;">
-                    <select id="player-set-select" class="modal-select" style="flex: 1; margin: 0;">
+                <div class="player-set-loader-container">
+                    <select id="player-set-select" class="modal-select player-set-select-loader">
                         <option value="">-- Load Saved List --</option>
                     </select>
-                    <button id="delete-set-btn" class="secondary-btn" title="Delete selected list"
-                        style="display: none; margin: 0; padding: 10px; white-space: nowrap;">Delete</button>
+                    <button id="delete-set-btn" class="secondary-btn delete-set-btn" title="Delete selected list">Delete</button>
                 </div>
                 <textarea id="players-textarea" placeholder="Enter player names (comma or new line separated)"
                     rows="5"></textarea>
-                <div class="player-set-saver-container"
-                    style="display: flex; gap: 10px; align-items: center; margin-top: 15px; margin-bottom: 15px; width: 100%;">
-                    <input type="text" id="new-player-set-name" class="modal-input" placeholder="List name..."
-                        style="flex: 1; margin: 0;">
-                    <button id="save-player-set-btn" class="secondary-btn"
-                        style="margin: 0; padding: 10px; white-space: nowrap;">Save List</button>
+                <div class="player-set-saver-container">
+                    <input type="text" id="new-player-set-name" class="modal-input player-set-name-input" placeholder="List name...">
+                    <button id="save-player-set-btn" class="secondary-btn save-player-set-btn">Save List</button>
                 </div>
                 <div class="modal-actions">
                     <button id="save-players-btn" class="save-players-btn">Confirm</button>
                     <button id="cancel-players-btn" class="cancel-players-btn">Cancel</button>
                 </div>
-                <hr style="margin-block: 20px; border: 0; border-top: 1px solid var(--modal-border); width: 100%;">
-                <details id="sync-settings-details" class="sync-settings-details"
-                    style="width: 100%; text-align: left;">
-                    <summary id="sync-settings-summary"
-                        style="cursor: pointer; font-weight: 600; margin-bottom: 10px; user-select: none; color: var(--color-sand);">
+                <hr class="players-modal-divider">
+                <details id="sync-settings-details" class="sync-settings-details">
+                    <summary id="sync-settings-summary" class="sync-settings-summary">
                         Upstash Redis Sync</summary>
-                    <div class="sync-settings-content"
-                        style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                        <div class="api-key-container" style="display: flex; flex-direction: column; gap: 5px;">
-                            <label for="upstash-url-input"
-                                style="font-size: 0.9em; color: var(--color-white); opacity: 0.8;">Upstash REST
-                                URL</label>
+                    <div class="sync-settings-content">
+                        <div class="api-key-container">
+                            <label for="upstash-url-input">Upstash REST URL</label>
                             <input type="text" id="upstash-url-input" class="modal-input"
-                                placeholder="https://...upstash.io" style="margin: 0;">
+                                placeholder="https://...upstash.io">
                         </div>
-                        <div class="api-key-container" style="display: flex; flex-direction: column; gap: 5px;">
-                            <label for="upstash-token-input"
-                                style="font-size: 0.9em; color: var(--color-white); opacity: 0.8;">Upstash REST
-                                Token</label>
+                        <div class="api-key-container">
+                            <label for="upstash-token-input">Upstash REST Token</label>
                             <input type="password" id="upstash-token-input" class="modal-input"
-                                placeholder="Enter Token" style="margin: 0;">
+                                placeholder="Enter Token">
                         </div>
-                        <button id="save-sync-btn" class="primary-btn" style="margin-top: 5px; width: 100%;">Save &
+                        <button id="save-sync-btn" class="primary-btn sync-btn-action">Save &
                             Sync</button>
-                        <div id="sync-status" class="api-key-status"
-                            style="font-size: 0.9em; margin-top: 5px; font-weight: 500;"></div>
+                        <div id="sync-status" class="api-key-status"></div>
                     </div>
                 </details>
-                <details id="api-settings-details" class="api-settings-details"
-                    style="width: 100%; text-align: left; margin-top: 15px;">
-                    <summary id="api-settings-summary"
-                        style="cursor: pointer; font-weight: 600; margin-bottom: 10px; user-select: none; color: var(--color-sand);">
+                <details id="api-settings-details" class="api-settings-details">
+                    <summary id="api-settings-summary" class="api-settings-summary">
                         ElevenLabs API Settings</summary>
-                    <div class="api-settings-content"
-                        style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                        <div class="api-key-container" style="display: flex; flex-direction: column; gap: 5px;">
-                            <label for="elevenlabs-api-key"
-                                style="font-size: 0.9em; color: var(--color-white); opacity: 0.8;">ElevenLabs API
-                                Key</label>
+                    <div class="api-settings-content">
+                        <div class="api-key-container">
+                            <label for="elevenlabs-api-key">ElevenLabs API Key</label>
                             <input type="password" id="elevenlabs-api-key" class="modal-input"
-                                placeholder="Enter API Key" style="margin: 0;">
+                                placeholder="Enter API Key">
                         </div>
-                        <button id="save-elevenlabs-btn" class="primary-btn" style="margin-top: 5px; width: 100%;">Save
+                        <button id="save-elevenlabs-btn" class="primary-btn sync-btn-action">Save
                             & Verify</button>
-                        <button id="flush-voices-btn" class="secondary-btn" style="margin-top: 5px; width: 100%;">Flush Cached Audio</button>
-                        <div id="elevenlabs-status" class="api-key-status"
-                            style="font-size: 0.9em; margin-top: 5px; font-weight: 500;"></div>
+                        <button id="flush-voices-btn" class="secondary-btn sync-btn-action">Flush Cached Audio</button>
+                        <div id="elevenlabs-status" class="api-key-status"></div>
                     </div>
                 </details>
             </div>

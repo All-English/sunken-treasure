@@ -106,7 +106,6 @@ const TREASURE_TYPES = {
     id: "chest",
     points: 50,
     images: ["pics/treasure-chest.svg"],
-    placementRatio: 0.1, // Proportion of treasures of this type
   },
   GOLD_BAG: {
     id: "goldBag",
@@ -116,7 +115,6 @@ const TREASURE_TYPES = {
       "pics/gold-sack-ripped.png",
       "pics/gold-sack-open.svg",
     ],
-    placementRatio: 0.3,
   },
   GEM: {
     id: "gem",
@@ -138,7 +136,6 @@ const TREASURE_TYPES = {
       "pics/gem-turquise.png",
       "pics/gem-yellow.png",
     ],
-    placementRatio: 0.5,
   },
 }
 const usedTreasureImages = {
@@ -326,7 +323,7 @@ function shufflePlayers() {
     // Note: We keep the shuffled result we have now, effectively starting the new cycle
   }
 
-  savePlayerstoLocalStorage()
+  savePlayersToLocalStorage()
   updatePlayerDisplay()
 
   console.log("Players shuffled:", players)
@@ -395,7 +392,7 @@ function handleDrop(e) {
 
     // console.log("New player order:", players)
 
-    savePlayerstoLocalStorage()
+    savePlayersToLocalStorage()
     updatePlayerDisplay()
   }
 }
@@ -438,7 +435,7 @@ function showLevelUpNotification(player, newLevel) {
   notification.classList.add("level-up-notification")
   notification.innerHTML = `
     <h3>Level Up!</h3>
-    <p>${player} is now Level ${newLevel}</p>
+    <p>${escapeHTML(player)} is now Level ${newLevel}</p>
   `
 
   // Add to game container or create a specific notification area
@@ -690,6 +687,7 @@ function createTreasureDiv(treasureType, availableCells) {
   // Create and set treasure image
   const treasureImage = document.createElement("img")
   treasureImage.className = "treasure-image"
+  treasureImage.alt = `${treasureType.id} treasure`
 
   // Get unused images
   let unusedImages = treasureType.images.filter(
@@ -740,6 +738,7 @@ function createTreasureDiv(treasureType, availableCells) {
 
   treasureDiv.appendChild(treasureImage)
   treasureDiv.style.setProperty("--cell", treasureCell)
+  treasureDiv.dataset.cell = treasureCell
 
   // Add treasure to game board
   const gameBoard = document.getElementById("game-board")
@@ -1242,19 +1241,16 @@ function populateMaxWordsDropdown() {
   // Clear existing options
   maxWordsDropdown.innerHTML = ""
 
+  const savedTotalWords = localStorage.getItem("maxWords")
+  const defaultTotalWords = savedTotalWords ? parseInt(savedTotalWords) : 25
+
   // Create options from 5 to 40, incrementing by 5
   for (let i = 5; i <= 40; i += 5) {
     const option = document.createElement("option")
     option.value = i
     option.textContent = `${i}`
 
-    // Check if there's a saved value in localStorage
-    const savedTotalWords = localStorage.getItem("maxWords")
-
-    // Set the saved value as selected if it exists, otherwise use 25 as default
-    if (savedTotalWords && parseInt(savedTotalWords) === i) {
-      option.selected = true
-    } else if (i === 25 && !savedTotalWords) {
+    if (i === defaultTotalWords) {
       option.selected = true
     }
 
@@ -1427,7 +1423,7 @@ function handleWordClick(wordCard, currentCell) {
 
   // Find the treasure div for this specific cell
   const treasureDiv = document.querySelector(
-    `.treasure-div[style*="--cell: ${currentCell};"]`
+    `.treasure-div[data-cell="${currentCell}"]`
   )
 
   // Check if current cell is a treasure cell
@@ -1580,7 +1576,7 @@ function endGame() {
       usedPlayerOrders.push(currentOrderKey)
     }
 
-    savePlayerstoLocalStorage()
+    savePlayersToLocalStorage()
   }
 
   // Show completion modal
@@ -1672,7 +1668,7 @@ function selectWordsFromWordBank(
   // Check if the specified level and unit exist
   if (!smartPhonicsWordBank[level] || !smartPhonicsWordBank[level][unit]) {
     console.error(`Invalid level or unit: ${level}, ${unit}`)
-    return { words: [] }
+    return []
   }
 
   // Get all units for the current level
@@ -2035,12 +2031,12 @@ function createPlayerStatsTables(playersList) {
       <tr>
         <th class="rank-header">#</th> <th></th>
         <th>Total<br>Treasures</th>
-        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg"></th>
-        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png"></th>
-        <th><img class="table-treasure-icon" src="pics/gem-turquise.png"></th>
-        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg">Points</th>
-        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png">Points</th>
-        <th><img class="table-treasure-icon" src="pics/gem-turquise.png">Points</th>
+        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg" alt="Chests Found"></th>
+        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png" alt="Gold Bags Found"></th>
+        <th><img class="table-treasure-icon" src="pics/gem-turquise.png" alt="Gems Found"></th>
+        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg" alt="Chest">Points</th>
+        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png" alt="Gold Bag">Points</th>
+        <th><img class="table-treasure-icon" src="pics/gem-turquise.png" alt="Gem">Points</th>
       </tr>
     </thead>
     <tbody>
@@ -2124,12 +2120,12 @@ function createSessionStatsTables(playersList) {
       <tr>
         <th class="rank-header">#</th> <th></th>
         <th>Total<br>Treasures</th>
-        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg"></th>
-        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png"></th>
-        <th><img class="table-treasure-icon" src="pics/gem-turquise.png"></th>
-        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg">Points</th>
-        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png">Points</th>
-        <th><img class="table-treasure-icon" src="pics/gem-turquise.png">Points</th>
+        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg" alt="Chests Found"></th>
+        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png" alt="Gold Bags Found"></th>
+        <th><img class="table-treasure-icon" src="pics/gem-turquise.png" alt="Gems Found"></th>
+        <th><img class="table-treasure-icon" src="pics/treasure-chest.svg" alt="Chest">Points</th>
+        <th><img class="table-treasure-icon-goldbag" src="pics/gold-sack-ripped.png" alt="Gold Bag">Points</th>
+        <th><img class="table-treasure-icon" src="pics/gem-turquise.png" alt="Gem">Points</th>
       </tr>
     </thead>
     <tbody>
@@ -2236,9 +2232,6 @@ function showPlayerStatsModal() {
     statsContainer.classList.remove("edit-mode-active") // Remove class
   }
 
-  // Clear existing stats table
-  statsContainer.innerHTML = ""
-
   // Get all players from playerStats and sort by total points
   const allPlayers = Object.keys(playerStats).sort((a, b) => {
     // Sort by total points, if tie then by games won
@@ -2284,7 +2277,7 @@ function savePlayers() {
 
   console.log("Player list:", players)
 
-  savePlayerstoLocalStorage()
+  savePlayersToLocalStorage()
 
   // Ensure stats are initialized for each player
   players.forEach((player) => {
@@ -2301,7 +2294,7 @@ function savePlayers() {
   updatePlayerDisplay()
 }
 
-function savePlayerstoLocalStorage() {
+function savePlayersToLocalStorage() {
   // Save to localStorage
   try {
     const playerData = {
@@ -2535,7 +2528,7 @@ function deletePlayer(player) {
       delete playerDetails[player]
     }
 
-    savePlayerstoLocalStorage()
+    savePlayersToLocalStorage()
     savePlayerStats()
     updatePlayerDisplay()
 
@@ -2595,7 +2588,7 @@ function handleRename() {
     // Index stays the same, just name changed
   }
 
-  savePlayerstoLocalStorage()
+  savePlayersToLocalStorage()
   savePlayerStats()
   updatePlayerDisplay()
 
@@ -2688,7 +2681,7 @@ function handleMerge() {
   }
 
   // 5. Save & Update
-  savePlayerstoLocalStorage()
+  savePlayersToLocalStorage()
   savePlayerStats()
   updatePlayerDisplay()
 
@@ -2847,6 +2840,8 @@ function setupEventListeners() {
   const statsModal = document.getElementById("stats-modal")
   const playersModal = document.getElementById("players-modal")
   const customSetsModal = document.getElementById("custom-sets-modal")
+  const renameModal = document.getElementById("rename-player-modal")
+  const mergeModal = document.getElementById("merge-player-modal")
 
   completionModal.addEventListener("click", (e) => {
     if (e.target.id === "completion-modal") {
@@ -2891,7 +2886,9 @@ function setupEventListeners() {
         (renameModal && renameModal.classList.contains("visible")) ||
         (mergeModal && mergeModal.classList.contains("visible"))
 
-      // Always hide everything
+      if (!isAnyModalOpen) return
+
+      // Hide everything
       hideCompletionModal()
       hidePlayerStatsModal()
       hidePlayersModal()
@@ -2919,10 +2916,6 @@ function setupEventListeners() {
   document.getElementById("cancel-merge-btn").addEventListener("click", () => {
     document.getElementById("merge-player-modal").classList.remove("visible")
   })
-
-  // Click outside handling for new modals
-  const renameModal = document.getElementById("rename-player-modal")
-  const mergeModal = document.getElementById("merge-player-modal")
 
   // Edit Mode Toggle Listener
   const editModeCheckbox = document.getElementById("stats-edit-mode")
