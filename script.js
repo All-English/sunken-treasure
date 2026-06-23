@@ -1,3 +1,5 @@
+"use strict"
+
 // Sample vocabulary words - can be modified as needed
 // const selectedWordSet = [
 //   "anchor",
@@ -30,6 +32,7 @@
 //   "turtle",
 //   "starfish",
 //   "seahorse",
+//   "subway",
 // ]
 const showUsedCellsCheckbox = document.getElementById("show-used-cells") // used for debugging
 let cardsRemaining = 0
@@ -42,7 +45,6 @@ let lastWrongSound = null
 let players = []
 let playerStats = {}
 let sessionStatus = false
-let totalTreasuresPlaced = 0
 
 function escapeHTML(str) {
   if (typeof str !== 'string') return str;
@@ -51,7 +53,6 @@ function escapeHTML(str) {
     return chars[m] || m;
   });
 }
-let treasureIndex
 let treasuresRemaining = 0
 let usedPlayerOrders = []
 const englishVoices = [
@@ -661,6 +662,13 @@ function calculateTreasureCount(maxWords) {
         GOLD_BAG: 3,
         GEM: 6,
       }
+    default:
+      console.warn(`Unexpected maxWords: ${maxWords}, defaulting to 25`)
+      return {
+        CHEST,
+        GOLD_BAG: 2,
+        GEM: 4,
+      }
   }
 }
 
@@ -712,7 +720,7 @@ function createTreasureDiv(treasureType, availableCells) {
     treasureImage.style.width = "40%"
   } else if (treasureImage.src.endsWith("gem-purple.png")) {
     treasureImage.style.width = "45%"
-  } else if (treasureImage.src.endsWith("gem-mulitcolored.png")) {
+  } else if (treasureImage.src.endsWith("gem-multicolored.png")) {
     treasureImage.style.width = "60%"
   } else if (treasureType.id === "gem") {
     treasureImage.style.width = "50%"
@@ -1144,13 +1152,16 @@ function populateWordSetDropdown() {
 
   const allUnits = []
 
-  const separator = document.createElement("option")
-  separator.disabled = true
-  separator.value = ""
-  separator.textContent = "───────"
+  const createSeparator = () => {
+    const sep = document.createElement("option")
+    sep.disabled = true
+    sep.value = ""
+    sep.textContent = "───────"
+    return sep
+  }
 
   Object.keys(smartPhonicsWordBank).forEach((level) => {
-    smartPhonicsGroup.appendChild(separator) // Append to optgroup instead of dropdown
+    smartPhonicsGroup.appendChild(createSeparator()) // Append to optgroup instead of dropdown
 
     const unitsInLevel = Object.keys(smartPhonicsWordBank[level])
 
@@ -1171,7 +1182,7 @@ function populateWordSetDropdown() {
   })
 
   // Add separator
-  unitDropdown.appendChild(separator)
+  unitDropdown.appendChild(createSeparator())
 
   // Add manage custom word sets option
   const manageOption = document.createElement("option")
@@ -1482,7 +1493,7 @@ function handleWordClick(wordCard, currentCell) {
         if (treasuresRemaining === 0) {
           console.log("All treasures found!")
           updatePlayerDisplay()
-          endGame(currentPlayer)
+          endGame()
           gameActive = true
         } else {
           // Don't delay if there are no players
@@ -1525,7 +1536,7 @@ function handleWordClick(wordCard, currentCell) {
 }
 
 // Determine the winner and end the game
-function endGame(currentPlayer) {
+function endGame() {
   let winner
 
   if (players.length > 0) {
@@ -1646,19 +1657,6 @@ function selectWordsFromWordBank(
   maxWords = 30,
   includeExtraWords = false
 ) {
-  function shuffleArray(array) {
-    // Fisher-Yates (Knuth) shuffle algorithm
-    const shuffledArray = [...array] // Create a copy to avoid modifying original
-    for (let i = shuffledArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[shuffledArray[i], shuffledArray[j]] = [
-        shuffledArray[j],
-        shuffledArray[i],
-      ]
-    }
-    return shuffledArray
-  }
-
  if (level === "custom") {
    const sets = getCustomWordSets()
    const allWords = sets[unit]?.words || []
@@ -2449,7 +2447,7 @@ function updatePlayerDisplay() {
     // Just reorder existing elements without recreating
     players.forEach((player, index) => {
       const playerElement = playerDisplayElement.querySelector(
-        `[data-player="${player}"]`
+        `[data-player="${CSS.escape(player)}"]`
       )
       playerDisplayElement.appendChild(playerElement)
     })
@@ -2457,7 +2455,7 @@ function updatePlayerDisplay() {
   // Update stats and active state
   players.forEach((player, index) => {
     const playerElement = playerDisplayElement.querySelector(
-      `[data-player="${player}"]`
+      `[data-player="${CSS.escape(player)}"]`
     )
     if (playerElement) {
       const playerStat = playerStats[player]
@@ -2527,6 +2525,16 @@ function deletePlayer(player) {
     // Remove from stats
     delete playerStats[player]
 
+    // Revoke cached turn audio
+    if (playerDetails[player]) {
+      if (playerDetails[player].turnAudio) {
+        try {
+          URL.revokeObjectURL(playerDetails[player].turnAudio.src)
+        } catch (e) {}
+      }
+      delete playerDetails[player]
+    }
+
     savePlayerstoLocalStorage()
     savePlayerStats()
     updatePlayerDisplay()
@@ -2569,6 +2577,12 @@ function handleRename() {
 
   // 2. Remove old stats entry
   delete playerStats[playerToRename]
+
+  // Update playerDetails if it exists
+  if (playerDetails[playerToRename]) {
+    playerDetails[newName] = playerDetails[playerToRename]
+    delete playerDetails[playerToRename]
+  }
 
   // 3. Update players array (maintain position)
   const index = players.indexOf(playerToRename)
@@ -2657,6 +2671,16 @@ function handleMerge() {
   // 4. Delete Source
   delete playerStats[playerToMerge]
   players = players.filter((p) => p !== playerToMerge)
+
+  // Revoke merged player's audio
+  if (playerDetails[playerToMerge]) {
+    if (playerDetails[playerToMerge].turnAudio) {
+      try {
+        URL.revokeObjectURL(playerDetails[playerToMerge].turnAudio.src)
+      } catch (e) {}
+    }
+    delete playerDetails[playerToMerge]
+  }
 
   // Adjust current player index if we deleted a player before the current turn
   if (currentPlayerIndex >= players.length) {
@@ -2844,6 +2868,16 @@ function setupEventListeners() {
       hideCustomWordSetsModal()
     }
   })
+
+  // Shuffle and Drag button event listeners (moved from index.html inline onclick)
+  const shuffleBtn = document.getElementById("shuffle-btn")
+  if (shuffleBtn) {
+    shuffleBtn.addEventListener("click", shufflePlayers)
+  }
+  const dragBtn = document.getElementById("drag-btn")
+  if (dragBtn) {
+    dragBtn.addEventListener("click", disablePlayerDragging)
+  }
 
   // Add escape key support to modals
   document.addEventListener("keydown", (e) => {
@@ -3349,6 +3383,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (apiSettingsSummary) {
           apiSettingsSummary.textContent = "ElevenLabs API Settings (Error)"
         }
+        saveElevenlabsBtn.disabled = false
       }
     })
   }

@@ -713,12 +713,12 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
-  background-color: hsla(0, 0%, 0%, 0.5);
   background-color: var(--modal-overlay);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  opacity: 0;
   visibility: hidden;
   transition: opacity .3s ease;
   overflow-y: auto;
@@ -1114,9 +1114,6 @@ tbody .actions-cell .action-btn {
   Media Queries (Mobile First)
   ////////////// */
 
-/* Larger mobile devices/small tablets - 600px and up*/
-@media (width >=37.5rem) {}
-
 /* Tablets - 768px and up */
 @media (width >=48rem) {
   .word-card {
@@ -1127,9 +1124,6 @@ tbody .actions-cell .action-btn {
     font-size: var(--fs-step-3);
   }
 }
-
-/* Laptops/small desktops - 992px and up */
-@media (width >=62rem) {}
 
 /* Large desktops - 1200px and up */
 @media (width >=75rem) {
