@@ -45,6 +45,43 @@ let lastWrongSound = null
 let players = []
 let playerStats = {}
 let sessionStatus = false
+let currentLoadedClassName = null
+
+function applyHighestUnitToTreasureHunt(canonicalUnits) {
+  if (!Array.isArray(canonicalUnits) || canonicalUnits.length === 0) return
+  const highest = window.SharedClassSync ? window.SharedClassSync.getHighestUnit(canonicalUnits) : null
+  if (!highest) return
+  const thValue = window.SharedClassSync.toTreasureHunt(highest)
+  const wordSetDropdown = document.getElementById("word-set-dropdown")
+  if (wordSetDropdown && thValue) {
+    const optionExists = Array.from(wordSetDropdown.options).some((opt) => opt.value === thValue)
+    if (optionExists) {
+      wordSetDropdown.value = thValue
+      wordSetDropdown.dataset.lastValue = thValue
+      const [level, unit] = thValue.split(":")
+      if (typeof updateUrlParameters === "function") updateUrlParameters(level, unit)
+      if (typeof createGameboard === "function") createGameboard()
+      if (typeof updatePlayerDisplay === "function") updatePlayerDisplay()
+    }
+  }
+}
+
+function autoSaveCurrentClassUnitTreasureHunt() {
+  if (!currentLoadedClassName || typeof window.SharedClassSync === "undefined") return
+  const wordSetDropdown = document.getElementById("word-set-dropdown")
+  if (!wordSetDropdown || !wordSetDropdown.value || wordSetDropdown.value.startsWith("custom:") || wordSetDropdown.value === "manage-sets") return
+  const canonical = window.SharedClassSync.toCanonicalUnit(wordSetDropdown.value)
+  if (canonical) {
+    let profiles = {}
+    try {
+      profiles = JSON.parse(localStorage.getItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY) || "{}")
+    } catch {}
+    const existingUnits = (profiles[currentLoadedClassName] && profiles[currentLoadedClassName].units) || []
+    const unitSet = new Set(existingUnits)
+    unitSet.add(canonical.id)
+    window.SharedClassSync.saveClassUnits(currentLoadedClassName, Array.from(unitSet))
+  }
+}
 
 function escapeHTML(str) {
   if (typeof str !== 'string') return str;
@@ -2764,6 +2801,7 @@ function setupEventListeners() {
     updateUrlParameters(level, unit)
     createGameboard()
     updatePlayerDisplay()
+    autoSaveCurrentClassUnitTreasureHunt()
   })
 
   // Max Words Select Event Listener
@@ -3058,38 +3096,71 @@ async function syncWithUpstashOnLoad() {
   }
 
   try {
-    // 1. Sync sets (Database is source of truth if it exists)
-    const dbSets = await fetchFromUpstash(SHARED_SETS_KEY)
-    if (!localStorage.getItem(UPSTASH_URL_KEY)) return
-
-    if (dbSets) {
-      localStorage.setItem(SHARED_SETS_KEY, JSON.stringify(dbSets))
+    let activeClassMatch = null
+    if (typeof window.SharedClassSync !== "undefined") {
+      const { playerSets, classProfiles } = await window.SharedClassSync.loadAllClasses()
       populatePlayerSetSelect()
+      activeClassMatch = window.SharedClassSync.findActiveScheduledClass(classProfiles)
     } else {
-      const localSets = getPlayerSets()
-      if (Object.keys(localSets).length > 0) {
-        await syncToUpstash(SHARED_SETS_KEY, localSets)
+      // 1. Sync sets (Database is source of truth if it exists)
+      const dbSets = await fetchFromUpstash(SHARED_SETS_KEY)
+      if (!localStorage.getItem(UPSTASH_URL_KEY)) return
+
+      if (dbSets) {
+        localStorage.setItem(SHARED_SETS_KEY, JSON.stringify(dbSets))
+        populatePlayerSetSelect()
+      } else {
+        const localSets = getPlayerSets()
+        if (Object.keys(localSets).length > 0) {
+          await syncToUpstash(SHARED_SETS_KEY, localSets)
+        }
       }
     }
 
-    // 2. Sync active session (Database is source of truth if it exists)
-    const dbActive = await fetchFromUpstash(SHARED_ACTIVE_PLAYERS_KEY)
-    if (!localStorage.getItem(UPSTASH_URL_KEY)) return
-
-    if (dbActive && Array.isArray(dbActive)) {
-      localStorage.setItem(SHARED_ACTIVE_PLAYERS_KEY, JSON.stringify(dbActive))
-      loadSavedPlayers()
-      updatePlayerDisplay()
+    // Priority 1: Scheduled active class in session right now
+    if (activeClassMatch) {
+      currentLoadedClassName = activeClassMatch.className
+      const playerSetSelect = document.getElementById("player-set-select")
+      if (playerSetSelect) {
+        playerSetSelect.value = activeClassMatch.className
+      }
+      const sets = getPlayerSets()
+      const names = sets[activeClassMatch.className]
+      if (names && Array.isArray(names)) {
+        const playersTextarea = document.getElementById("players-textarea")
+        if (playersTextarea) {
+          playersTextarea.value = names.join(", ")
+        }
+        players = [...names]
+        localStorage.setItem(SHARED_ACTIVE_PLAYERS_KEY, JSON.stringify(names))
+        savePlayers()
+        updatePlayerDisplay()
+      }
+      if (activeClassMatch.profile && Array.isArray(activeClassMatch.profile.units) && activeClassMatch.profile.units.length > 0) {
+        applyHighestUnitToTreasureHunt(activeClassMatch.profile.units)
+      }
+      const deleteBtn = document.getElementById("delete-set-btn")
+      if (deleteBtn) deleteBtn.style.display = "inline-block"
     } else {
-      const localActiveJSON = localStorage.getItem(SHARED_ACTIVE_PLAYERS_KEY)
-      if (localActiveJSON) {
-        try {
-          const localActive = JSON.parse(localActiveJSON)
-          if (Array.isArray(localActive) && localActive.length > 0) {
-            await syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, localActive)
+      // Priority 2: Outside class hours, fall back to active session
+      const dbActive = await fetchFromUpstash(SHARED_ACTIVE_PLAYERS_KEY)
+      if (!localStorage.getItem(UPSTASH_URL_KEY)) return
+
+      if (dbActive && Array.isArray(dbActive)) {
+        localStorage.setItem(SHARED_ACTIVE_PLAYERS_KEY, JSON.stringify(dbActive))
+        loadSavedPlayers()
+        updatePlayerDisplay()
+      } else {
+        const localActiveJSON = localStorage.getItem(SHARED_ACTIVE_PLAYERS_KEY)
+        if (localActiveJSON) {
+          try {
+            const localActive = JSON.parse(localActiveJSON)
+            if (Array.isArray(localActive) && localActive.length > 0) {
+              await syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, localActive)
+            }
+          } catch (e) {
+            console.error(e)
           }
-        } catch (e) {
-          console.error(e)
         }
       }
     }
@@ -3137,9 +3208,46 @@ function setupPlayerSetsSyncEventListeners() {
   const newSetNameInput = document.getElementById("new-player-set-name")
   const saveSetBtn = document.getElementById("save-player-set-btn")
 
+  function initScheduleControlsTreasureHunt() {
+    const container = document.getElementById("new-player-set-days-container")
+    const startTimeInput = document.getElementById("new-player-set-start-time")
+    const endTimeInput = document.getElementById("new-player-set-end-time")
+    if (!container || !newSetNameInput) return
+
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    container.innerHTML = ""
+    days.forEach((day) => {
+      const label = document.createElement("label")
+      label.style.cssText = "display: inline-flex; align-items: center; gap: 2px; font-size: 0.75rem; cursor: pointer; color: white;"
+      const chk = document.createElement("input")
+      chk.type = "checkbox"
+      chk.value = day
+      chk.className = "new-player-set-day-chk"
+      label.appendChild(chk)
+      label.appendChild(document.createTextNode(day))
+      container.appendChild(label)
+    })
+
+    newSetNameInput.addEventListener("input", () => {
+      if (typeof window.SharedClassSync !== "undefined") {
+        const sched = window.SharedClassSync.parseScheduleFromName(newSetNameInput.value)
+        if (sched) {
+          if (startTimeInput) startTimeInput.value = sched.startTime
+          if (endTimeInput) endTimeInput.value = sched.endTime
+          container.querySelectorAll(".new-player-set-day-chk").forEach((chk) => {
+            chk.checked = sched.days.includes(chk.value)
+          })
+        }
+      }
+    })
+  }
+
+  initScheduleControlsTreasureHunt()
+
   if (playerSetSelect) {
     playerSetSelect.addEventListener("change", () => {
       const selectedSetName = playerSetSelect.value
+      currentLoadedClassName = selectedSetName || null
       if (selectedSetName) {
         const sets = getPlayerSets()
         const names = sets[selectedSetName]
@@ -3147,6 +3255,18 @@ function setupPlayerSetsSyncEventListeners() {
           const playersTextarea = document.getElementById("players-textarea")
           if (playersTextarea) {
             playersTextarea.value = names.join(", ")
+          }
+        }
+        // Load highest unit for this class if available
+        if (typeof window.SharedClassSync !== "undefined") {
+          try {
+            const rawProfiles = localStorage.getItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY)
+            const profiles = rawProfiles ? JSON.parse(rawProfiles) : {}
+            if (profiles[selectedSetName] && Array.isArray(profiles[selectedSetName].units) && profiles[selectedSetName].units.length > 0) {
+              applyHighestUnitToTreasureHunt(profiles[selectedSetName].units)
+            }
+          } catch (e) {
+            console.warn("Error applying units in Treasure Hunt:", e)
           }
         }
         if (deleteSetBtn) deleteSetBtn.style.display = "inline-block"
@@ -3183,6 +3303,42 @@ function setupPlayerSetsSyncEventListeners() {
       const sets = getPlayerSets()
       sets[setName] = names
       savePlayerSets(sets)
+
+      currentLoadedClassName = setName
+
+      // Save schedule & current unit in SharedClassSync
+      if (typeof window.SharedClassSync !== "undefined") {
+        const startTimeInput = document.getElementById("new-player-set-start-time")
+        const endTimeInput = document.getElementById("new-player-set-end-time")
+        const dayChks = document.querySelectorAll(".new-player-set-day-chk:checked")
+        const selectedDays = Array.from(dayChks).map((c) => c.value)
+
+        const wordSetDropdown = document.getElementById("word-set-dropdown")
+        let canonicals = []
+        if (wordSetDropdown && wordSetDropdown.value && !wordSetDropdown.value.startsWith("custom:") && wordSetDropdown.value !== "manage-sets") {
+          const canonical = window.SharedClassSync.toCanonicalUnit(wordSetDropdown.value)
+          if (canonical) canonicals = [canonical.id]
+        }
+
+        const sched = {
+          days: selectedDays.length > 0 ? selectedDays : window.SharedClassSync.parseScheduleFromName(setName).days,
+          startTime: startTimeInput?.value || "15:00",
+          endTime: endTimeInput?.value || "16:00"
+        }
+
+        let profiles = {}
+        try {
+          profiles = JSON.parse(localStorage.getItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY) || "{}")
+        } catch {}
+
+        profiles[setName] = {
+          schedule: sched,
+          units: canonicals.length > 0 ? canonicals : (profiles[setName]?.units || []),
+          updatedAt: Date.now()
+        }
+        localStorage.setItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY, JSON.stringify(profiles))
+        window.SharedClassSync.syncUpstash(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY, profiles)
+      }
 
       newSetNameInput.value = ""
       populatePlayerSetSelect()

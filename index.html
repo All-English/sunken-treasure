@@ -117,9 +117,16 @@
                 </div>
                 <textarea id="players-textarea" placeholder="Enter player names (comma or new line separated)"
                     rows="5"></textarea>
-                <div class="player-set-saver-container">
-                    <input type="text" id="new-player-set-name" class="modal-input player-set-name-input" placeholder="List name...">
-                    <button id="save-player-set-btn" class="secondary-btn save-player-set-btn">Save List</button>
+                <div class="player-set-saver-container" style="display: flex; flex-direction: column; gap: 0.35rem;">
+                    <div style="display: flex; gap: 0.5rem; width: 100%;">
+                        <input type="text" id="new-player-set-name" class="modal-input player-set-name-input" placeholder="e.g. MWF 4:00" style="flex: 1;">
+                        <button id="save-player-set-btn" class="secondary-btn save-player-set-btn">Save List</button>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; width: 100%;">
+                        <input type="time" id="new-player-set-start-time" class="modal-input" value="15:00" style="flex: 1; padding: 0.25rem 0.5rem;">
+                        <input type="time" id="new-player-set-end-time" class="modal-input" value="16:00" style="flex: 1; padding: 0.25rem 0.5rem;">
+                    </div>
+                    <div id="new-player-set-days-container" style="display: flex; gap: 0.25rem; flex-wrap: wrap;"></div>
                 </div>
                 <div class="modal-actions">
                     <button id="save-players-btn" class="save-players-btn">Confirm</button>
@@ -227,6 +234,7 @@
         </label>
     </div> -->
     <script src="wordbank.js"></script>
+    <script src="shared-class-sync.js"></script>
     <script src="script.js"></script>
 </body>
 
