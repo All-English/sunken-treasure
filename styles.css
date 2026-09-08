@@ -457,6 +457,16 @@ body {
     &.active {
       font-size: var(--fs-step-1);
       border: 1px solid var(--link-color);
+      cursor: pointer;
+      user-select: none;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      &:active {
+        transform: scale(0.97);
+      }
     }
 
     &.draggable {

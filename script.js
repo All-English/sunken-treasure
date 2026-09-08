@@ -1013,6 +1013,18 @@ async function announceCurrentPlayerTurn() {
   }
 }
 
+function replayCurrentPlayerTurn() {
+  if (window.isSoundsMuted || !userApiKey || players.length === 0) return
+  if (currentTurnCellClicked) return
+
+  stopAllTurnVoices()
+  if (pendingTurnAnnouncementTimeout) {
+    clearTimeout(pendingTurnAnnouncementTimeout)
+    pendingTurnAnnouncementTimeout = null
+  }
+  announceCurrentPlayerTurn()
+}
+
 function announceCurrentPlayerTurnWithDelay(delay) {
   if (pendingTurnAnnouncementTimeout) {
     clearTimeout(pendingTurnAnnouncementTimeout)
@@ -2525,8 +2537,10 @@ function updatePlayerDisplay() {
       // Update active state
       if (index === currentPlayerIndex) {
         playerElement.classList.add("active")
+        playerElement.title = "Click to replay turn announcement"
       } else {
         playerElement.classList.remove("active")
+        playerElement.removeAttribute("title")
       }
     }
   })
@@ -2852,6 +2866,19 @@ function setupEventListeners() {
         openMergeModal(player)
       } else if (btn.classList.contains("delete")) {
         deletePlayer(player)
+      }
+    })
+  }
+
+  // Replay turn announcement when clicking on the active player only
+  const playerDisplay = document.getElementById("player-display")
+  if (playerDisplay) {
+    playerDisplay.addEventListener("click", (e) => {
+      const playerEl = e.target.closest(".player-info")
+      if (!playerEl) return
+
+      if (playerEl.classList.contains("active")) {
+        replayCurrentPlayerTurn()
       }
     })
   }
