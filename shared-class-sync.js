@@ -23,67 +23,170 @@
   const UPSTASH_TOKEN_KEY = 'upstash_redis_token';
 
   // ── 1. Schedule Parsing from Class Name ────────────────────────
-  const DAY_PATTERNS = [
-    { pattern: /\bMWF\b/i, days: ['Mon', 'Wed', 'Fri'] },
-    { pattern: /\b(TTh|TuTh|TT)\b/i, days: ['Tue', 'Thu'] },
-    { pattern: /\bWF\b/i, days: ['Wed', 'Fri'] },
-    { pattern: /\bMW\b/i, days: ['Mon', 'Wed'] },
-    { pattern: /\bMon(day)?\b/i, days: ['Mon'] },
-    { pattern: /\bTue(s|sday)?\b/i, days: ['Tue'] },
-    { pattern: /\bWed(nesday)?\b/i, days: ['Wed'] },
-    { pattern: /\bThu(r|rs|rsday)?\b/i, days: ['Thu'] },
-    { pattern: /\bFri(day)?\b/i, days: ['Fri'] },
-    { pattern: /\bSat(urday)?\b/i, days: ['Sat'] },
-    { pattern: /\bSun(day)?\b/i, days: ['Sun'] }
-  ];
-
   function parseScheduleFromName(className) {
     if (!className || typeof className !== 'string') {
       return { days: ['Mon', 'Wed', 'Fri'], startTime: '15:00', endTime: '16:00' };
     }
 
     // 1. Extract Days
+    const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     let matchedDays = null;
-    for (const entry of DAY_PATTERNS) {
-      if (entry.pattern.test(className)) {
-        matchedDays = entry.days;
-        break;
+
+    // A. Check range patterns (e.g., Mon-Fri, M-F, Mon-Thu, M-Th, Daily, Weekend)
+    if (/\b(Mon(day)?\s*-\s*Fri(day)?|M-F|MTWThF|MTWTF)\b/i.test(className)) {
+      matchedDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    } else if (/\b(Mon(day)?\s*-\s*Thu(rs|rsday)?|M-Th|MTWTh|MTWT)\b/i.test(className)) {
+      matchedDays = ['Mon', 'Tue', 'Wed', 'Thu'];
+    } else if (/\b(Daily|Everyday|Weekdays?)\b/i.test(className)) {
+      matchedDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    } else if (/\b(Weekend|Sat(urday)?\s*[-/&]\s*Sun(day)?|SatSun|SS)\b/i.test(className)) {
+      matchedDays = ['Sat', 'Sun'];
+    }
+
+    // B. Check for multiple full/abbreviated day words (e.g., "Mon, Fri", "Mon & Wed", "Tue/Thu", "Monday/Friday")
+    if (!matchedDays) {
+      const dayWordMatches = new Set();
+      const wordChecks = [
+        { day: 'Mon', pattern: /\bMon(day)?\b/i },
+        { day: 'Tue', pattern: /\bTue(s|sday)?\b/i },
+        { day: 'Wed', pattern: /\bWed(nesday)?\b/i },
+        { day: 'Thu', pattern: /\bThu(r|rs|rsday)?\b/i },
+        { day: 'Fri', pattern: /\bFri(day)?\b/i },
+        { day: 'Sat', pattern: /\bSat(urday)?\b/i },
+        { day: 'Sun', pattern: /\bSun(day)?\b/i }
+      ];
+
+      wordChecks.forEach(({ day, pattern }) => {
+        if (pattern.test(className)) dayWordMatches.add(day);
+      });
+
+      if (dayWordMatches.size > 0) {
+        matchedDays = ALL_DAYS.filter((d) => dayWordMatches.has(d));
       }
     }
+
+    // C. Check multi-day acronyms (e.g. MWF, MF, TTh, TT, WF, MW, TF, etc.)
     if (!matchedDays) {
+      const ACRONYM_PATTERNS = [
+        { pattern: /\b(MWF|M[/&+, ]*W[/&+, ]*F)\b/i, days: ['Mon', 'Wed', 'Fri'] },
+        { pattern: /\b(MWFS|MWFSa|MWFSat)\b/i, days: ['Mon', 'Wed', 'Fri', 'Sat'] },
+        { pattern: /\b(TThS|TThSat|TTS|TTSat)\b/i, days: ['Tue', 'Thu', 'Sat'] },
+        { pattern: /\b(MTW|M[/&+, ]*T[/&+, ]*W)\b/i, days: ['Mon', 'Tue', 'Wed'] },
+        { pattern: /\b(TWTh|TWT|T[/&+, ]*W[/&+, ]*Th)\b/i, days: ['Tue', 'Wed', 'Thu'] },
+        { pattern: /\b(WThF|WTF|W[/&+, ]*Th[/&+, ]*F)\b/i, days: ['Wed', 'Thu', 'Fri'] },
+        { pattern: /\b(TTh|TuTh|TT|T[/&+, ]*Th|Tu[/&+, ]*Th|T[/&+, ]*T)\b/i, days: ['Tue', 'Thu'] },
+        { pattern: /\b(MW|M[/&+, ]*W)\b/i, days: ['Mon', 'Wed'] },
+        { pattern: /\b(WF|W[/&+, ]*F)\b/i, days: ['Wed', 'Fri'] },
+        { pattern: /\b(MF|M[/&+, ]*F)\b/i, days: ['Mon', 'Fri'] },
+        { pattern: /\b(TF|TuF|T[/&+, ]*F|Tu[/&+, ]*F)\b/i, days: ['Tue', 'Fri'] },
+        { pattern: /\b(MTh|MuTh|M[/&+, ]*Th)\b/i, days: ['Mon', 'Thu'] },
+        { pattern: /\b(ThF|Th[/&+, ]*F)\b/i, days: ['Thu', 'Fri'] },
+        { pattern: /\b(MT|MTu|M[/&+, ]*T)\b/i, days: ['Mon', 'Tue'] },
+        { pattern: /\b(WTh|W[/&+, ]*Th)\b/i, days: ['Wed', 'Thu'] },
+        { pattern: /\b(SatSun|SS|Sat[/&+, ]*Sun)\b/i, days: ['Sat', 'Sun'] },
+        // Standalone single-letter days
+        { pattern: /\bM\b/i, days: ['Mon'] },
+        { pattern: /\b(Tu|Tue)\b/i, days: ['Tue'] },
+        { pattern: /\bW\b/i, days: ['Wed'] },
+        { pattern: /\bTh\b/i, days: ['Thu'] },
+        { pattern: /\bF\b/i, days: ['Fri'] },
+        { pattern: /\bSa\b/i, days: ['Sat'] },
+        { pattern: /\bSu\b/i, days: ['Sun'] }
+      ];
+
+      for (const entry of ACRONYM_PATTERNS) {
+        if (entry.pattern.test(className)) {
+          matchedDays = entry.days;
+          break;
+        }
+      }
+    }
+
+    if (!matchedDays || matchedDays.length === 0) {
       matchedDays = ['Mon', 'Wed', 'Fri'];
     }
 
-    // 2. Extract Start Time
-    // Matches patterns like "3:00", "4:00", "6:50", "7:45", "14:30"
-    const timeMatch = className.match(/(\d{1,2}):(\d{2})/);
-    let startHour = 15;
-    let startMin = 0;
+    // 2. Extract Time
+    function parseHourMinMeridiem(hStr, mStr, meridiem) {
+      let h = parseInt(hStr, 10);
+      const m = mStr ? parseInt(mStr, 10) : 0;
+      const isPM = meridiem && /pm/i.test(meridiem);
+      const isAM = meridiem && /am/i.test(meridiem);
 
-    if (timeMatch) {
-      let h = parseInt(timeMatch[1], 10);
-      const m = parseInt(timeMatch[2], 10);
-      // Academy / hagwon hours 1..7 are PM (13:00 to 19:00)
-      if (h >= 1 && h <= 7) {
-        h += 12;
+      if (isPM) {
+        if (h < 12) h += 12;
+      } else if (isAM) {
+        if (h === 12) h = 0;
+      } else {
+        // Academy / hagwon hours 1..7 without AM/PM default to PM (13:00 to 19:00)
+        if (h >= 1 && h <= 7) {
+          h += 12;
+        }
       }
-      startHour = h;
-      startMin = m;
+      return { h: h % 24, m: Math.min(Math.max(m, 0), 59) };
     }
 
-    const startMinutesTotal = startHour * 60 + startMin;
-    // Standard default duration: 60 minutes
-    const endMinutesTotal = startMinutesTotal + 60;
-
-    const endH = Math.floor(endMinutesTotal / 60) % 24;
-    const endM = endMinutesTotal % 60;
-
     const formatTime = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+    let startHour = 15;
+    let startMin = 0;
+    let endHour = 16;
+    let endMin = 0;
+
+    // A. Check for time ranges e.g. "2:00-2:50", "2:00 - 3:00pm", "2pm-3pm", "2:00~3:00"
+    const rangeMatch = className.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:-|~|to)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (rangeMatch && (rangeMatch[2] !== undefined || rangeMatch[5] !== undefined || rangeMatch[3] !== undefined || rangeMatch[6] !== undefined)) {
+      const sH = rangeMatch[1];
+      const sM = rangeMatch[2];
+      let sMer = rangeMatch[3];
+      const eH = rangeMatch[4];
+      const eM = rangeMatch[5];
+      const eMer = rangeMatch[6];
+
+      // If end has PM and start has no meridiem, start shares PM if it comes earlier or equal in 12h clock
+      if (!sMer && eMer && /pm/i.test(eMer) && parseInt(sH, 10) <= parseInt(eH, 10)) {
+        sMer = eMer;
+      }
+
+      const startParsed = parseHourMinMeridiem(sH, sM, sMer);
+      const endParsed = parseHourMinMeridiem(eH, eM, eMer);
+
+      startHour = startParsed.h;
+      startMin = startParsed.m;
+      endHour = endParsed.h;
+      endMin = endParsed.m;
+
+      if (endHour * 60 + endMin <= startHour * 60 + startMin) {
+        const fallbackEnd = startHour * 60 + startMin + 60;
+        endHour = Math.floor(fallbackEnd / 60) % 24;
+        endMin = fallbackEnd % 60;
+      }
+    } else {
+      // B. Single time match e.g. "2:00", "2:00pm", "2pm"
+      const colonMatch = className.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+      const hourOnlyMatch = !colonMatch && className.match(/\b(\d{1,2})\s*(am|pm)\b/i);
+
+      if (colonMatch) {
+        const startParsed = parseHourMinMeridiem(colonMatch[1], colonMatch[2], colonMatch[3]);
+        startHour = startParsed.h;
+        startMin = startParsed.m;
+        const totalEndMinutes = startHour * 60 + startMin + 60;
+        endHour = Math.floor(totalEndMinutes / 60) % 24;
+        endMin = totalEndMinutes % 60;
+      } else if (hourOnlyMatch) {
+        const startParsed = parseHourMinMeridiem(hourOnlyMatch[1], '00', hourOnlyMatch[2]);
+        startHour = startParsed.h;
+        startMin = startParsed.m;
+        const totalEndMinutes = startHour * 60 + startMin + 60;
+        endHour = Math.floor(totalEndMinutes / 60) % 24;
+        endMin = totalEndMinutes % 60;
+      }
+    }
 
     return {
       days: matchedDays,
       startTime: formatTime(startHour, startMin),
-      endTime: formatTime(endH, endM)
+      endTime: formatTime(endHour, endMin)
     };
   }
 
