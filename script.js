@@ -360,6 +360,12 @@ function shufflePlayers() {
     // Note: We keep the shuffled result we have now, effectively starting the new cycle
   }
 
+  currentPlayerIndex = 0
+  stopAllTurnVoices()
+  if (pendingTurnAnnouncementTimeout) {
+    clearTimeout(pendingTurnAnnouncementTimeout)
+    pendingTurnAnnouncementTimeout = null
+  }
   savePlayersToLocalStorage()
   updatePlayerDisplay()
 
@@ -429,6 +435,12 @@ function handleDrop(e) {
 
     // console.log("New player order:", players)
 
+    currentPlayerIndex = 0
+    stopAllTurnVoices()
+    if (pendingTurnAnnouncementTimeout) {
+      clearTimeout(pendingTurnAnnouncementTimeout)
+      pendingTurnAnnouncementTimeout = null
+    }
     savePlayersToLocalStorage()
     updatePlayerDisplay()
   }
@@ -1015,7 +1027,7 @@ function announceCurrentPlayerTurnWithDelay(delay) {
   }, delay)
 }
 
-function resetAndAnnounceFirstPlayerTurn() {
+function resetFirstPlayerTurn() {
   if (players.length > 0) {
     currentPlayerIndex = 0
     updatePlayerDisplay()
@@ -1026,8 +1038,11 @@ function resetAndAnnounceFirstPlayerTurn() {
       pendingTurnAnnouncementTimeout = null
     }
     precachePlayerTurnAudios()
-    announceCurrentPlayerTurnWithDelay(500)
   }
+}
+
+function resetAndAnnounceFirstPlayerTurn() {
+  resetFirstPlayerTurn()
 }
 
 // Play a sound from a queued list
@@ -1827,17 +1842,14 @@ function createGameboard(isInitialLoad = false) {
 
     enablePlayerDragging()
 
-    // Precache player turn audios and trigger the first player's turn announcement
+    // Precache player turn audios silently; first player turn is announced when "Start" is clicked
     currentTurnCellClicked = false
     stopAllTurnVoices()
     if (pendingTurnAnnouncementTimeout) {
       clearTimeout(pendingTurnAnnouncementTimeout)
       pendingTurnAnnouncementTimeout = null
     }
-    if (!isInitialLoad) {
-      precachePlayerTurnAudios()
-      announceCurrentPlayerTurnWithDelay(500)
-    }
+    precachePlayerTurnAudios()
   }
 
   // Reset used images tracking
@@ -2909,7 +2921,10 @@ function setupEventListeners() {
   }
   const dragBtn = document.getElementById("drag-btn")
   if (dragBtn) {
-    dragBtn.addEventListener("click", disablePlayerDragging)
+    dragBtn.addEventListener("click", () => {
+      disablePlayerDragging()
+      announceCurrentPlayerTurnWithDelay(200)
+    })
   }
 
   // Add escape key support to modals
@@ -3420,7 +3435,7 @@ function setupPlayerSetsSyncEventListeners() {
           saveSyncBtn.disabled = false
 
           await syncWithUpstashOnLoad()
-          resetAndAnnounceFirstPlayerTurn()
+          resetFirstPlayerTurn()
           
           setTimeout(() => {
             if (syncDetails) syncDetails.open = false
@@ -3474,7 +3489,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await syncWithUpstashOnLoad()
   setupPlayerSetsSyncEventListeners()
 
-  resetAndAnnounceFirstPlayerTurn()
+  resetFirstPlayerTurn()
 
   if (saveElevenlabsBtn && elevenlabsApiKeyInput) {
     saveElevenlabsBtn.addEventListener("click", async () => {
