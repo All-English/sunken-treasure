@@ -46,6 +46,7 @@ let players = []
 let playerStats = {}
 let sessionStatus = false
 let currentLoadedClassName = null
+let hasInitialUrlWordSet = false
 
 function applyHighestUnitToTreasureHunt(canonicalUnits) {
   if (!Array.isArray(canonicalUnits) || canonicalUnits.length === 0) return
@@ -1281,6 +1282,7 @@ function populateWordSetDropdown() {
 
       unitDropdown.value = defaultValue
       unitDropdown.dataset.lastValue = defaultValue
+      hasInitialUrlWordSet = true
 
       return // Exit if we successfully set a valid value from URL params
     }
@@ -1672,15 +1674,19 @@ function updateUrlParameters(level, unit) {
 
 function getUrlParameters() {
   const urlParams = new URLSearchParams(window.location.search)
-  const level = urlParams.get("level")
-  const unit = urlParams.get("unit")
+  const rawLevel = urlParams.get("level")
+  const rawUnit = urlParams.get("unit")
 
-  const isCustomSet = level === "custom"
+  if (!rawLevel || !rawUnit) {
+    return { level: null, unit: null }
+  }
+
+  const isCustomSet = rawLevel === "custom"
 
   return {
     // If it's custom, return as-is. If standard, prepend 'level'/'unit' for internal use.
-    level: level ? (isCustomSet ? level : `level${level}`) : null,
-    unit: unit ? (isCustomSet ? unit : `unit${unit}`) : null,
+    level: isCustomSet ? rawLevel : `level${rawLevel.replace(/^level/i, "")}`,
+    unit: isCustomSet ? rawUnit : `unit${rawUnit.replace(/^unit/i, "")}`,
   }
 }
 
@@ -3179,7 +3185,13 @@ async function syncWithUpstashOnLoad() {
         updatePlayerDisplay()
       }
       if (activeClassMatch.profile && Array.isArray(activeClassMatch.profile.units) && activeClassMatch.profile.units.length > 0) {
-        applyHighestUnitToTreasureHunt(activeClassMatch.profile.units)
+        if (!hasInitialUrlWordSet) {
+          applyHighestUnitToTreasureHunt(activeClassMatch.profile.units)
+        } else {
+          console.log(
+            `[Sync] URL parameters take precedence over saved units for ${activeClassMatch.className}`
+          )
+        }
       }
       const deleteBtn = document.getElementById("delete-set-btn")
       if (deleteBtn) deleteBtn.style.display = "inline-block"
