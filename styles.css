@@ -337,6 +337,7 @@ body {
 
 .max-words-select,
 .word-set-select,
+.series-select,
 .extra-words-checkbox,
 .mute-sounds-checkbox {
   padding: var(--space-3xs);
@@ -348,6 +349,7 @@ body {
 
 .max-words-select:focus,
 .word-set-select:focus,
+.series-select:focus,
 .extra-words-checkbox:focus,
 .mute-sounds-checkbox:focus {
   /* outline: none; */
@@ -362,7 +364,8 @@ body {
 }
 
 .max-words-select,
-.word-set-select {
+.word-set-select,
+.series-select {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M1 4 L6 9 L11 4' fill='none' stroke='%2300008b' stroke-width='2'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -373,7 +376,8 @@ body {
   padding-right: var(--space-m);
 }
 
-.word-set-select {
+.word-set-select,
+.series-select {
   width: 20ch;
 }
 
@@ -1263,7 +1267,8 @@ tbody .actions-cell .action-btn {
     font-size: var(--fs-step-3);
   }
 
-  .word-set-select {
+  .word-set-select,
+  .series-select {
     width: min-content;
   }
 

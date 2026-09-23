@@ -48,10 +48,43 @@ let sessionStatus = false
 let currentLoadedClassName = null
 let hasInitialUrlWordSet = false
 
-function applyHighestUnitToTreasureHunt(canonicalUnits) {
+function getPrimarySeriesFromUnits(canonicalUnits, profileCurriculumId = null) {
+  if (profileCurriculumId) {
+    return window.SharedClassSync ? window.SharedClassSync.toSeriesSlug(profileCurriculumId) : profileCurriculumId
+  }
+  if (!Array.isArray(canonicalUnits) || canonicalUnits.length === 0) {
+    return "smart-phonics"
+  }
+  const counts = {}
+  for (const u of canonicalUnits) {
+    const c = window.SharedClassSync ? window.SharedClassSync.toCanonicalUnit(u) : null
+    const series = c?.series || "smart-phonics"
+    counts[series] = (counts[series] || 0) + 1
+  }
+  let maxSeries = "smart-phonics"
+  let maxCount = 0
+  for (const [series, count] of Object.entries(counts)) {
+    if (count > maxCount) {
+      maxCount = count
+      maxSeries = series
+    }
+  }
+  return maxSeries
+}
+
+function applyHighestUnitToTreasureHunt(canonicalUnits, profileCurriculumId = null) {
   if (!Array.isArray(canonicalUnits) || canonicalUnits.length === 0) return
   const highest = window.SharedClassSync ? window.SharedClassSync.getHighestUnit(canonicalUnits) : null
   if (!highest) return
+
+  const primarySeries = getPrimarySeriesFromUnits(canonicalUnits, profileCurriculumId || highest.series)
+  const seriesSelect = document.getElementById("series-select")
+  if (seriesSelect) {
+    seriesSelect.value = primarySeries
+    localStorage.setItem("sunken_treasure_selected_series", primarySeries)
+  }
+  populateWordSetDropdown(primarySeries)
+
   const thValue = window.SharedClassSync.toTreasureHunt(highest)
   const wordSetDropdown = document.getElementById("word-set-dropdown")
   if (wordSetDropdown && thValue) {
@@ -59,8 +92,10 @@ function applyHighestUnitToTreasureHunt(canonicalUnits) {
     if (optionExists) {
       wordSetDropdown.value = thValue
       wordSetDropdown.dataset.lastValue = thValue
-      const [level, unit] = thValue.split(":")
-      if (typeof updateUrlParameters === "function") updateUrlParameters(level, unit)
+      const parts = thValue.split(":")
+      const level = parts.length === 3 ? parts[1] : parts[0]
+      const unit = parts.length === 3 ? parts[2] : parts[1]
+      if (typeof updateUrlParameters === "function") updateUrlParameters(level, unit, primarySeries)
       if (typeof createGameboard === "function") createGameboard()
       if (typeof updatePlayerDisplay === "function") updatePlayerDisplay()
     }
@@ -80,6 +115,10 @@ function autoSaveCurrentClassUnitTreasureHunt() {
     const existingUnits = (profiles[currentLoadedClassName] && profiles[currentLoadedClassName].units) || []
     const unitSet = new Set(existingUnits)
     unitSet.add(canonical.id)
+    const seriesSelect = document.getElementById("series-select")
+    if (profiles[currentLoadedClassName]) {
+      profiles[currentLoadedClassName].curriculumId = seriesSelect?.value || canonical.series || "smart-phonics"
+    }
     window.SharedClassSync.saveClassUnits(currentLoadedClassName, Array.from(unitSet))
   }
 }
@@ -1206,10 +1245,49 @@ function checkSessionExpiration() {
   return false
 }
 
-function populateWordSetDropdown() {
-  const unitDropdown = document.getElementById("word-set-dropdown")
-  unitDropdown.innerHTML = ""
+function populateSeriesDropdown() {
+  const seriesSelect = document.getElementById("series-select")
+  if (!seriesSelect) return
 
+  const seriesEntries = (smartPhonicsWordBank.series && Object.keys(smartPhonicsWordBank.series).length > 0)
+    ? Object.entries(smartPhonicsWordBank.series)
+    : [["smart-phonics", { name: "Smart Phonics", levels: smartPhonicsWordBank }]];
+
+  seriesSelect.innerHTML = ""
+  seriesEntries.forEach(([slug, obj]) => {
+    const opt = document.createElement("option")
+    opt.value = slug
+    opt.textContent = obj.name || (window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(slug) : slug)
+    seriesSelect.appendChild(opt)
+  })
+
+  // Ensure current active series has an option
+  const activeSeries = localStorage.getItem("sunken_treasure_selected_series") || "smart-phonics"
+  if (activeSeries && !Array.from(seriesSelect.options).some((o) => o.value === activeSeries)) {
+    const opt = document.createElement("option")
+    opt.value = activeSeries
+    opt.textContent = window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(activeSeries) : activeSeries
+    seriesSelect.appendChild(opt)
+  }
+}
+
+function populateWordSetDropdown(targetSeriesKey = null) {
+  const unitDropdown = document.getElementById("word-set-dropdown")
+  if (!unitDropdown) return
+
+  const seriesSelect = document.getElementById("series-select")
+  let seriesKey = targetSeriesKey || (seriesSelect ? seriesSelect.value : null) || "smart-phonics"
+  if (seriesSelect && seriesKey) {
+    if (!Array.from(seriesSelect.options).some((o) => o.value === seriesKey)) {
+      const opt = document.createElement("option")
+      opt.value = seriesKey
+      opt.textContent = window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(seriesKey) : seriesKey
+      seriesSelect.appendChild(opt)
+    }
+    seriesSelect.value = seriesKey
+  }
+
+  unitDropdown.innerHTML = ""
   const allUnits = []
 
   const createSeparator = () => {
@@ -1220,36 +1298,26 @@ function populateWordSetDropdown() {
     return sep
   }
 
-  const seriesEntries = (smartPhonicsWordBank.series && Object.keys(smartPhonicsWordBank.series).length > 0)
-    ? Object.entries(smartPhonicsWordBank.series)
-    : [["smart-phonics", { name: "Smart Phonics", levels: smartPhonicsWordBank }]];
+  const seriesObj = (smartPhonicsWordBank.series && smartPhonicsWordBank.series[seriesKey])
+    ? smartPhonicsWordBank.series[seriesKey]
+    : (smartPhonicsWordBank.series ? Object.values(smartPhonicsWordBank.series)[0] : { name: "Smart Phonics", levels: smartPhonicsWordBank })
 
-  seriesEntries.forEach(([seriesKey, seriesObj]) => {
-    const seriesGroup = document.createElement("optgroup")
-    seriesGroup.label = seriesObj.name || (window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(seriesKey) : seriesKey)
-    unitDropdown.appendChild(seriesGroup)
+  const levels = seriesObj?.levels || seriesObj || {}
+  const levelKeys = Object.keys(levels).filter((k) => k.startsWith("level"))
 
-    const levels = seriesObj.levels || seriesObj
-    Object.keys(levels).filter(k => k.startsWith("level")).forEach((level) => {
-      seriesGroup.appendChild(createSeparator())
-
-      const unitsInLevel = Object.keys(levels[level])
-
-      unitsInLevel.forEach((unit) => {
-        const targetSound = levels[level][unit].targetSound || ""
-
-        const option = document.createElement("option")
-        option.value = seriesKey === "smart-phonics" ? `${level}:${unit}` : `${seriesKey}:${level}:${unit}`
-
-        option.textContent = `Level ${level.replace(
-          "level",
-          ""
-        )} - Unit ${unit.replace("unit", "")} (${targetSound})`
-
-        allUnits.push(option.value)
-        seriesGroup.appendChild(option)
-      })
+  levelKeys.forEach((level, lIndex) => {
+    const unitsInLevel = Object.keys(levels[level])
+    unitsInLevel.forEach((unit) => {
+      const targetSound = levels[level][unit].targetSound || ""
+      const option = document.createElement("option")
+      option.value = seriesKey === "smart-phonics" ? `${level}:${unit}` : `${seriesKey}:${level}:${unit}`
+      option.textContent = `Level ${level.replace("level", "")} - Unit ${unit.replace("unit", "")} (${targetSound})`
+      allUnits.push(option.value)
+      unitDropdown.appendChild(option)
     })
+    if (lIndex < levelKeys.length - 1) {
+      unitDropdown.appendChild(createSeparator())
+    }
   })
 
   // Add separator
@@ -1276,22 +1344,18 @@ function populateWordSetDropdown() {
     const level = `${urlParams.level}`
     const unit = `${urlParams.unit}`
 
-    if (validateWordSetSelection(level, unit)) {
-      // Reconstruct the dropdown value value
+    if (validateWordSetSelection(level, unit, seriesKey)) {
       let defaultValue
       if (level === "custom") {
-        // Format: custom:SetName:0
         defaultValue = `custom:${unit}:0`
       } else {
-        // Format: levelX:unitY
-        defaultValue = `${level}:${unit}`
+        defaultValue = seriesKey === "smart-phonics" ? `${level}:${unit}` : `${seriesKey}:${level}:${unit}`
       }
 
       unitDropdown.value = defaultValue
       unitDropdown.dataset.lastValue = defaultValue
       hasInitialUrlWordSet = true
-
-      return // Exit if we successfully set a valid value from URL params
+      return
     }
   }
 
@@ -1303,8 +1367,10 @@ function populateWordSetDropdown() {
     unitDropdown.dataset.lastValue = selectedUnit // Set initial lastValue
 
     // Update URL with the random selection
-    const [randomLevel, randomUnit] = selectedUnit.split(":")
-    updateUrlParameters(randomLevel, randomUnit)
+    const parts = selectedUnit.split(":")
+    const randomLevel = parts.length === 3 ? parts[1] : parts[0]
+    const randomUnit = parts.length === 3 ? parts[2] : parts[1]
+    updateUrlParameters(randomLevel, randomUnit, seriesKey)
   }
 }
 
@@ -1658,8 +1724,17 @@ function endGame() {
   }, 2000)
 }
 
-function updateUrlParameters(level, unit) {
+function updateUrlParameters(level, unit, series = null) {
   const newUrl = new URL(window.location.href)
+  const seriesSelect = document.getElementById("series-select")
+  const currentSeries = series || (seriesSelect ? seriesSelect.value : null) || "smart-phonics"
+
+  if (currentSeries && currentSeries !== "smart-phonics") {
+    newUrl.searchParams.set("series", currentSeries)
+  } else {
+    newUrl.searchParams.delete("series")
+    newUrl.searchParams.delete("book")
+  }
 
   if (level === "custom") {
     // Handle custom sets (level is "custom", unit is the Set Name)
@@ -1683,9 +1758,10 @@ function getUrlParameters() {
   const urlParams = new URLSearchParams(window.location.search)
   const rawLevel = urlParams.get("level")
   const rawUnit = urlParams.get("unit")
+  const rawSeries = urlParams.get("series") || urlParams.get("book")
 
   if (!rawLevel || !rawUnit) {
-    return { level: null, unit: null }
+    return { level: null, unit: null, series: rawSeries }
   }
 
   const isCustomSet = rawLevel === "custom"
@@ -1694,6 +1770,7 @@ function getUrlParameters() {
     // If it's custom, return as-is. If standard, prepend 'level'/'unit' for internal use.
     level: isCustomSet ? rawLevel : `level${rawLevel.replace(/^level/i, "")}`,
     unit: isCustomSet ? rawUnit : `unit${rawUnit.replace(/^unit/i, "")}`,
+    series: rawSeries,
   }
 }
 
@@ -1784,7 +1861,7 @@ function selectWordsFromWordBank(
     (!maxWords || selectedWords.length < maxWords)
   ) {
     const processingUnit = unitsInLevel[processingUnitIndex]
-    const unitData = smartPhonicsWordBank[level][processingUnit]
+    const unitData = bank[level][processingUnit]
 
     let wordsToAdd = []
 
@@ -1896,7 +1973,8 @@ function createGameboard(isInitialLoad = false) {
     usedTreasureImages[treasureType] = []
   })
 
-  let selectedSeries = "smart-phonics"
+  const seriesSelect = document.getElementById("series-select")
+  let selectedSeries = seriesSelect?.value || "smart-phonics"
   if (wordSetDropdown.value.startsWith("custom:")) {
     selectedLevel = "custom"
     selectedUnit = wordSetDropdown.value.split(":")[1] // Get set name
@@ -2859,12 +2937,39 @@ function setupEventListeners() {
 
     event.target.dataset.lastValue = event.target.value
 
-    const [level, unit] = event.target.value.split(":")
-    updateUrlParameters(level, unit)
+    const parts = event.target.value.split(":")
+    const seriesSelect = document.getElementById("series-select")
+    let targetSeries = seriesSelect?.value || "smart-phonics"
+    let level = parts[0]
+    let unit = parts[1]
+    if (parts.length === 3) {
+      targetSeries = parts[0]
+      level = parts[1]
+      unit = parts[2]
+    }
+    updateUrlParameters(level, unit, targetSeries)
     createGameboard()
     updatePlayerDisplay()
     autoSaveCurrentClassUnitTreasureHunt()
   })
+
+  // Series Select Event Listener
+  const seriesSelect = document.getElementById("series-select")
+  if (seriesSelect) {
+    seriesSelect.addEventListener("change", (e) => {
+      const selectedSeries = e.target.value
+      localStorage.setItem("sunken_treasure_selected_series", selectedSeries)
+      revertToRoundStart()
+      populateWordSetDropdown(selectedSeries)
+      const parts = (wordSetDropdown.value || "").split(":")
+      const level = parts.length === 3 ? parts[1] : parts[0]
+      const unit = parts.length === 3 ? parts[2] : parts[1]
+      updateUrlParameters(level, unit, selectedSeries)
+      createGameboard()
+      updatePlayerDisplay()
+      autoSaveCurrentClassUnitTreasureHunt()
+    })
+  }
 
   // Max Words Select Event Listener
   const maxWordsSelect = document.getElementById("max-words")
@@ -3215,8 +3320,10 @@ async function syncWithUpstashOnLoad() {
         updatePlayerDisplay()
       }
       if (activeClassMatch.profile && Array.isArray(activeClassMatch.profile.units) && activeClassMatch.profile.units.length > 0) {
-        if (!hasInitialUrlWordSet) {
-          applyHighestUnitToTreasureHunt(activeClassMatch.profile.units)
+        const urlParams = new URLSearchParams(window.location.search)
+        const hasExplicitUrlParams = Boolean(urlParams.get("series") || urlParams.get("book") || (urlParams.get("level") && urlParams.get("unit")))
+        if (!hasInitialUrlWordSet && !hasExplicitUrlParams) {
+          applyHighestUnitToTreasureHunt(activeClassMatch.profile.units, activeClassMatch.profile.curriculumId)
         } else {
           console.log(
             `[Sync] URL parameters take precedence over saved units for ${activeClassMatch.className}`
@@ -3347,7 +3454,7 @@ function setupPlayerSetsSyncEventListeners() {
             const rawProfiles = localStorage.getItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY)
             const profiles = rawProfiles ? JSON.parse(rawProfiles) : {}
             if (profiles[selectedSetName] && Array.isArray(profiles[selectedSetName].units) && profiles[selectedSetName].units.length > 0) {
-              applyHighestUnitToTreasureHunt(profiles[selectedSetName].units)
+              applyHighestUnitToTreasureHunt(profiles[selectedSetName].units, profiles[selectedSetName].curriculumId)
             }
           } catch (e) {
             console.warn("Error applying units in Treasure Hunt:", e)
@@ -3415,9 +3522,11 @@ function setupPlayerSetsSyncEventListeners() {
           profiles = JSON.parse(localStorage.getItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY) || "{}")
         } catch {}
 
+        const seriesSelect = document.getElementById("series-select")
         profiles[setName] = {
           schedule: sched,
           units: canonicals.length > 0 ? canonicals : (profiles[setName]?.units || []),
+          curriculumId: seriesSelect?.value || "smart-phonics",
           updatedAt: Date.now()
         }
         localStorage.setItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY, JSON.stringify(profiles))
@@ -3535,7 +3644,31 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (typeof initWordBank === "function") {
     await initWordBank()
   }
-  populateWordSetDropdown()
+  populateSeriesDropdown()
+
+  // Priority Chain: Explicit URL Param -> Active Class (in syncWithUpstashOnLoad) -> localStorage -> Default ('smart-phonics')
+  const urlParams = new URLSearchParams(window.location.search)
+  const rawUrlSeries = urlParams.get("series") || urlParams.get("book")
+  const rawUrlLevel = urlParams.get("level")
+  let initialSeries = "smart-phonics"
+
+  if (rawUrlSeries) {
+    initialSeries = window.SharedClassSync ? window.SharedClassSync.toSeriesSlug(rawUrlSeries) : rawUrlSeries
+  } else if (rawUrlLevel && rawUrlLevel.includes(":")) {
+    initialSeries = rawUrlLevel.split(":")[0]
+  } else {
+    const savedSeries = localStorage.getItem("sunken_treasure_selected_series")
+    if (savedSeries) {
+      initialSeries = savedSeries
+    }
+  }
+
+  const seriesSelectEl = document.getElementById("series-select")
+  if (seriesSelectEl) {
+    seriesSelectEl.value = initialSeries
+  }
+
+  populateWordSetDropdown(initialSeries)
   setupSoundMuteControl()
   setupCustomSetsListeners()
 
