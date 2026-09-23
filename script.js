@@ -1269,6 +1269,8 @@ function populateSeriesDropdown() {
     opt.textContent = window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(activeSeries) : activeSeries
     seriesSelect.appendChild(opt)
   }
+
+  seriesSelect.style.display = seriesSelect.options.length > 1 ? "" : "none"
 }
 
 function populateWordSetDropdown(targetSeriesKey = null) {
@@ -1285,6 +1287,7 @@ function populateWordSetDropdown(targetSeriesKey = null) {
       seriesSelect.appendChild(opt)
     }
     seriesSelect.value = seriesKey
+    seriesSelect.style.display = seriesSelect.options.length > 1 ? "" : "none"
   }
 
   unitDropdown.innerHTML = ""
