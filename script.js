@@ -1697,24 +1697,6 @@ function getUrlParameters() {
   }
 }
 
-function validateWordSetSelection(level, unit) {
-  function isCustomSet(level) {
-    // Check for both URL format ("custom") and Dropdown format ("custom:...")
-    return level === "custom" || level.startsWith("custom:")
-  }
-
-  // Check for custom word sets
-  if (isCustomSet(level)) {
-    // Extract set name based on which format we received
-    const setName = level === "custom" ? unit : level.split(":")[1]
-
-    const customSets = getCustomWordSets()
-    if (!customSets[setName]) {
-      console.warn(`Custom word set "${setName}" not found. Using default.`)
-      return false
-    }
-    return true
-  }
 
 function getActiveWordBank(series = "smart-phonics") {
   const sKey = (window.SharedClassSync && window.SharedClassSync.toSeriesSlug)
