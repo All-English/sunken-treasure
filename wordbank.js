@@ -1288,7 +1288,9 @@ async function initWordBank() {
     try {
       const data = await window.SharedClassSync.CurriculumLoader.load();
       if (data) {
-        const adapted = window.SharedClassSync.CurriculumAdapter.toWordBank(data);
+        const adapted = typeof window.SharedClassSync.CurriculumAdapter.toWordBankAll === "function"
+          ? window.SharedClassSync.CurriculumAdapter.toWordBankAll(data)
+          : window.SharedClassSync.CurriculumAdapter.toWordBank(data);
         if (adapted && Object.keys(adapted).length > 0) {
           smartPhonicsWordBank = adapted;
           return adapted;

@@ -1210,10 +1210,6 @@ function populateWordSetDropdown() {
   const unitDropdown = document.getElementById("word-set-dropdown")
   unitDropdown.innerHTML = ""
 
-  const smartPhonicsGroup = document.createElement("optgroup")
-  smartPhonicsGroup.label = "Smart Phonics"
-  unitDropdown.appendChild(smartPhonicsGroup)
-
   const allUnits = []
 
   const createSeparator = () => {
@@ -1224,24 +1220,35 @@ function populateWordSetDropdown() {
     return sep
   }
 
-  Object.keys(smartPhonicsWordBank).forEach((level) => {
-    smartPhonicsGroup.appendChild(createSeparator()) // Append to optgroup instead of dropdown
+  const seriesEntries = (smartPhonicsWordBank.series && Object.keys(smartPhonicsWordBank.series).length > 0)
+    ? Object.entries(smartPhonicsWordBank.series)
+    : [["smart-phonics", { name: "Smart Phonics", levels: smartPhonicsWordBank }]];
 
-    const unitsInLevel = Object.keys(smartPhonicsWordBank[level])
+  seriesEntries.forEach(([seriesKey, seriesObj]) => {
+    const seriesGroup = document.createElement("optgroup")
+    seriesGroup.label = seriesObj.name || (window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(seriesKey) : seriesKey)
+    unitDropdown.appendChild(seriesGroup)
 
-    unitsInLevel.forEach((unit) => {
-      const targetSound = smartPhonicsWordBank[level][unit].targetSound || ""
+    const levels = seriesObj.levels || seriesObj
+    Object.keys(levels).filter(k => k.startsWith("level")).forEach((level) => {
+      seriesGroup.appendChild(createSeparator())
 
-      const option = document.createElement("option")
-      option.value = `${level}:${unit}`
+      const unitsInLevel = Object.keys(levels[level])
 
-      option.textContent = `Level ${level.replace(
-        "level",
-        ""
-      )} - Unit ${unit.replace("unit", "")} (${targetSound})`
+      unitsInLevel.forEach((unit) => {
+        const targetSound = levels[level][unit].targetSound || ""
 
-      allUnits.push(option.value)
-      smartPhonicsGroup.appendChild(option) // Append to optgroup instead of dropdown
+        const option = document.createElement("option")
+        option.value = seriesKey === "smart-phonics" ? `${level}:${unit}` : `${seriesKey}:${level}:${unit}`
+
+        option.textContent = `Level ${level.replace(
+          "level",
+          ""
+        )} - Unit ${unit.replace("unit", "")} (${targetSound})`
+
+        allUnits.push(option.value)
+        seriesGroup.appendChild(option)
+      })
     })
   })
 
@@ -1709,8 +1716,38 @@ function validateWordSetSelection(level, unit) {
     return true
   }
 
+function getActiveWordBank(series = "smart-phonics") {
+  const sKey = (window.SharedClassSync && window.SharedClassSync.toSeriesSlug)
+    ? window.SharedClassSync.toSeriesSlug(series)
+    : series;
+  if (smartPhonicsWordBank.series && smartPhonicsWordBank.series[sKey]) {
+    return smartPhonicsWordBank.series[sKey].levels;
+  }
+  return smartPhonicsWordBank;
+}
+
+function validateWordSetSelection(level, unit, series = "smart-phonics") {
+  function isCustomSet(level) {
+    // Check for both URL format ("custom") and Dropdown format ("custom:...")
+    return level === "custom" || level.startsWith("custom:")
+  }
+
+  // Check for custom word sets
+  if (isCustomSet(level)) {
+    // Extract set name based on which format we received
+    const setName = level === "custom" ? unit : level.split(":")[1]
+
+    const customSets = getCustomWordSets()
+    if (!customSets[setName]) {
+      console.warn(`Custom word set "${setName}" not found. Using default.`)
+      return false
+    }
+    return true
+  }
+
   // Check if the specified level and unit exist in the word bank
-  if (!smartPhonicsWordBank[level] || !smartPhonicsWordBank[level][unit]) {
+  const bank = getActiveWordBank(series)
+  if (!bank[level] || !bank[level][unit]) {
     console.warn(`Invalid level or unit: ${level}, ${unit}. Using default.`)
     return false
   }
@@ -1721,7 +1758,8 @@ function selectWordsFromWordBank(
   level,
   unit,
   maxWords = 30,
-  includeExtraWords = false
+  includeExtraWords = false,
+  series = "smart-phonics"
 ) {
  if (level === "custom") {
    const sets = getCustomWordSets()
@@ -1736,13 +1774,14 @@ function selectWordsFromWordBank(
  }
 
   // Check if the specified level and unit exist
-  if (!smartPhonicsWordBank[level] || !smartPhonicsWordBank[level][unit]) {
+  const bank = getActiveWordBank(series)
+  if (!bank[level] || !bank[level][unit]) {
     console.error(`Invalid level or unit: ${level}, ${unit}`)
     return []
   }
 
   // Get all units for the current level
-  const unitsInLevel = Object.keys(smartPhonicsWordBank[level])
+  const unitsInLevel = Object.keys(bank[level])
 
   // Find the current unit's index
   const currentUnitIndex = unitsInLevel.indexOf(unit)
@@ -1875,11 +1914,19 @@ function createGameboard(isInitialLoad = false) {
     usedTreasureImages[treasureType] = []
   })
 
+  let selectedSeries = "smart-phonics"
   if (wordSetDropdown.value.startsWith("custom:")) {
     selectedLevel = "custom"
     selectedUnit = wordSetDropdown.value.split(":")[1] // Get set name
   } else {
-    ;[selectedLevel, selectedUnit] = wordSetDropdown.value.split(":")
+    const parts = wordSetDropdown.value.split(":")
+    if (parts.length === 3) {
+      selectedSeries = parts[0]
+      selectedLevel = parts[1]
+      selectedUnit = parts[2]
+    } else {
+      ;[selectedLevel, selectedUnit] = parts
+    }
   }
 
   // Get extra words checkbox state
@@ -1896,7 +1943,8 @@ function createGameboard(isInitialLoad = false) {
     selectedLevel, // level
     selectedUnit, // current unit
     maxWords, // total words desired
-    includeExtraWords // include extra words
+    includeExtraWords, // include extra words
+    selectedSeries // series
   )
 
   const computedStyle = window.getComputedStyle(gameBoard)
