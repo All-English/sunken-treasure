@@ -1,4 +1,4 @@
-const smartPhonicsWordBank = {
+let smartPhonicsWordBank = {
   level1: {
     unit1: {
       targetSound: "ABC",
@@ -1277,4 +1277,26 @@ const smartPhonicsWordBank = {
       ],
     },
   },
+};
+
+/**
+ * Initializes and syncs smartPhonicsWordBank from Upstash or CDN.
+ * Falls back gracefully to the bundled word bank.
+ */
+async function initWordBank() {
+  if (typeof window !== "undefined" && window.SharedClassSync && window.SharedClassSync.CurriculumLoader) {
+    try {
+      const data = await window.SharedClassSync.CurriculumLoader.load();
+      if (data) {
+        const adapted = window.SharedClassSync.CurriculumAdapter.toWordBank(data);
+        if (adapted && Object.keys(adapted).length > 0) {
+          smartPhonicsWordBank = adapted;
+          return adapted;
+        }
+      }
+    } catch (e) {
+      console.warn("[Sunken Treasure] Could not refresh word bank from CDN/Upstash:", e);
+    }
+  }
+  return smartPhonicsWordBank;
 }

@@ -1,6 +1,7 @@
 /**
- * shared-class-sync.js
- * Universal schedule parsing, time-matching, and unit translation
+ * class-sync.js (v2.0)
+ * Universal schedule parsing, time-matching, unit translation,
+ * and canonical curriculum adapter/loader.
  * Shared across Phonics Flash, Word-Tac-Toe, MatchMaker, and Treasure Hunt.
  */
 (function (root, factory) {
@@ -21,181 +22,81 @@
   const SHARED_CLASS_PROFILES_KEY = 'shared_class_profiles';
   const UPSTASH_URL_KEY = 'upstash_redis_url';
   const UPSTASH_TOKEN_KEY = 'upstash_redis_token';
+  const UPSTASH_SHARED_CURRICULUM_KEY = 'shared_phonics_curriculum';
+  
+  function getMediaBase() {
+    if (typeof window !== 'undefined') {
+      if (window.ALL_ENGLISH_MEDIA_BASE) return window.ALL_ENGLISH_MEDIA_BASE;
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem('all_english_media_base');
+        if (stored) return stored;
+      }
+    }
+    return 'https://all-english-media.netlify.app';
+  }
+
+  const DEFAULT_MEDIA_BASE = getMediaBase();
 
   // ── 1. Schedule Parsing from Class Name ────────────────────────
+  const DAY_PATTERNS = [
+    { pattern: /\bMWF\b/i, days: ['Mon', 'Wed', 'Fri'] },
+    { pattern: /\b(TTh|TuTh|TT)\b/i, days: ['Tue', 'Thu'] },
+    { pattern: /\bWF\b/i, days: ['Wed', 'Fri'] },
+    { pattern: /\bMW\b/i, days: ['Mon', 'Wed'] },
+    { pattern: /\bMon(day)?\b/i, days: ['Mon'] },
+    { pattern: /\bTue(s|sday)?\b/i, days: ['Tue'] },
+    { pattern: /\bWed(nesday)?\b/i, days: ['Wed'] },
+    { pattern: /\bThu(r|rs|rsday)?\b/i, days: ['Thu'] },
+    { pattern: /\bFri(day)?\b/i, days: ['Fri'] },
+    { pattern: /\bSat(urday)?\b/i, days: ['Sat'] },
+    { pattern: /\bSun(day)?\b/i, days: ['Sun'] }
+  ];
+
   function parseScheduleFromName(className) {
     if (!className || typeof className !== 'string') {
       return { days: ['Mon', 'Wed', 'Fri'], startTime: '15:00', endTime: '16:00' };
     }
 
     // 1. Extract Days
-    const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     let matchedDays = null;
-
-    // A. Check range patterns (e.g., Mon-Fri, M-F, Mon-Thu, M-Th, Daily, Weekend)
-    if (/\b(Mon(day)?\s*-\s*Fri(day)?|M-F|MTWThF|MTWTF)\b/i.test(className)) {
-      matchedDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-    } else if (/\b(Mon(day)?\s*-\s*Thu(rs|rsday)?|M-Th|MTWTh|MTWT)\b/i.test(className)) {
-      matchedDays = ['Mon', 'Tue', 'Wed', 'Thu'];
-    } else if (/\b(Daily|Everyday|Weekdays?)\b/i.test(className)) {
-      matchedDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-    } else if (/\b(Weekend|Sat(urday)?\s*[-/&]\s*Sun(day)?|SatSun|SS)\b/i.test(className)) {
-      matchedDays = ['Sat', 'Sun'];
-    }
-
-    // B. Check for multiple full/abbreviated day words (e.g., "Mon, Fri", "Mon & Wed", "Tue/Thu", "Monday/Friday")
-    if (!matchedDays) {
-      const dayWordMatches = new Set();
-      const wordChecks = [
-        { day: 'Mon', pattern: /\bMon(day)?\b/i },
-        { day: 'Tue', pattern: /\bTue(s|sday)?\b/i },
-        { day: 'Wed', pattern: /\bWed(nesday)?\b/i },
-        { day: 'Thu', pattern: /\bThu(r|rs|rsday)?\b/i },
-        { day: 'Fri', pattern: /\bFri(day)?\b/i },
-        { day: 'Sat', pattern: /\bSat(urday)?\b/i },
-        { day: 'Sun', pattern: /\bSun(day)?\b/i }
-      ];
-
-      wordChecks.forEach(({ day, pattern }) => {
-        if (pattern.test(className)) dayWordMatches.add(day);
-      });
-
-      if (dayWordMatches.size > 0) {
-        matchedDays = ALL_DAYS.filter((d) => dayWordMatches.has(d));
+    for (const entry of DAY_PATTERNS) {
+      if (entry.pattern.test(className)) {
+        matchedDays = entry.days;
+        break;
       }
     }
-
-    // C. Check multi-day acronyms (e.g. MWF, MF, TTh, TT, WF, MW, TF, etc.)
     if (!matchedDays) {
-      const ACRONYM_PATTERNS = [
-        { pattern: /\b(MWF|M[/&+, ]*W[/&+, ]*F)\b/i, days: ['Mon', 'Wed', 'Fri'] },
-        { pattern: /\b(MWFS|MWFSa|MWFSat)\b/i, days: ['Mon', 'Wed', 'Fri', 'Sat'] },
-        { pattern: /\b(TThS|TThSat|TTS|TTSat)\b/i, days: ['Tue', 'Thu', 'Sat'] },
-        { pattern: /\b(MTW|M[/&+, ]*T[/&+, ]*W)\b/i, days: ['Mon', 'Tue', 'Wed'] },
-        { pattern: /\b(TWTh|TWT|T[/&+, ]*W[/&+, ]*Th)\b/i, days: ['Tue', 'Wed', 'Thu'] },
-        { pattern: /\b(WThF|WTF|W[/&+, ]*Th[/&+, ]*F)\b/i, days: ['Wed', 'Thu', 'Fri'] },
-        { pattern: /\b(TTh|TuTh|TT|T[/&+, ]*Th|Tu[/&+, ]*Th|T[/&+, ]*T)\b/i, days: ['Tue', 'Thu'] },
-        { pattern: /\b(MW|M[/&+, ]*W)\b/i, days: ['Mon', 'Wed'] },
-        { pattern: /\b(WF|W[/&+, ]*F)\b/i, days: ['Wed', 'Fri'] },
-        { pattern: /\b(MF|M[/&+, ]*F)\b/i, days: ['Mon', 'Fri'] },
-        { pattern: /\b(TF|TuF|T[/&+, ]*F|Tu[/&+, ]*F)\b/i, days: ['Tue', 'Fri'] },
-        { pattern: /\b(MTh|MuTh|M[/&+, ]*Th)\b/i, days: ['Mon', 'Thu'] },
-        { pattern: /\b(ThF|Th[/&+, ]*F)\b/i, days: ['Thu', 'Fri'] },
-        { pattern: /\b(MT|MTu|M[/&+, ]*T)\b/i, days: ['Mon', 'Tue'] },
-        { pattern: /\b(WTh|W[/&+, ]*Th)\b/i, days: ['Wed', 'Thu'] },
-        { pattern: /\b(SatSun|SS|Sat[/&+, ]*Sun)\b/i, days: ['Sat', 'Sun'] },
-        // Standalone single-letter days
-        { pattern: /\bM\b/i, days: ['Mon'] },
-        { pattern: /\b(Tu|Tue)\b/i, days: ['Tue'] },
-        { pattern: /\bW\b/i, days: ['Wed'] },
-        { pattern: /\bTh\b/i, days: ['Thu'] },
-        { pattern: /\bF\b/i, days: ['Fri'] },
-        { pattern: /\bSa\b/i, days: ['Sat'] },
-        { pattern: /\bSu\b/i, days: ['Sun'] }
-      ];
-
-      for (const entry of ACRONYM_PATTERNS) {
-        if (entry.pattern.test(className)) {
-          matchedDays = entry.days;
-          break;
-        }
-      }
-    }
-
-    if (!matchedDays || matchedDays.length === 0) {
       matchedDays = ['Mon', 'Wed', 'Fri'];
     }
 
-    // 2. Extract Time
-    function parseHourMinMeridiem(hStr, mStr, meridiem) {
-      let h = parseInt(hStr, 10);
-      const m = mStr ? parseInt(mStr, 10) : 0;
-      const isPM = meridiem && /pm/i.test(meridiem);
-      const isAM = meridiem && /am/i.test(meridiem);
-
-      if (isPM) {
-        if (h < 12) h += 12;
-      } else if (isAM) {
-        if (h === 12) h = 0;
-      } else {
-        // Academy / hagwon hours 1..7 without AM/PM default to PM (13:00 to 19:00)
-        if (h >= 1 && h <= 7) {
-          h += 12;
-        }
-      }
-      return { h: h % 24, m: Math.min(Math.max(m, 0), 59) };
-    }
-
-    const formatTime = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-
+    // 2. Extract Start Time
+    const timeMatch = className.match(/(\d{1,2}):(\d{2})/);
     let startHour = 15;
     let startMin = 0;
-    let endHour = 16;
-    let endMin = 0;
 
-    // A. Check for time ranges e.g. "2:00-2:50", "2:00 - 3:00pm", "2pm-3pm", "2:00~3:00"
-    const rangeMatch = className.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:-|~|to)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
-    if (rangeMatch && (rangeMatch[2] !== undefined || rangeMatch[5] !== undefined || rangeMatch[3] !== undefined || rangeMatch[6] !== undefined)) {
-      const sH = rangeMatch[1];
-      const sM = rangeMatch[2];
-      let sMer = rangeMatch[3];
-      const eH = rangeMatch[4];
-      const eM = rangeMatch[5];
-      const eMer = rangeMatch[6];
-
-      // If end has PM and start has no meridiem, start shares PM if it comes earlier or equal in 12h clock
-      if (!sMer && eMer && /pm/i.test(eMer) && parseInt(sH, 10) <= parseInt(eH, 10)) {
-        sMer = eMer;
-      }
-
-      const startParsed = parseHourMinMeridiem(sH, sM, sMer);
-      const endParsed = parseHourMinMeridiem(eH, eM, eMer);
-
-      startHour = startParsed.h;
-      startMin = startParsed.m;
-      endHour = endParsed.h;
-      endMin = endParsed.m;
-
-      if (endHour * 60 + endMin <= startHour * 60 + startMin) {
-        const fallbackEnd = startHour * 60 + startMin + 60;
-        endHour = Math.floor(fallbackEnd / 60) % 24;
-        endMin = fallbackEnd % 60;
-      }
-    } else {
-      // B. Single time match e.g. "2:00", "2:00pm", "2pm"
-      const colonMatch = className.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
-      const hourOnlyMatch = !colonMatch && className.match(/\b(\d{1,2})\s*(am|pm)\b/i);
-
-      if (colonMatch) {
-        const startParsed = parseHourMinMeridiem(colonMatch[1], colonMatch[2], colonMatch[3]);
-        startHour = startParsed.h;
-        startMin = startParsed.m;
-        const totalEndMinutes = startHour * 60 + startMin + 60;
-        endHour = Math.floor(totalEndMinutes / 60) % 24;
-        endMin = totalEndMinutes % 60;
-      } else if (hourOnlyMatch) {
-        const startParsed = parseHourMinMeridiem(hourOnlyMatch[1], '00', hourOnlyMatch[2]);
-        startHour = startParsed.h;
-        startMin = startParsed.m;
-        const totalEndMinutes = startHour * 60 + startMin + 60;
-        endHour = Math.floor(totalEndMinutes / 60) % 24;
-        endMin = totalEndMinutes % 60;
+    if (timeMatch) {
+      startHour = parseInt(timeMatch[1], 10);
+      startMin = parseInt(timeMatch[2], 10);
+      // Auto-convert single-digit or early morning afternoon times (e.g. 3:00 -> 15:00)
+      if (startHour >= 1 && startHour <= 8) {
+        startHour += 12;
       }
     }
 
-    return {
-      days: matchedDays,
-      startTime: formatTime(startHour, startMin),
-      endTime: formatTime(endHour, endMin)
-    };
+    const pad = n => String(n).padStart(2, '0');
+    const startTime = `${pad(startHour)}:${pad(startMin)}`;
+
+    // Default 50-60 min session length
+    const totalStartMinutes = startHour * 60 + startMin;
+    const totalEndMinutes = totalStartMinutes + 50;
+    const endHour = Math.floor(totalEndMinutes / 60);
+    const endMin = totalEndMinutes % 60;
+    const endTime = `${pad(endHour)}:${pad(endMin)}`;
+
+    return { days: matchedDays, startTime, endTime };
   }
 
   // ── 2. Strict In-Session Time Matching ─────────────────────────
-  /**
-   * Finds the active scheduled class strictly during its in-session window:
-   * startTime <= currentTime < endTime.
-   * Never activates before startTime. No post-class grace bleed.
-   */
   function findActiveScheduledClass(classProfiles, date = new Date()) {
     if (!classProfiles || typeof classProfiles !== 'object') return null;
 
@@ -217,72 +118,58 @@
       const startMin = (startParts[0] || 0) * 60 + (startParts[1] || 0);
       let endMin = (endParts[0] || 0) * 60 + (endParts[1] || 0);
       if (endMin <= startMin) {
-        endMin = startMin + 60; // 60 min default
+        endMin = startMin + 60;
       }
 
-      // Strictly in-session check
       if (currentMinutes >= startMin && currentMinutes < endMin) {
-        candidates.push({
-          className,
-          profile,
-          startMin,
-          endMin
-        });
+        candidates.push({ className, profile, startMin, endMin });
       }
     }
 
     if (candidates.length === 0) return null;
-
-    // If multiple overlap on a boundary, pick the most recent start time
     candidates.sort((a, b) => b.startMin - a.startMin);
     return candidates[0];
   }
 
   // ── 3. Universal Smart Phonics Unit Translators ────────────────
-  /**
-   * Normalizes any app's unit string to a canonical object:
-   * { level: 2, unit: 3, id: "L2U3" }
-   *
-   * Handles:
-   * - "L2U3", "L2U03" (Phonics Flash)
-   * - "Book2|Unit3" (Word-Tac-Toe)
-   * - "SmartPhonics|2|3" (MatchMaker)
-   * - "level2:unit3" (Treasure Hunt)
-   */
   function toCanonicalUnit(unitStr) {
-    if (!unitStr || typeof unitStr !== 'string') return null;
+    if (!unitStr) return null;
+    if (typeof unitStr === 'object') {
+      const level = parseInt(unitStr.level || unitStr.book, 10);
+      const unit = parseInt(unitStr.unit || (typeof unitStr.unitName === 'string' ? unitStr.unitName.match(/Unit\s+(\d+)/i)?.[1] : null), 10);
+      if (!isNaN(level) && !isNaN(unit)) {
+        const series = unitStr.series || 'SmartPhonics';
+        return { series, level, unit, id: `L${level}U${unit}` };
+      }
+      return null;
+    }
+    if (typeof unitStr !== 'string') return null;
     const str = unitStr.trim();
 
     // 1. Phonics Flash: L2U3
     let m = str.match(/L(\d+)U(\d+)/i);
     if (m) {
-      const level = parseInt(m[1], 10);
-      const unit = parseInt(m[2], 10);
-      return { level, unit, id: `L${level}U${unit}` };
+      return { series: 'SmartPhonics', level: parseInt(m[1], 10), unit: parseInt(m[2], 10), id: `L${m[1]}U${m[2]}` };
     }
 
     // 2. Word-Tac-Toe: Book2|Unit3
     m = str.match(/Book(\d+)\|Unit(\d+)/i);
     if (m) {
-      const level = parseInt(m[1], 10);
-      const unit = parseInt(m[2], 10);
-      return { level, unit, id: `L${level}U${unit}` };
+      return { series: 'SmartPhonics', level: parseInt(m[1], 10), unit: parseInt(m[2], 10), id: `L${m[1]}U${m[2]}` };
     }
 
-    // 3. MatchMaker: SmartPhonics|2|3
-    m = str.match(/(?:SmartPhonics|SP)\|(\d+)\|(\d+)/i);
+    // 3. MatchMaker: SmartPhonics|2|3 or LetsSmile|2|3 or LS|2|3
+    m = str.match(/(?:SmartPhonics|SP|LetsSmile|LS)\|(\d+)\|(\d+)/i);
     if (m) {
-      const level = parseInt(m[1], 10);
-      const unit = parseInt(m[2], 10);
-      return { level, unit, id: `L${level}U${unit}` };
+      const isLS = /^(?:LetsSmile|LS)/i.test(str);
+      const series = isLS ? 'LetsSmile' : 'SmartPhonics';
+      return { series, level: parseInt(m[1], 10), unit: parseInt(m[2], 10), id: `L${m[1]}U${m[2]}` };
     }
 
     // 4. Treasure Hunt: level2:unit3
     m = str.match(/level(\d+):unit(\d+)/i);
     if (m) {
-      const level = parseInt(m[1], 10);
-      const unit = parseInt(m[2], 10);
-      return { level, unit, id: `L${level}U${unit}` };
+      return { series: 'SmartPhonics', level: parseInt(m[1], 10), unit: parseInt(m[2], 10), id: `L${m[1]}U${m[2]}` };
     }
 
     return null;
@@ -303,7 +190,8 @@
   function toMatchMaker(canonical) {
     if (!canonical) return null;
     const c = typeof canonical === 'string' ? toCanonicalUnit(canonical) : canonical;
-    return c ? `SmartPhonics|${c.level}|${c.unit}` : null;
+    const prefix = c.series === 'LetsSmile' ? 'LetsSmile' : 'SmartPhonics';
+    return c ? `${prefix}|${c.level}|${c.unit}` : null;
   }
 
   function toTreasureHunt(canonical) {
@@ -312,19 +200,11 @@
     return c ? `level${c.level}:unit${c.unit}` : null;
   }
 
-  /**
-   * For single-select dropdowns (like Treasure Hunt),
-   * returns the highest level and unit from an array of units.
-   */
   function getHighestUnit(unitsArray) {
     if (!Array.isArray(unitsArray) || unitsArray.length === 0) return null;
-    const parsed = unitsArray
-      .map(toCanonicalUnit)
-      .filter(Boolean);
-
+    const parsed = unitsArray.map(toCanonicalUnit).filter(Boolean);
     if (parsed.length === 0) return null;
 
-    // Sort descending: highest level first, then highest unit
     parsed.sort((a, b) => {
       if (b.level !== a.level) return b.level - a.level;
       return b.unit - a.unit;
@@ -360,7 +240,7 @@
     if (!url || !token) return null;
 
     try {
-      const res = await fetch(`${url}/get/${key}`, {
+      const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) return null;
@@ -387,7 +267,7 @@
 
     try {
       const payload = typeof value === 'string' ? value : JSON.stringify(value);
-      const res = await fetch(`${url}/set/${key}`, {
+      const res = await fetch(`${url}/set/${encodeURIComponent(key)}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -403,15 +283,10 @@
   }
 
   // ── 5. Unified Profile Loader & Manager ────────────────────────
-  /**
-   * Merges rosters from shared_player_sets and profiles from shared_class_profiles.
-   * Auto-generates initial schedule if missing.
-   */
   async function loadAllClasses() {
     let playerSets = {};
     let classProfiles = {};
 
-    // 1. Try local storage first
     if (typeof localStorage !== 'undefined') {
       try {
         const localSets = localStorage.getItem(SHARED_SETS_KEY);
@@ -423,7 +298,6 @@
       }
     }
 
-    // 2. Fetch from Upstash
     const cloudSets = await fetchUpstash(SHARED_SETS_KEY);
     if (cloudSets && typeof cloudSets === 'object') {
       playerSets = cloudSets;
@@ -440,7 +314,6 @@
       }
     }
 
-    // 3. Ensure every class in playerSets has a valid profile
     let profilesChanged = false;
     for (const className of Object.keys(playerSets)) {
       if (!classProfiles[className]) {
@@ -466,10 +339,7 @@
     return { playerSets, classProfiles };
   }
 
-  /**
-   * Save units for a specific class and push to Upstash
-   */
-  async function saveClassUnits(className, canonicalUnitsArray) {
+  async function saveClassUnits(className, canonicalUnitsArray, curriculumId) {
     if (!className) return false;
     let profiles = {};
     if (typeof localStorage !== 'undefined') {
@@ -482,11 +352,15 @@
       profiles[className] = {
         schedule: parseScheduleFromName(className),
         units: [],
+        curriculumId: curriculumId || 'smart-phonics',
         updatedAt: Date.now()
       };
     }
 
     profiles[className].units = canonicalUnitsArray;
+    if (curriculumId) {
+      profiles[className].curriculumId = curriculumId;
+    }
     profiles[className].updatedAt = Date.now();
 
     if (typeof localStorage !== 'undefined') {
@@ -495,12 +369,240 @@
     return syncUpstash(SHARED_CLASS_PROFILES_KEY, profiles);
   }
 
+  // ── 6. Canonical Curriculum Adapter ───────────────────────────
+  const CurriculumAdapter = {
+    /**
+     * Defensive Normalizer: accepts Canonical v2, EditorStore v1, or raw words.json
+     * Returns a valid Canonical v2 structure: { version: 2, updatedAt, mediaBase, series: [...] }
+     */
+    normalize(data) {
+      if (!data) return null;
+      if (Array.isArray(data.series)) {
+        return {
+          version: data.version || 2,
+          updatedAt: data.updatedAt || Date.now(),
+          mediaBase: (data.mediaBase || DEFAULT_MEDIA_BASE).replace(/\/$/, ''),
+          series: data.series
+        };
+      }
+      // Legacy EditorStore format (has curricula[])
+      if (Array.isArray(data.curricula)) {
+        return {
+          version: 2,
+          updatedAt: data.updatedAt || Date.now(),
+          mediaBase: (data.mediaBase || DEFAULT_MEDIA_BASE).replace(/\/$/, ''),
+          series: data.curricula.map(c => ({
+            id: c.id,
+            name: c.name,
+            levels: c.levels || []
+          }))
+        };
+      }
+      // Raw words.json format (has levels[])
+      if (Array.isArray(data.levels)) {
+        return {
+          version: 2,
+          updatedAt: 0,
+          mediaBase: DEFAULT_MEDIA_BASE,
+          series: [
+            {
+              id: 'smart-phonics',
+              name: 'Smart Phonics',
+              levels: data.levels
+            }
+          ]
+        };
+      }
+      return null;
+    },
+
+    resolveUrl(path, base) {
+      if (!path) return '';
+      if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('blob:')) {
+        return path;
+      }
+      const cleanPath = path.replace(/^(\.\/|data\/|media\/)/, '');
+      const cleanBase = (base || getMediaBase()).replace(/\/$/, '');
+      return `${cleanBase}/${cleanPath}`;
+    },
+
+    /**
+     * Adapts canonical curriculum for Phonics Flash ({ levels: [...] })
+     */
+    toPhonicsFlash(data, mediaBase) {
+      const norm = this.normalize(data);
+      if (!norm || !norm.series || norm.series.length === 0) return { levels: [] };
+      const sp = norm.series.find(s => s.id === 'smart-phonics') || norm.series[0];
+      const activeBase = mediaBase || (getMediaBase() !== 'https://all-english-media.netlify.app' ? getMediaBase() : (norm.mediaBase || getMediaBase()));
+
+      return {
+        levels: (sp.levels || []).map(lvl => ({
+          ...lvl,
+          units: (lvl.units || []).map(unit => ({
+            ...unit,
+            words: (unit.words || []).map(w => ({
+              ...w,
+              image: this.resolveUrl(w.image, activeBase),
+              audio: this.resolveUrl(w.audio, activeBase)
+            }))
+          }))
+        }))
+      };
+    },
+
+    /**
+     * Adapts canonical curriculum for MatchMaker ({ 1: { "Unit 1: abc": [...] } })
+     */
+    toMatchMaker(data, mediaBase) {
+      const norm = this.normalize(data);
+      if (!norm || !norm.series || norm.series.length === 0) return {};
+      const sp = norm.series.find(s => s.id === 'smart-phonics') || norm.series[0];
+      const activeBase = mediaBase || (getMediaBase() !== 'https://all-english-media.netlify.app' ? getMediaBase() : (norm.mediaBase || getMediaBase()));
+      const bookMap = {};
+
+      for (const lvl of sp.levels || []) {
+        const bookNum = lvl.bookNumber || parseInt(String(lvl.id).replace(/\D/g, ''), 10) || 1;
+        bookMap[bookNum] = {};
+
+        for (const unit of lvl.units || []) {
+          const cardList = [];
+          if (unit.targetLetters && unit.targetLetters.length) {
+            const tl = Array.isArray(unit.targetLetters) ? unit.targetLetters.join(', ') : unit.targetLetters;
+            cardList.push({ targetLetters: tl });
+          }
+
+          for (const w of unit.words || []) {
+            const card = {
+              word: w.word,
+              image: this.resolveUrl(w.image, activeBase),
+              sound: this.resolveUrl(w.audio, activeBase)
+            };
+            if (w.imageAudio) {
+              card.imageSound = this.resolveUrl(w.imageAudio, activeBase);
+            }
+            cardList.push(card);
+          }
+          bookMap[bookNum][unit.name] = cardList;
+        }
+      }
+      return bookMap;
+    },
+
+    /**
+     * Adapts canonical curriculum for Sunken Treasure & Tic-Tac-Toe ({ level1: { unit1: {...} } })
+     */
+    toWordBank(data) {
+      const norm = this.normalize(data);
+      if (!norm || !norm.series || norm.series.length === 0) return {};
+      const sp = norm.series.find(s => s.id === 'smart-phonics') || norm.series[0];
+      const bank = {};
+
+      for (const lvl of sp.levels || []) {
+        const bookNum = lvl.bookNumber || parseInt(String(lvl.id).replace(/\D/g, ''), 10) || 1;
+        const levelKey = `level${bookNum}`;
+        bank[levelKey] = {};
+
+        for (const unit of lvl.units || []) {
+          const unitNum = unit.unitNumber || (String(unit.id).match(/\d+$/)?.[0]) || '1';
+          const unitKey = `unit${unitNum}`;
+
+          let title = unit.unitTitle;
+          if (!title && unit.name) {
+            title = unit.name.replace(/^Unit\s+\d+:\s*/i, '');
+          }
+          if (bookNum === 1 && unit.targetLetters && unit.targetLetters.length) {
+            title = unit.targetLetters.join('').toUpperCase();
+          }
+
+          let words = [];
+          let extraWords = [];
+
+          if (bookNum === 1 && unit.targetLetters && unit.targetLetters.length) {
+            for (const l of unit.targetLetters) {
+              words.push(l.toUpperCase(), l.toLowerCase());
+              extraWords.push(l.toUpperCase() + l.toLowerCase());
+            }
+          } else {
+            words = [...new Set((unit.words || []).map(w => typeof w === 'string' ? w : w.word))];
+            extraWords = (unit.extraWords || []).map(w => typeof w === 'string' ? w : (w.word || ''));
+          }
+
+          bank[levelKey][unitKey] = {
+            targetSound: unit.targetSound || '',
+            unitTitle: title || `Unit ${unitNum}`,
+            words,
+            extraWords
+          };
+        }
+      }
+      return bank;
+    }
+  };
+
+  // ── 7. Unified Curriculum Loader ──────────────────────────────
+  const CurriculumLoader = {
+    cachedCurriculum: null,
+
+    /**
+     * 3-Tier Load Chain: Upstash -> CDN -> Local Fallback
+     */
+    async load({ cdnBase = null, fallbackData = null, forceRefresh = false } = {}) {
+      if (this.cachedCurriculum && !forceRefresh) {
+        return this.cachedCurriculum;
+      }
+
+      // 1. Check Upstash live edits if credentials exist
+      try {
+        const cloudData = await fetchUpstash(UPSTASH_SHARED_CURRICULUM_KEY);
+        if (cloudData) {
+          const normalized = CurriculumAdapter.normalize(cloudData);
+          if (normalized) {
+            this.cachedCurriculum = normalized;
+            return normalized;
+          }
+        }
+      } catch (e) {
+        console.warn('[CurriculumLoader] Upstash check skipped/failed:', e);
+      }
+
+      // 2. Fetch from CDN curriculum.json with cache buster
+      try {
+        const cleanCdn = (cdnBase || getMediaBase()).replace(/\/$/, '');
+        const res = await fetch(`${cleanCdn}/curriculum.json?v=2.0`);
+        if (res.ok) {
+          const cdnJson = await res.json();
+          const normalized = CurriculumAdapter.normalize(cdnJson);
+          if (normalized) {
+            this.cachedCurriculum = normalized;
+            return normalized;
+          }
+        }
+      } catch (e) {
+        console.warn('[CurriculumLoader] CDN fetch failed, falling back to local bundle:', e);
+      }
+
+      // 3. Bundled offline fallback
+      if (fallbackData) {
+        const normalized = CurriculumAdapter.normalize(fallbackData);
+        if (normalized) {
+          this.cachedCurriculum = normalized;
+          return normalized;
+        }
+      }
+
+      return null;
+    }
+  };
+
   return {
     SHARED_SETS_KEY,
     SHARED_ACTIVE_PLAYERS_KEY,
     SHARED_CLASS_PROFILES_KEY,
     UPSTASH_URL_KEY,
     UPSTASH_TOKEN_KEY,
+    UPSTASH_SHARED_CURRICULUM_KEY,
+    DEFAULT_MEDIA_BASE,
+    getMediaBase,
     parseScheduleFromName,
     findActiveScheduledClass,
     toCanonicalUnit,
@@ -513,6 +615,8 @@
     fetchUpstash,
     syncUpstash,
     loadAllClasses,
-    saveClassUnits
+    saveClassUnits,
+    CurriculumAdapter,
+    CurriculumLoader
   };
 });

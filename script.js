@@ -3502,6 +3502,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadPlayerStats()
   loadSavedPlayers()
   populateMaxWordsDropdown()
+  if (typeof initWordBank === "function") {
+    await initWordBank()
+  }
   populateWordSetDropdown()
   setupSoundMuteControl()
   setupCustomSetsListeners()
