@@ -3357,6 +3357,7 @@ function saveActiveSessionPlayers(namesArray) {
 function handleUpstashError(errorMessage) {
   localStorage.removeItem(UPSTASH_URL_KEY)
   localStorage.removeItem(UPSTASH_TOKEN_KEY)
+  window.SharedClassSync?.clearCredentials?.()
   
   const statusEl = document.getElementById("sync-status")
   const syncSummary = document.getElementById("sync-settings-summary")
@@ -3760,6 +3761,7 @@ function setupPlayerSetsSyncEventListeners() {
         if (testRes.ok) {
           localStorage.setItem(UPSTASH_URL_KEY, url)
           localStorage.setItem(UPSTASH_TOKEN_KEY, token)
+          window.SharedClassSync?.saveCredentials?.(url, token)
 
           if (syncStatus) {
             syncStatus.textContent = "Connected & synced successfully!"
@@ -3858,10 +3860,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     saveElevenlabsBtn.addEventListener("click", async () => {
       const key = elevenlabsApiKeyInput.value.trim()
       if (!key) {
+        userApiKey = ""
+        localStorage.removeItem("elevenlabs_api_key")
+        window.SharedClassSync?.setSharedApiKey?.("")
         if (elevenlabsStatus) {
-          elevenlabsStatus.textContent = "Please enter an API Key."
-          elevenlabsStatus.style.color = "red"
+          elevenlabsStatus.textContent = "API Key cleared."
+          elevenlabsStatus.style.color = "lightgreen"
         }
+        if (apiSettingsSummary) {
+          apiSettingsSummary.textContent = "ElevenLabs API Settings"
+        }
+        resetCachedTurnVoices()
         return
       }
 
@@ -3882,6 +3891,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (response.ok) {
           userApiKey = key
           localStorage.setItem("elevenlabs_api_key", userApiKey)
+          window.SharedClassSync?.setSharedApiKey?.(userApiKey)
           resetCachedTurnVoices()
           precachePlayerTurnAudios()
 
