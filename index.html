@@ -188,6 +188,18 @@
             </div>
         </div>
 
+        <!-- Manage Books Modal -->
+        <div id="manage-books-modal" class="modal">
+            <div class="modal-content" style="max-width: 420px;">
+                <h2>Manage Books</h2>
+                <p style="font-size: 0.9rem; color: #666; margin: -0.5rem 0 1rem 0;">Select which textbook series appear in Sunken Treasure.</p>
+                <div id="manage-books-list" class="manage-books-list" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;"></div>
+                <div class="modal-actions">
+                    <button id="close-manage-books-btn" class="primary-btn">Done</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Rename Player Modal -->
         <div id="rename-player-modal" class="modal">
             <div class="modal-content">
@@ -236,8 +248,8 @@
             Show Used Cells
         </label>
     </div> -->
-    <script src="https://all-english-media.netlify.app/shared/class-sync.js?v=2.1"></script>
-    <script>window.SharedClassSync || document.write('<script src="shared-class-sync.js"><\/script>');</script>
+    <script src="shared-class-sync.js?v=2.2"></script>
+    <script>window.SharedClassSync?.getHiddenBooks || document.write('<script src="https://all-english-media.netlify.app/shared/class-sync.js?v=2.2"><\/script>');</script>
     <script src="wordbank.js?v=11"></script>
     <script src="script.js?v=11"></script>
 </body>

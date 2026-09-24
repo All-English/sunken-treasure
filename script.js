@@ -352,6 +352,102 @@ function setupCustomSetsListeners() {
   })
 }
 
+function showManageBooksModal() {
+  const modal = document.getElementById("manage-books-modal")
+  if (!modal) return
+  renderSunkenManageBooksList()
+  modal.classList.add("visible")
+}
+
+function hideManageBooksModal() {
+  const modal = document.getElementById("manage-books-modal")
+  if (!modal) return
+  modal.classList.remove("visible")
+}
+
+function renderSunkenManageBooksList() {
+  const list = document.getElementById("manage-books-list")
+  if (!list) return
+  list.innerHTML = ""
+
+  const allSeriesEntries = (smartPhonicsWordBank.series && Object.keys(smartPhonicsWordBank.series).length > 0)
+    ? Object.entries(smartPhonicsWordBank.series)
+    : [["smart-phonics", { name: "Smart Phonics", levels: smartPhonicsWordBank }]];
+
+  const visibleCount = allSeriesEntries.filter(([slug]) => window.SharedClassSync ? !window.SharedClassSync.isBookHidden(slug) : true).length
+
+  allSeriesEntries.forEach(([slug, obj]) => {
+    const isVisible = window.SharedClassSync ? !window.SharedClassSync.isBookHidden(slug) : true
+    const isLastRemaining = isVisible && visibleCount <= 1
+
+    const label = document.createElement("label")
+    label.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; background: var(--card-bg, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; cursor: pointer;"
+    if (isLastRemaining) {
+      label.title = "At least one book must remain visible."
+    }
+
+    const textSpan = document.createElement("span")
+    textSpan.textContent = obj.name || (window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(slug) : slug)
+    textSpan.style.fontWeight = "600"
+
+    const chk = document.createElement("input")
+    chk.type = "checkbox"
+    chk.checked = isVisible
+    chk.disabled = isLastRemaining
+    chk.style.cursor = isLastRemaining ? "not-allowed" : "pointer"
+    chk.style.width = "18px"
+    chk.style.height = "18px"
+
+    chk.addEventListener("change", async () => {
+      let currentHidden = window.SharedClassSync ? [...window.SharedClassSync.getHiddenBooks()] : []
+      const slugNorm = window.SharedClassSync ? window.SharedClassSync.toSeriesSlug(slug) : slug
+      if (chk.checked) {
+        currentHidden = currentHidden.filter((s) => s !== slugNorm)
+      } else {
+        if (!currentHidden.includes(slugNorm)) {
+          currentHidden.push(slugNorm)
+        }
+      }
+      if (window.SharedClassSync) {
+        await window.SharedClassSync.setHiddenBooks(currentHidden)
+      }
+
+      // If active series is now hidden, switch to first visible
+      let currentActiveSeries = localStorage.getItem("sunken_treasure_selected_series") || "smart-phonics"
+      const remainingVisible = allSeriesEntries.filter(([s]) => window.SharedClassSync ? !window.SharedClassSync.isBookHidden(s) : true)
+      if (!chk.checked && (currentActiveSeries === slug || window.SharedClassSync?.isBookHidden(currentActiveSeries)) && remainingVisible.length > 0) {
+        currentActiveSeries = remainingVisible[0][0]
+        localStorage.setItem("sunken_treasure_selected_series", currentActiveSeries)
+        populateSeriesDropdown()
+        populateWordSetDropdown(currentActiveSeries)
+        const wordSetDropdown = document.getElementById("word-set-dropdown")
+        const parts = (wordSetDropdown?.value || "").split(":")
+        const level = parts.length === 3 ? parts[1] : parts[0]
+        const unit = parts.length === 3 ? parts[2] : parts[1]
+        updateUrlParameters(level, unit, currentActiveSeries)
+        createGameboard()
+        updatePlayerDisplay()
+      } else {
+        populateSeriesDropdown()
+        populateWordSetDropdown(currentActiveSeries)
+      }
+
+      renderSunkenManageBooksList()
+    })
+
+    label.appendChild(textSpan)
+    label.appendChild(chk)
+    list.appendChild(label)
+  })
+}
+
+function setupManageBooksListeners() {
+  const closeBtn = document.getElementById("close-manage-books-btn")
+  if (closeBtn) {
+    closeBtn.addEventListener("click", hideManageBooksModal)
+  }
+}
+
 function shufflePlayers() {
   if (players.length <= 1) return
 
@@ -1249,12 +1345,17 @@ function populateSeriesDropdown() {
   const seriesSelect = document.getElementById("series-select")
   if (!seriesSelect) return
 
-  const seriesEntries = (smartPhonicsWordBank.series && Object.keys(smartPhonicsWordBank.series).length > 0)
+  const allSeriesEntries = (smartPhonicsWordBank.series && Object.keys(smartPhonicsWordBank.series).length > 0)
     ? Object.entries(smartPhonicsWordBank.series)
     : [["smart-phonics", { name: "Smart Phonics", levels: smartPhonicsWordBank }]];
 
+  let visibleEntries = allSeriesEntries.filter(([slug]) => window.SharedClassSync ? !window.SharedClassSync.isBookHidden(slug) : true)
+  if (visibleEntries.length === 0 && allSeriesEntries.length > 0) {
+    visibleEntries = [allSeriesEntries[0]]
+  }
+
   seriesSelect.innerHTML = ""
-  seriesEntries.forEach(([slug, obj]) => {
+  visibleEntries.forEach(([slug, obj]) => {
     const opt = document.createElement("option")
     opt.value = slug
     opt.textContent = obj.name || (window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(slug) : slug)
@@ -1262,32 +1363,66 @@ function populateSeriesDropdown() {
   })
 
   // Ensure current active series has an option
-  const activeSeries = localStorage.getItem("sunken_treasure_selected_series") || "smart-phonics"
+  let activeSeries = localStorage.getItem("sunken_treasure_selected_series") || "smart-phonics"
   if (activeSeries && !Array.from(seriesSelect.options).some((o) => o.value === activeSeries)) {
-    const opt = document.createElement("option")
-    opt.value = activeSeries
-    opt.textContent = window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(activeSeries) : activeSeries
-    seriesSelect.appendChild(opt)
+    const matched = allSeriesEntries.find(([slug]) => slug === activeSeries)
+    if (matched) {
+      const opt = document.createElement("option")
+      opt.value = activeSeries
+      opt.textContent = matched[1].name || (window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(activeSeries) : activeSeries)
+      seriesSelect.appendChild(opt)
+    } else if (visibleEntries.length > 0) {
+      activeSeries = visibleEntries[0][0]
+      localStorage.setItem("sunken_treasure_selected_series", activeSeries)
+    }
   }
 
-  seriesSelect.style.display = seriesSelect.options.length > 1 ? "" : "none"
+  // Add manage books option if total curriculum books > 1
+  if (allSeriesEntries.length > 1) {
+    const manageOpt = document.createElement("option")
+    manageOpt.value = "manage-books"
+    manageOpt.textContent = "⚙️ Manage Books..."
+    seriesSelect.appendChild(manageOpt)
+  }
+
+  const bookOptionsCount = Array.from(seriesSelect.options).filter((o) => o.value !== "manage-books").length
+  seriesSelect.style.display = bookOptionsCount > 1 ? "" : "none"
 }
 
 function populateWordSetDropdown(targetSeriesKey = null) {
   const unitDropdown = document.getElementById("word-set-dropdown")
   if (!unitDropdown) return
 
+  const allSeriesEntries = (smartPhonicsWordBank.series && Object.keys(smartPhonicsWordBank.series).length > 0)
+    ? Object.entries(smartPhonicsWordBank.series)
+    : [["smart-phonics", { name: "Smart Phonics", levels: smartPhonicsWordBank }]];
+
+  let visibleEntries = allSeriesEntries.filter(([slug]) => window.SharedClassSync ? !window.SharedClassSync.isBookHidden(slug) : true)
+  if (visibleEntries.length === 0 && allSeriesEntries.length > 0) {
+    visibleEntries = [allSeriesEntries[0]]
+  }
+
   const seriesSelect = document.getElementById("series-select")
-  let seriesKey = targetSeriesKey || (seriesSelect ? seriesSelect.value : null) || "smart-phonics"
+  let seriesKey = targetSeriesKey || (seriesSelect ? seriesSelect.value : null) || localStorage.getItem("sunken_treasure_selected_series") || "smart-phonics"
+  if (seriesKey === "manage-books") {
+    seriesKey = localStorage.getItem("sunken_treasure_selected_series") || "smart-phonics"
+  }
+  if (window.SharedClassSync?.isBookHidden(seriesKey) && !targetSeriesKey && visibleEntries.length > 0) {
+    seriesKey = visibleEntries[0][0]
+    localStorage.setItem("sunken_treasure_selected_series", seriesKey)
+  }
+
   if (seriesSelect && seriesKey) {
     if (!Array.from(seriesSelect.options).some((o) => o.value === seriesKey)) {
+      const matched = allSeriesEntries.find(([slug]) => slug === seriesKey)
       const opt = document.createElement("option")
       opt.value = seriesKey
-      opt.textContent = window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(seriesKey) : seriesKey
+      opt.textContent = matched ? (matched[1].name || seriesKey) : (window.SharedClassSync ? window.SharedClassSync.toSeriesDisplayName(seriesKey) : seriesKey)
       seriesSelect.appendChild(opt)
     }
     seriesSelect.value = seriesKey
-    seriesSelect.style.display = seriesSelect.options.length > 1 ? "" : "none"
+    const bookOptionsCount = Array.from(seriesSelect.options).filter((o) => o.value !== "manage-books").length
+    seriesSelect.style.display = bookOptionsCount > 1 ? "" : "none"
   }
 
   unitDropdown.innerHTML = ""
@@ -1331,6 +1466,14 @@ function populateWordSetDropdown(targetSeriesKey = null) {
   manageOption.value = "manage-sets"
   manageOption.textContent = "📝 Manage Custom Word Sets..."
   unitDropdown.appendChild(manageOption)
+
+  // Add manage books option if total curriculum books > 1
+  if (allSeriesEntries.length > 1) {
+    const manageBooksOption = document.createElement("option")
+    manageBooksOption.value = "manage-books"
+    manageBooksOption.textContent = "📚 Manage Books..."
+    unitDropdown.appendChild(manageBooksOption)
+  }
 
   // Add custom word sets
   const customSets = getCustomWordSets()
@@ -2936,6 +3079,12 @@ function setupEventListeners() {
       return
     }
 
+    if (event.target.value === "manage-books") {
+      event.target.value = event.target.dataset.lastValue || "level2:unit1"
+      showManageBooksModal()
+      return
+    }
+
     revertToRoundStart()
 
     event.target.dataset.lastValue = event.target.value
@@ -2960,6 +3109,11 @@ function setupEventListeners() {
   const seriesSelect = document.getElementById("series-select")
   if (seriesSelect) {
     seriesSelect.addEventListener("change", (e) => {
+      if (e.target.value === "manage-books") {
+        e.target.value = localStorage.getItem("sunken_treasure_selected_series") || "smart-phonics"
+        showManageBooksModal()
+        return
+      }
       const selectedSeries = e.target.value
       localStorage.setItem("sunken_treasure_selected_series", selectedSeries)
       revertToRoundStart()
@@ -3674,6 +3828,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   populateWordSetDropdown(initialSeries)
   setupSoundMuteControl()
   setupCustomSetsListeners()
+  setupManageBooksListeners()
 
   // Load ElevenLabs API Key
   const elevenlabsApiKeyInput = document.getElementById("elevenlabs-api-key")
