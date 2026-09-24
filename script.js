@@ -1327,11 +1327,14 @@ function checkSessionExpiration() {
     if (currentTime - timestamp >= CLASS_DURATION) {
       console.log("Session expired. Resetting session stats.")
       resetAllSessionStats()
-      localStorage.removeItem(SHARED_ACTIVE_PLAYERS_KEY)
-      
-      const { url, token } = getUpstashCredentials()
-      if (url && token) {
-        syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, [])
+      if (window.SharedClassSync?.clearActivePlayers) {
+        window.SharedClassSync.clearActivePlayers()
+      } else {
+        localStorage.removeItem(SHARED_ACTIVE_PLAYERS_KEY)
+        const { url, token } = getUpstashCredentials()
+        if (url && token) {
+          syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, [])
+        }
       }
       return true
     }
@@ -3350,8 +3353,12 @@ function savePlayerSets(sets) {
 }
 
 function saveActiveSessionPlayers(namesArray) {
-  localStorage.setItem(SHARED_ACTIVE_PLAYERS_KEY, JSON.stringify(namesArray))
-  syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, namesArray)
+  if (window.SharedClassSync?.saveActivePlayers) {
+    window.SharedClassSync.saveActivePlayers(namesArray)
+  } else {
+    localStorage.setItem(SHARED_ACTIVE_PLAYERS_KEY, JSON.stringify(namesArray))
+    syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, namesArray)
+  }
 }
 
 function handleUpstashError(errorMessage) {
