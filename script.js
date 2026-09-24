@@ -3352,9 +3352,9 @@ function savePlayerSets(sets) {
   syncToUpstash(SHARED_SETS_KEY, sets)
 }
 
-function saveActiveSessionPlayers(namesArray) {
+function saveActiveSessionPlayers(namesArray, className = currentLoadedClassName) {
   if (window.SharedClassSync?.saveActivePlayers) {
-    window.SharedClassSync.saveActivePlayers(namesArray)
+    window.SharedClassSync.saveActivePlayers(namesArray, className)
   } else {
     localStorage.setItem(SHARED_ACTIVE_PLAYERS_KEY, JSON.stringify(namesArray))
     syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, namesArray)
@@ -3473,14 +3473,17 @@ async function syncWithUpstashOnLoad() {
         playerSetSelect.value = activeClassMatch.className
       }
       const sets = getPlayerSets()
-      const names = sets[activeClassMatch.className]
-      if (names && Array.isArray(names)) {
+      const rawNames = sets[activeClassMatch.className]
+      if (rawNames && Array.isArray(rawNames)) {
+        const names = window.SharedClassSync?.resolveClassRoster
+          ? window.SharedClassSync.resolveClassRoster(activeClassMatch.className, rawNames)
+          : rawNames
         const playersTextarea = document.getElementById("players-textarea")
         if (playersTextarea) {
           playersTextarea.value = names.join(", ")
         }
         players = [...names]
-        localStorage.setItem(SHARED_ACTIVE_PLAYERS_KEY, JSON.stringify(names))
+        saveActiveSessionPlayers(names, activeClassMatch.className)
         savePlayers()
         updatePlayerDisplay()
       }
