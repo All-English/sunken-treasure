@@ -2156,6 +2156,17 @@ function createGameboard(isInitialLoad = false) {
     selectedSeries // series
   )
 
+  // Ensure enough cards to fill the board and prevent undefined / blank cards
+  if (selectedWordSet.length > 0 && selectedWordSet.length < maxWords) {
+    const baseWords = [...selectedWordSet]
+    while (selectedWordSet.length < maxWords) {
+      selectedWordSet.push(...shuffleArray(baseWords))
+    }
+    if (selectedWordSet.length > maxWords) {
+      selectedWordSet.length = maxWords
+    }
+  }
+
   const computedStyle = window.getComputedStyle(gameBoard)
 
   // Get gridRatio from CSS variable
@@ -2232,6 +2243,7 @@ function createGameboard(isInitialLoad = false) {
     // Find a word to place on this treasure cell
     const wordIndex = Math.floor(Math.random() * selectedWordSet.length)
     const word = selectedWordSet.splice(wordIndex, 1)[0]
+    if (!word) return
 
     const wordCard = document.createElement("div")
     wordCard.className = "word-card"
@@ -2248,6 +2260,7 @@ function createGameboard(isInitialLoad = false) {
 
   // Next, place remaining words in available cells
   selectedWordSet.forEach((word, index) => {
+    if (!word) return
     // If no available cells, log and skip
     if (availableCells.length === 0) {
       // console.log(`No more available cells. Skipping word: ${word}`)
