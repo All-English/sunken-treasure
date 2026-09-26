@@ -2156,16 +2156,6 @@ function createGameboard(isInitialLoad = false) {
     selectedSeries // series
   )
 
-  // Ensure enough cards to fill the board and prevent undefined / blank cards
-  if (selectedWordSet.length > 0 && selectedWordSet.length < maxWords) {
-    const baseWords = [...selectedWordSet]
-    while (selectedWordSet.length < maxWords) {
-      selectedWordSet.push(...shuffleArray(baseWords))
-    }
-    if (selectedWordSet.length > maxWords) {
-      selectedWordSet.length = maxWords
-    }
-  }
 
   const computedStyle = window.getComputedStyle(gameBoard)
 
@@ -2199,7 +2189,11 @@ function createGameboard(isInitialLoad = false) {
       Math.floor(cell / gridColumns) < gridRows - 2 // Prevent placement in the last 2 rows
   )
 
-  const treasureCounts = calculateTreasureCount(maxWords)
+  const effectiveMaxWords =
+    selectedWordSet.length < maxWords
+      ? Math.max(5, Math.floor(selectedWordSet.length / 5) * 5 || 5)
+      : maxWords
+  const treasureCounts = calculateTreasureCount(effectiveMaxWords)
 
   // Treasure to Place in the treasureDiv cells
   const treasuresToPlace = [
@@ -2214,8 +2208,8 @@ function createGameboard(isInitialLoad = false) {
   // Create the treasure Divs
   treasuresToPlace.forEach((treasureConfig) => {
     for (let i = 0; i < treasureConfig.count; i++) {
-      // Stop if we've reached max treasures or no available cells
-      if (availableCells.length === 0) break
+      // Stop if we've reached max treasures, no available cells, or no more words
+      if (availableCells.length === 0 || totalTreasuresPlaced >= selectedWordSet.length) break
 
       const treasureCell = createTreasureDiv(
         treasureConfig.type,
