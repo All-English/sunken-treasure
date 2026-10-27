@@ -103,23 +103,25 @@ function applyHighestUnitToTreasureHunt(canonicalUnits, profileCurriculumId = nu
 }
 
 function autoSaveCurrentClassUnitTreasureHunt() {
-  if (!currentLoadedClassName || typeof window.SharedClassSync === "undefined") return
+  if (typeof window.SharedClassSync === "undefined") return
   const wordSetDropdown = document.getElementById("word-set-dropdown")
   if (!wordSetDropdown || !wordSetDropdown.value || wordSetDropdown.value.startsWith("custom:") || wordSetDropdown.value === "manage-sets") return
   const canonical = window.SharedClassSync.toCanonicalUnit(wordSetDropdown.value)
   if (canonical) {
-    let profiles = {}
-    try {
-      profiles = JSON.parse(localStorage.getItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY) || "{}")
-    } catch {}
-    const existingUnits = (profiles[currentLoadedClassName] && profiles[currentLoadedClassName].units) || []
-    const unitSet = new Set(existingUnits)
-    unitSet.add(canonical.id)
     const seriesSelect = document.getElementById("series-select")
-    if (profiles[currentLoadedClassName]) {
-      profiles[currentLoadedClassName].curriculumId = seriesSelect?.value || canonical.series || "smart-phonics"
+    const curId = seriesSelect?.value || canonical.series || "smart-phonics"
+    if (currentLoadedClassName) {
+      let profiles = {}
+      try {
+        profiles = JSON.parse(localStorage.getItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY) || "{}")
+      } catch {}
+      const existingUnits = (profiles[currentLoadedClassName] && profiles[currentLoadedClassName].units) || []
+      const unitSet = new Set(existingUnits)
+      unitSet.add(canonical.id)
+      window.SharedClassSync.saveClassUnits(currentLoadedClassName, Array.from(unitSet), curId)
+    } else if (typeof window.SharedClassSync.saveActiveUnits === "function") {
+      window.SharedClassSync.saveActiveUnits([canonical.id], curId, null)
     }
-    window.SharedClassSync.saveClassUnits(currentLoadedClassName, Array.from(unitSet))
   }
 }
 
@@ -3508,7 +3510,20 @@ async function syncWithUpstashOnLoad() {
       const deleteBtn = document.getElementById("delete-set-btn")
       if (deleteBtn) deleteBtn.style.display = "inline-block"
     } else {
-      // Priority 2: Outside class hours, fall back to active session
+      // Priority 2: Outside class hours, fall back to active session & latest cross-app units
+      const activeUnitsObj = window.SharedClassSync?.getActiveUnits?.()
+      const activeSession = window.SharedClassSync?.getActiveSession?.()
+      const urlParams = new URLSearchParams(window.location.search)
+      const hasExplicitUrlParams = Boolean(urlParams.get("series") || urlParams.get("book") || (urlParams.get("level") && urlParams.get("unit")))
+      if (!hasInitialUrlWordSet && !hasExplicitUrlParams && activeUnitsObj && Array.isArray(activeUnitsObj.units) && activeUnitsObj.units.length > 0) {
+        applyHighestUnitToTreasureHunt(activeUnitsObj.units, activeUnitsObj.curriculumId)
+      }
+      if (activeSession && activeSession.className) {
+        currentLoadedClassName = activeSession.className
+        const playerSetDropdown = document.getElementById("player-set-dropdown")
+        if (playerSetDropdown) playerSetDropdown.value = activeSession.className
+      }
+
       const dbActive = await fetchFromUpstash(SHARED_ACTIVE_PLAYERS_KEY)
       if (!localStorage.getItem(UPSTASH_URL_KEY)) return
 
