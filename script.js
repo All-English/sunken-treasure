@@ -140,13 +140,15 @@ const englishVoices = [
   { name: "Sarah", voice_id: "EXAVITQu4vr4xnSDxMaL" },
   { name: "Bella", voice_id: "hpp4J3VqNfWAUOO0d1Us" },
   { name: "Matilda", voice_id: "XrExE9yKIg1WjnnlVkGX" },
+  { name: "Arabella", voice_id: "Z3R5wn05IrDiVCyEkUrK" },
   { name: "River", voice_id: "SAz9YHcvj6GT2YYXdXww" },
   { name: "Chris", voice_id: "iP95p4xoKVk53GoZ742B" },
   { name: "Liam", voice_id: "TX3LPaxmHKxFdv7VOQHJ" },
+  { name: "Eric", voice_id: "cjVigY5qzO86Huf0OWal" },
+  { name: "Callum", voice_id: "N2lVS1w4EtoT3dr4eOWO" },
   { name: "Brian", voice_id: "nPczCjzI2devNBz1zQrb" },
   { name: "Bill", voice_id: "pqHfZKP75CvOlQylNhV4" },
   { name: "Will", voice_id: "bIHbv24MWmeRgasZH58o" },
-  { name: "Adam", voice_id: "pNInz6obpgDQGcFmaJgB" },
   { name: "Roger", voice_id: "CwhRBWXzGAHq8TQ4Fs17" }
 ]
 let playerDetails = {}
