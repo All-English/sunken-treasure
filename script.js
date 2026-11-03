@@ -1029,6 +1029,9 @@ function updatePlayerDetails() {
   })
 }
 
+const ELEVENLABS_PRONUNCIATION_DICT_ID = "sKcMTMc7IZdOIqGSuKGL"
+const ELEVENLABS_PRONUNCIATION_VERSION_ID = "5wJKv5m0cQSYvi7mjFS1"
+
 async function fetchElevenLabsAudio(text, voiceId) {
   if (!userApiKey) return null
 
@@ -1040,11 +1043,17 @@ async function fetchElevenLabsAudio(text, voiceId) {
       stability: 0.5,
       similarity_boost: 0.75,
       speed: 0.85
-    }
+    },
+    pronunciation_dictionary_locators: [
+      {
+        pronunciation_dictionary_id: ELEVENLABS_PRONUNCIATION_DICT_ID,
+        version_id: ELEVENLABS_PRONUNCIATION_VERSION_ID
+      }
+    ]
   }
 
   try {
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1052,6 +1061,19 @@ async function fetchElevenLabsAudio(text, voiceId) {
       },
       body: JSON.stringify(payload)
     })
+
+    // Fallback: if dictionary locator is not accessible on this account, retry without it
+    if (!response.ok && payload.pronunciation_dictionary_locators) {
+      delete payload.pronunciation_dictionary_locators
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "xi-api-key": userApiKey
+        },
+        body: JSON.stringify(payload)
+      })
+    }
 
     if (response.ok) {
       const blob = await response.blob()
