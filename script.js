@@ -46,6 +46,12 @@ let players = []
 let playerStats = {}
 let sessionStatus = false
 let currentLoadedClassName = null
+const initialPageParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "")
+const hasExplicitInitialUrl = Boolean(
+  initialPageParams.get("series") ||
+  initialPageParams.get("book") ||
+  (initialPageParams.get("level") && initialPageParams.get("unit"))
+)
 let hasInitialUrlWordSet = false
 
 function getPrimarySeriesFromUnits(canonicalUnits, profileCurriculumId = null) {
@@ -1348,18 +1354,24 @@ function checkSessionExpiration() {
   try {
     const playerData = JSON.parse(storedData)
     const currentTime = Date.now()
-    const CLASS_DURATION = 30 * 60 * 1000
+    const CLASS_DURATION = 60 * 60 * 1000
     const timestamp = playerData.timestamp || 0
     if (currentTime - timestamp >= CLASS_DURATION) {
       console.log("Session expired. Resetting session stats.")
       resetAllSessionStats()
-      if (window.SharedClassSync?.clearActivePlayers) {
-        window.SharedClassSync.clearActivePlayers()
-      } else {
-        localStorage.removeItem(SHARED_ACTIVE_PLAYERS_KEY)
-        const { url, token } = getUpstashCredentials()
-        if (url && token) {
-          syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, [])
+
+      // Only clear shared active players if the cross-app active session is ALSO expired
+      const activeSession = window.SharedClassSync?.getActiveSession?.()
+      const sessionUpdatedAt = activeSession?.updatedAt || 0
+      if (!sessionUpdatedAt || (currentTime - sessionUpdatedAt >= CLASS_DURATION)) {
+        if (window.SharedClassSync?.clearActivePlayers) {
+          window.SharedClassSync.clearActivePlayers()
+        } else {
+          localStorage.removeItem(SHARED_ACTIVE_PLAYERS_KEY)
+          const { url, token } = getUpstashCredentials()
+          if (url && token) {
+            syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, [])
+          }
         }
       }
       return true
@@ -1541,11 +1553,13 @@ function populateWordSetDropdown(targetSeriesKey = null) {
     unitDropdown.value = selectedUnit
     unitDropdown.dataset.lastValue = selectedUnit // Set initial lastValue
 
-    // Update URL with the random selection
-    const parts = selectedUnit.split(":")
-    const randomLevel = parts.length === 3 ? parts[1] : parts[0]
-    const randomUnit = parts.length === 3 ? parts[2] : parts[1]
-    updateUrlParameters(randomLevel, randomUnit, seriesKey)
+    // Update URL with the random selection ONLY if explicit URL params were provided
+    if (hasExplicitInitialUrl) {
+      const parts = selectedUnit.split(":")
+      const randomLevel = parts.length === 3 ? parts[1] : parts[0]
+      const randomUnit = parts.length === 3 ? parts[2] : parts[1]
+      updateUrlParameters(randomLevel, randomUnit, seriesKey)
+    }
   }
 }
 
@@ -2674,15 +2688,19 @@ function loadSavedPlayers() {
 
   let names = []
   if (!isExpired) {
-    const sharedActive = localStorage.getItem(SHARED_ACTIVE_PLAYERS_KEY)
-    if (sharedActive) {
-      try {
-        const parsed = JSON.parse(sharedActive)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          names = parsed
+    if (window.SharedClassSync?.getActivePlayers) {
+      names = window.SharedClassSync.getActivePlayers() || []
+    } else {
+      const sharedActive = localStorage.getItem(SHARED_ACTIVE_PLAYERS_KEY)
+      if (sharedActive) {
+        try {
+          const parsed = JSON.parse(sharedActive)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            names = parsed
+          }
+        } catch (e) {
+          console.error("Error parsing shared active players:", e)
         }
-      } catch (e) {
-        console.error("Error parsing shared active players:", e)
       }
     }
   }
@@ -3520,11 +3538,34 @@ async function syncWithUpstashOnLoad() {
         savePlayers()
         updatePlayerDisplay()
       }
-      if (activeClassMatch.profile && Array.isArray(activeClassMatch.profile.units) && activeClassMatch.profile.units.length > 0) {
-        const urlParams = new URLSearchParams(window.location.search)
-        const hasExplicitUrlParams = Boolean(urlParams.get("series") || urlParams.get("book") || (urlParams.get("level") && urlParams.get("unit")))
-        if (!hasInitialUrlWordSet && !hasExplicitUrlParams) {
-          applyHighestUnitToTreasureHunt(activeClassMatch.profile.units, activeClassMatch.profile.curriculumId)
+      // Check whether latestActiveUnits has a fresher unit for this class/session
+      const latestActiveUnits = window.SharedClassSync?.getActiveUnits?.()
+      let unitsToApply = (activeClassMatch.profile && Array.isArray(activeClassMatch.profile.units) && activeClassMatch.profile.units.length > 0)
+        ? activeClassMatch.profile.units
+        : null
+      let curIdToApply = activeClassMatch.profile?.curriculumId || null
+      let profUpdatedAt = activeClassMatch.profile?.updatedAt || 0
+
+      if (
+        latestActiveUnits &&
+        Array.isArray(latestActiveUnits.units) &&
+        latestActiveUnits.units.length > 0 &&
+        (latestActiveUnits.updatedAt || 0) > profUpdatedAt &&
+        (
+          latestActiveUnits.className === activeClassMatch.className ||
+          (
+            !latestActiveUnits.className &&
+            window.SharedClassSync?.isTimestampInCurrentClassSession?.(latestActiveUnits.updatedAt, activeClassMatch.className, activeClassMatch.profile)
+          )
+        )
+      ) {
+        unitsToApply = latestActiveUnits.units
+        curIdToApply = latestActiveUnits.curriculumId || curIdToApply
+      }
+
+      if (unitsToApply && unitsToApply.length > 0) {
+        if (!hasInitialUrlWordSet && !hasExplicitInitialUrl) {
+          applyHighestUnitToTreasureHunt(unitsToApply, curIdToApply)
         } else {
           console.log(
             `[Sync] URL parameters take precedence over saved units for ${activeClassMatch.className}`
@@ -3537,9 +3578,7 @@ async function syncWithUpstashOnLoad() {
       // Priority 2: Outside class hours, fall back to active session & latest cross-app units
       const activeUnitsObj = window.SharedClassSync?.getActiveUnits?.()
       const activeSession = window.SharedClassSync?.getActiveSession?.()
-      const urlParams = new URLSearchParams(window.location.search)
-      const hasExplicitUrlParams = Boolean(urlParams.get("series") || urlParams.get("book") || (urlParams.get("level") && urlParams.get("unit")))
-      if (!hasInitialUrlWordSet && !hasExplicitUrlParams && activeUnitsObj && Array.isArray(activeUnitsObj.units) && activeUnitsObj.units.length > 0) {
+      if (!hasInitialUrlWordSet && !hasExplicitInitialUrl && activeUnitsObj && Array.isArray(activeUnitsObj.units) && activeUnitsObj.units.length > 0) {
         applyHighestUnitToTreasureHunt(activeUnitsObj.units, activeUnitsObj.curriculumId)
       }
       if (activeSession && activeSession.className) {
@@ -3547,25 +3586,22 @@ async function syncWithUpstashOnLoad() {
         const playerSetDropdown = document.getElementById("player-set-dropdown")
         if (playerSetDropdown) playerSetDropdown.value = activeSession.className
       }
-
-      const dbActive = await fetchFromUpstash(SHARED_ACTIVE_PLAYERS_KEY)
-      if (!localStorage.getItem(UPSTASH_URL_KEY)) return
-
-      if (dbActive && Array.isArray(dbActive)) {
-        localStorage.setItem(SHARED_ACTIVE_PLAYERS_KEY, JSON.stringify(dbActive))
-        loadSavedPlayers()
+      if (activeSession && Array.isArray(activeSession.players) && activeSession.players.length > 0) {
+        players = [...activeSession.players]
+        const playersTextarea = document.getElementById("players-textarea")
+        if (playersTextarea) {
+          playersTextarea.value = players.join(", ")
+        }
         updatePlayerDisplay()
       } else {
-        const localActiveJSON = localStorage.getItem(SHARED_ACTIVE_PLAYERS_KEY)
-        if (localActiveJSON) {
-          try {
-            const localActive = JSON.parse(localActiveJSON)
-            if (Array.isArray(localActive) && localActive.length > 0) {
-              await syncToUpstash(SHARED_ACTIVE_PLAYERS_KEY, localActive)
-            }
-          } catch (e) {
-            console.error(e)
+        const dbActive = await fetchFromUpstash(SHARED_ACTIVE_PLAYERS_KEY)
+        if (dbActive && Array.isArray(dbActive) && dbActive.length > 0) {
+          players = [...dbActive]
+          const playersTextarea = document.getElementById("players-textarea")
+          if (playersTextarea) {
+            playersTextarea.value = players.join(", ")
           }
+          updatePlayerDisplay()
         }
       }
     }
