@@ -3459,20 +3459,6 @@ async function syncWithUpstashOnLoad() {
       const { playerSets, classProfiles } = await window.SharedClassSync.loadAllClasses()
       populatePlayerSetSelect()
       activeClassMatch = window.SharedClassSync.findActiveScheduledClass(classProfiles)
-    } else {
-      // 1. Sync sets (Database is source of truth if it exists)
-      const dbSets = await fetchFromUpstash(SHARED_SETS_KEY)
-      if (!localStorage.getItem(UPSTASH_URL_KEY)) return
-
-      if (dbSets) {
-        localStorage.setItem(SHARED_SETS_KEY, JSON.stringify(dbSets))
-        populatePlayerSetSelect()
-      } else {
-        const localSets = getPlayerSets()
-        if (Object.keys(localSets).length > 0) {
-          await syncToUpstash(SHARED_SETS_KEY, localSets)
-        }
-      }
     }
 
     // Priority 1: Scheduled active class in session right now
@@ -3756,9 +3742,13 @@ function setupPlayerSetsSyncEventListeners() {
       if (!selectedSetName) return
 
       if (confirm(`Are you sure you want to delete the list "${selectedSetName}"?`)) {
-        const sets = getPlayerSets()
-        delete sets[selectedSetName]
-        savePlayerSets(sets)
+        if (window.SharedClassSync?.deleteClass) {
+          window.SharedClassSync.deleteClass(selectedSetName)
+        } else {
+          const sets = getPlayerSets()
+          delete sets[selectedSetName]
+          savePlayerSets(sets)
+        }
 
         populatePlayerSetSelect()
         playerSetSelect.value = ""
@@ -3868,8 +3858,8 @@ function setupPlayerSetsSyncEventListeners() {
   }
 
   window.addEventListener("ae-cloud-sync-updated", () => {
-    if (typeof renderPlayerSetsDropdown === "function") {
-      renderPlayerSetsDropdown()
+    if (typeof populatePlayerSetSelect === "function") {
+      populatePlayerSetSelect()
     }
   })
 }
