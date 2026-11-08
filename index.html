@@ -138,20 +138,23 @@
                 <hr class="players-modal-divider">
                 <details id="sync-settings-details" class="sync-settings-details">
                     <summary id="sync-settings-summary" class="sync-settings-summary">
-                        Upstash Redis Sync</summary>
+                        Cloud Sync</summary>
                     <div class="sync-settings-content">
                         <div class="api-key-container">
-                            <label for="upstash-url-input">Upstash REST URL</label>
-                            <input type="text" id="upstash-url-input" class="modal-input"
-                                placeholder="https://...upstash.io">
+                            <label for="sync-code-input">Sync Code</label>
+                            <input type="text" id="sync-code-input" class="modal-input"
+                                placeholder="e.g. judson-english" autocomplete="off">
                         </div>
                         <div class="api-key-container">
-                            <label for="upstash-token-input">Upstash REST Token</label>
-                            <input type="password" id="upstash-token-input" class="modal-input"
-                                placeholder="Enter Token">
+                            <label for="sync-pin-input">4-Digit PIN (Optional)</label>
+                            <input type="password" id="sync-pin-input" class="modal-input"
+                                placeholder="Optional 4-digit PIN" maxlength="4" inputmode="numeric" autocomplete="off">
                         </div>
-                        <button id="save-sync-btn" class="primary-btn sync-btn-action">Save &
-                            Sync</button>
+                        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                            <button id="connect-sync-btn" type="button" class="primary-btn sync-btn-action" style="flex: 1;">Connect Existing</button>
+                            <button id="create-sync-btn" type="button" class="primary-btn sync-btn-action" style="flex: 1; opacity: 0.9;">Create New</button>
+                        </div>
+                        <button id="disconnect-sync-btn" type="button" class="cancel-players-btn" style="display: none; width: 100%; margin-top: 0.4rem;">Disconnect</button>
                         <div id="sync-status" class="api-key-status"></div>
                     </div>
                 </details>

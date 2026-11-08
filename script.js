@@ -3378,12 +3378,10 @@ const UPSTASH_URL_KEY = "upstash_redis_url"
 const UPSTASH_TOKEN_KEY = "upstash_redis_token"
 
 function getUpstashCredentials() {
-  let url = localStorage.getItem(UPSTASH_URL_KEY)
-  const token = localStorage.getItem(UPSTASH_TOKEN_KEY)
-  if (url && url.endsWith("/")) {
-    url = url.slice(0, -1)
+  if (window.SharedClassSync?.getCredentials) {
+    return window.SharedClassSync.getCredentials()
   }
-  return { url, token }
+  return { url: "", token: "" }
 }
 
 function getPlayerSets() {
@@ -3413,20 +3411,18 @@ function saveActiveSessionPlayers(namesArray, className = currentLoadedClassName
 }
 
 function handleUpstashError(errorMessage) {
-  localStorage.removeItem(UPSTASH_URL_KEY)
-  localStorage.removeItem(UPSTASH_TOKEN_KEY)
-  window.SharedClassSync?.clearCredentials?.()
+  window.SharedClassSync?.clearSyncConfig?.()
   
   const statusEl = document.getElementById("sync-status")
   const syncSummary = document.getElementById("sync-settings-summary")
   const syncDetails = document.getElementById("sync-settings-details")
   
   if (statusEl) {
-    statusEl.textContent = errorMessage || "Sync credentials invalid. Cleared."
+    statusEl.textContent = errorMessage || "Sync connection error."
     statusEl.style.color = "red"
   }
   if (syncSummary) {
-    syncSummary.textContent = "Upstash Redis Sync (Error)"
+    syncSummary.textContent = "Cloud Sync (Error)"
   }
   if (syncDetails) {
     syncDetails.open = true
@@ -3434,51 +3430,14 @@ function handleUpstashError(errorMessage) {
 }
 
 async function syncToUpstash(key, data) {
-  const { url, token } = getUpstashCredentials()
-  if (!url || !token) return
-
-  try {
-    const response = await fetch(`${url}/set/${key}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(data)
-    })
-    if (!response.ok) {
-      console.error(`Upstash Sync failed for ${key}:`, response.statusText)
-      if (response.status === 401 || response.status === 403) {
-        handleUpstashError("Upstash token is invalid or expired. Disconnected.")
-      }
-    }
-  } catch (error) {
-    console.error(`Upstash Sync error for ${key}:`, error)
+  if (window.SharedClassSync?.syncUpstash) {
+    await window.SharedClassSync.syncUpstash(key, data)
   }
 }
 
 async function fetchFromUpstash(key) {
-  const { url, token } = getUpstashCredentials()
-  if (!url || !token) return null
-
-  try {
-    const response = await fetch(`${url}/get/${key}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-    if (response.ok) {
-      const resData = await response.json()
-      if (resData && resData.result !== undefined && resData.result !== null) {
-        return JSON.parse(resData.result)
-      }
-    } else {
-      console.error(`Upstash fetch failed for ${key}:`, response.statusText)
-      if (response.status === 401 || response.status === 403) {
-        handleUpstashError("Upstash token is invalid or expired. Disconnected.")
-      }
-    }
-  } catch (error) {
-    console.error(`Upstash fetch error for ${key}:`, error)
+  if (window.SharedClassSync?.fetchUpstash) {
+    return await window.SharedClassSync.fetchUpstash(key)
   }
   return null
 }
@@ -3808,81 +3767,111 @@ function setupPlayerSetsSyncEventListeners() {
     })
   }
 
-  // Upstash Config event listeners
-  const saveSyncBtn = document.getElementById("save-sync-btn")
+  // Cloud Sync (Convex Sync Code + Optional 4-Digit PIN) event listeners
+  const connectSyncBtn = document.getElementById("connect-sync-btn")
+  const createSyncBtn = document.getElementById("create-sync-btn")
+  const disconnectSyncBtn = document.getElementById("disconnect-sync-btn")
   const syncStatus = document.getElementById("sync-status")
   const syncDetails = document.getElementById("sync-settings-details")
   const syncSummary = document.getElementById("sync-settings-summary")
-  const upstashUrlInput = document.getElementById("upstash-url-input")
-  const upstashTokenInput = document.getElementById("upstash-token-input")
+  const syncCodeInput = document.getElementById("sync-code-input")
+  const syncPinInput = document.getElementById("sync-pin-input")
 
-  if (saveSyncBtn && upstashUrlInput && upstashTokenInput) {
-    const savedUrl = localStorage.getItem(UPSTASH_URL_KEY)
-    const savedToken = localStorage.getItem(UPSTASH_TOKEN_KEY)
-    if (savedUrl) upstashUrlInput.value = savedUrl
-    if (savedToken) upstashTokenInput.value = savedToken
-    if (savedUrl && savedToken) {
-      if (syncSummary) syncSummary.textContent = "Upstash Redis Sync (Saved)"
+  const refreshSyncSettingsUI = () => {
+    const cfg = window.SharedClassSync?.getSyncConfig ? window.SharedClassSync.getSyncConfig() : { syncCode: "", pin: "" }
+    if (syncCodeInput && cfg.syncCode) syncCodeInput.value = cfg.syncCode
+    if (syncPinInput && cfg.pin) syncPinInput.value = cfg.pin
+    if (disconnectSyncBtn) {
+      disconnectSyncBtn.style.display = cfg.syncCode ? "block" : "none"
     }
+    if (syncSummary) {
+      syncSummary.textContent = cfg.syncCode ? `Cloud Sync (${cfg.syncCode})` : "Cloud Sync"
+    }
+  }
 
-    saveSyncBtn.addEventListener("click", async () => {
-      let url = upstashUrlInput.value.trim()
-      if (url.endsWith("/")) {
-        url = url.slice(0, -1)
-      }
-      const token = upstashTokenInput.value.trim()
+  if (syncCodeInput && (connectSyncBtn || createSyncBtn)) {
+    refreshSyncSettingsUI()
 
-      if (!url || !token) {
+    const handleSyncClick = async (mode) => {
+      const code = syncCodeInput.value.trim()
+      const pin = (syncPinInput?.value || "").trim()
+
+      if (!code) {
         if (syncStatus) {
-          syncStatus.textContent = "Please fill in both URL and Token"
+          syncStatus.textContent = "Please enter a Sync Code."
+          syncStatus.style.color = "red"
+        }
+        return
+      }
+      if (pin && !/^\d{4}$/.test(pin)) {
+        if (syncStatus) {
+          syncStatus.textContent = "PIN must be 4 digits (or left blank)."
           syncStatus.style.color = "red"
         }
         return
       }
 
       if (syncStatus) {
-        syncStatus.textContent = "Connecting & Syncing..."
+        syncStatus.textContent = mode === "create" ? "Creating Sync Code..." : "Connecting & Syncing..."
         syncStatus.style.color = "white"
       }
-      saveSyncBtn.disabled = true
+      if (connectSyncBtn) connectSyncBtn.disabled = true
+      if (createSyncBtn) createSyncBtn.disabled = true
 
       try {
-        const testRes = await fetch(`${url}/get/${SHARED_ACTIVE_PLAYERS_KEY}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        if (testRes.ok) {
-          localStorage.setItem(UPSTASH_URL_KEY, url)
-          localStorage.setItem(UPSTASH_TOKEN_KEY, token)
-          window.SharedClassSync?.saveCredentials?.(url, token)
+        const res = mode === "create"
+          ? await window.SharedClassSync.createSyncWorkspace(code, pin)
+          : await window.SharedClassSync.connectSyncWorkspace(code, pin)
 
+        if (res && res.ok) {
+          refreshSyncSettingsUI()
           if (syncStatus) {
-            syncStatus.textContent = "Connected & synced successfully!"
+            syncStatus.textContent = `Connected as "${res.snapshot.syncCode}"!`
             syncStatus.style.color = "lightgreen"
           }
-          if (syncSummary) syncSummary.textContent = "Upstash Redis Sync (Connected)"
-          
-          saveSyncBtn.disabled = false
-
           await syncWithUpstashOnLoad()
           resetFirstPlayerTurn()
-          
           setTimeout(() => {
             if (syncDetails) syncDetails.open = false
           }, 1500)
         } else {
-          throw new Error("Invalid credentials")
+          if (syncStatus) {
+            syncStatus.textContent = res?.message || "Sync failed. Please check your Sync Code."
+            syncStatus.style.color = "red"
+          }
+          if (syncSummary) syncSummary.textContent = "Cloud Sync (Error)"
         }
       } catch (err) {
-        console.error("Upstash verification error:", err)
+        console.error("Cloud Sync error:", err)
         if (syncStatus) {
-          syncStatus.textContent = "Connection failed. Please check your credentials."
+          syncStatus.textContent = "Connection failed. Please try again."
           syncStatus.style.color = "red"
         }
-        if (syncSummary) syncSummary.textContent = "Upstash Redis Sync (Error)"
-        saveSyncBtn.disabled = false
+      } finally {
+        if (connectSyncBtn) connectSyncBtn.disabled = false
+        if (createSyncBtn) createSyncBtn.disabled = false
+      }
+    }
+
+    connectSyncBtn?.addEventListener("click", () => handleSyncClick("connect"))
+    createSyncBtn?.addEventListener("click", () => handleSyncClick("create"))
+    disconnectSyncBtn?.addEventListener("click", () => {
+      window.SharedClassSync?.clearSyncConfig?.()
+      syncCodeInput.value = ""
+      if (syncPinInput) syncPinInput.value = ""
+      refreshSyncSettingsUI()
+      if (syncStatus) {
+        syncStatus.textContent = "Disconnected from Cloud Sync."
+        syncStatus.style.color = "white"
       }
     })
   }
+
+  window.addEventListener("ae-cloud-sync-updated", () => {
+    if (typeof renderPlayerSetsDropdown === "function") {
+      renderPlayerSetsDropdown()
+    }
+  })
 }
 
 // Call this when the page loads
