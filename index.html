@@ -140,20 +140,26 @@
                     <summary id="sync-settings-summary" class="sync-settings-summary">
                         Convex Cloud Sync</summary>
                     <div class="sync-settings-content">
+                        <p style="font-size: 0.73rem; opacity: 0.85; line-height: 1.35; margin: 0 0 0.55rem 0;">
+                            Pick your own unique Sync Code (e.g. your name or school) to sync class rosters, attendance, and active units in real-time across all your devices and games.
+                        </p>
                         <div class="api-key-container">
-                            <label for="sync-code-input">Sync Code</label>
+                            <label for="sync-code-input">Sync Code <span style="font-size: 0.72rem; font-weight: normal; opacity: 0.85;">(choose your own)</span></label>
                             <input type="text" id="sync-code-input" class="modal-input"
-                                placeholder="e.g. judson-english" autocomplete="off">
+                                placeholder="Pick a code (e.g. teacher-sarah)" autocomplete="off">
                         </div>
                         <div class="api-key-container">
-                            <label for="sync-pin-input">4-Digit PIN (Optional)</label>
+                            <label for="sync-pin-input">4-Digit PIN <span style="font-size: 0.72rem; font-weight: normal; opacity: 0.85;">(optional lock)</span></label>
                             <input type="password" id="sync-pin-input" class="modal-input"
-                                placeholder="Optional 4-digit PIN" maxlength="4" inputmode="numeric" autocomplete="off">
+                                placeholder="Optional PIN to protect code" maxlength="4" inputmode="numeric" autocomplete="off">
                         </div>
                         <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
                             <button id="connect-sync-btn" type="button" class="primary-btn sync-btn-action" style="flex: 1;">Connect Existing</button>
                             <button id="create-sync-btn" type="button" class="primary-btn sync-btn-action" style="flex: 1; opacity: 0.9;">Create New</button>
                         </div>
+                        <p style="font-size: 0.68rem; opacity: 0.8; margin: 0.4rem 0 0 0; line-height: 1.3;">
+                            First time? Pick a code and click <strong>Create New</strong>.<br>On another device? Enter your code and click <strong>Connect Existing</strong>.
+                        </p>
                         <button id="disconnect-sync-btn" type="button" class="cancel-players-btn" style="display: none; width: 100%; margin-top: 0.4rem;">Disconnect</button>
                         <div id="sync-status" class="api-key-status"></div>
                     </div>
