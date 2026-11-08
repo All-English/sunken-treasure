@@ -3570,7 +3570,7 @@ async function syncWithUpstashOnLoad() {
       statusEl.style.color = "lightgreen"
     }
     if (syncSummary) {
-      syncSummary.textContent = "Convex Cloud Sync (Connected)"
+      syncSummary.textContent = "Cloud Sync (Connected)"
     }
   } catch (err) {
     console.error("Error running onload sync:", err)
@@ -3579,7 +3579,7 @@ async function syncWithUpstashOnLoad() {
       statusEl.style.color = "red"
     }
     if (syncSummary) {
-      syncSummary.textContent = "Convex Cloud Sync (Error)"
+      syncSummary.textContent = "Cloud Sync (Error)"
     }
   }
 }
@@ -3785,7 +3785,7 @@ function setupPlayerSetsSyncEventListeners() {
       disconnectSyncBtn.style.display = cfg.syncCode ? "block" : "none"
     }
     if (syncSummary) {
-      syncSummary.textContent = cfg.syncCode ? "Convex Cloud Sync (Connected)" : "Convex Cloud Sync"
+      syncSummary.textContent = cfg.syncCode ? "Cloud Sync (Connected)" : "Cloud Sync"
     }
   }
 
@@ -3839,7 +3839,7 @@ function setupPlayerSetsSyncEventListeners() {
             syncStatus.textContent = res?.message || "Sync failed. Please check your Sync Code."
             syncStatus.style.color = "red"
           }
-          if (syncSummary) syncSummary.textContent = "Convex Cloud Sync (Error)"
+          if (syncSummary) syncSummary.textContent = "Cloud Sync (Error)"
         }
       } catch (err) {
         console.error("Cloud Sync error:", err)
