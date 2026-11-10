@@ -1118,9 +1118,42 @@ function resetCachedTurnVoices() {
   })
 }
 
+function getPlayerTurnAudioUrls(playerName) {
+  if (typeof window !== "undefined" && window.SharedClassSync?.getPlayerTurnAudioUrls) {
+    return window.SharedClassSync.getPlayerTurnAudioUrls(playerName);
+  }
+  const clean = String(playerName || "").trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "_");
+  if (!clean) return [];
+  return [
+    `https://all-english-media.allenglish.link/audio/players/${clean}_v1.mp3`,
+    `https://all-english-media.allenglish.link/audio/players/${clean}_v2.mp3`,
+    `https://all-english-media.allenglish.link/audio/players/${clean}_v3.mp3`
+  ];
+}
+
 async function precachePlayerTurnAudios() {
   updatePlayerDetails()
-  if (!userApiKey || players.length === 0) return
+  if (players.length === 0) return
+
+  // 1. Preload pre-recorded CDN audio variations for all players
+  for (const playerName of players) {
+    const details = playerDetails[playerName]
+    if (details && !details.preloadedTurnAudios) {
+      details.preloadedTurnAudios = []
+      const urls = getPlayerTurnAudioUrls(playerName)
+      urls.forEach((url) => {
+        try {
+          const a = new Audio()
+          a.preload = "auto"
+          a.src = url
+          details.preloadedTurnAudios.push(a)
+        } catch (e) {}
+      })
+    }
+  }
+
+  // 2. Fallback: Dynamic ElevenLabs caching if API key configured
+  if (!userApiKey) return
 
   for (const playerName of players) {
     const details = playerDetails[playerName]
@@ -1134,7 +1167,7 @@ async function precachePlayerTurnAudios() {
 }
 
 async function announceCurrentPlayerTurn() {
-  if (window.isSoundsMuted || !userApiKey || players.length === 0) return
+  if (window.isSoundsMuted || players.length === 0) return
 
   const activePlayerName = players[currentPlayerIndex]
   if (!activePlayerName) return
@@ -1164,6 +1197,39 @@ async function announceCurrentPlayerTurn() {
   const details = playerDetails[activePlayerName]
   if (!details) return
 
+  stopAllTurnVoices()
+
+  // 1. Try pre-recorded CDN audio variation first (random 1 of 3)
+  if (!details.preloadedTurnAudios) {
+    details.preloadedTurnAudios = []
+    const urls = getPlayerTurnAudioUrls(activePlayerName)
+    urls.forEach((url) => {
+      try {
+        const a = new Audio()
+        a.preload = "auto"
+        a.src = url
+        details.preloadedTurnAudios.push(a)
+      } catch (e) {}
+    })
+  }
+
+  if (details.preloadedTurnAudios && details.preloadedTurnAudios.length > 0) {
+    const candidateAudio = details.preloadedTurnAudios[Math.floor(Math.random() * details.preloadedTurnAudios.length)]
+    if (candidateAudio) {
+      candidateAudio.currentTime = 0
+      playingTurnAudio = candidateAudio
+
+      try {
+        if (currentTurnCellClicked || players[currentPlayerIndex] !== targetPlayerName) return
+        await candidateAudio.play()
+        return
+      } catch (e) {
+        console.debug("Pre-recorded audio playback fallback:", e.message)
+      }
+    }
+  }
+
+  // 2. Fallback: cached dynamic ElevenLabs audio
   if (details.turnAudio) {
     details.turnAudio.currentTime = 0
     playingTurnAudio = details.turnAudio
@@ -1172,17 +1238,20 @@ async function announceCurrentPlayerTurn() {
     return
   }
 
-  const audio = await fetchElevenLabsAudio(`${activePlayerName}'s turn`, details.voiceId)
-  if (audio) {
-    details.turnAudio = audio
-    if (currentTurnCellClicked || players[currentPlayerIndex] !== targetPlayerName) return
-    playingTurnAudio = audio
-    audio.play().catch((e) => console.error("Error playing turn audio:", e))
+  // 3. Fallback: dynamic ElevenLabs generation if key configured
+  if (userApiKey) {
+    const audio = await fetchElevenLabsAudio(`${activePlayerName}'s turn`, details.voiceId)
+    if (audio) {
+      details.turnAudio = audio
+      if (currentTurnCellClicked || players[currentPlayerIndex] !== targetPlayerName) return
+      playingTurnAudio = audio
+      audio.play().catch((e) => console.error("Error playing turn audio:", e))
+    }
   }
 }
 
 function replayCurrentPlayerTurn() {
-  if (window.isSoundsMuted || !userApiKey || players.length === 0) return
+  if (window.isSoundsMuted || players.length === 0) return
   if (currentTurnCellClicked) return
 
   stopAllTurnVoices()
