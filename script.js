@@ -1135,29 +1135,36 @@ async function precachePlayerTurnAudios() {
   updatePlayerDetails()
   if (players.length === 0) return
 
+  try {
+    await window.SharedClassSync?.loadPlayerAudioManifest?.()
+  } catch (e) {}
+
+  if (players.length === 0) return
+
   // 1. Preload pre-recorded CDN audio variations for all players
   for (const playerName of players) {
     const details = playerDetails[playerName]
-    if (details && !details.preloadedTurnAudios) {
+    const urls = getPlayerTurnAudioUrls(playerName)
+    if (details && (!details.preloadedTurnAudios || (urls.length > 0 && details.preloadedTurnAudios.length !== urls.length))) {
       details.preloadedTurnAudios = []
-      const urls = getPlayerTurnAudioUrls(playerName)
       urls.forEach((url) => {
         try {
           const a = new Audio()
           a.preload = "auto"
           a.src = url
+          a.load()
           details.preloadedTurnAudios.push(a)
         } catch (e) {}
       })
     }
   }
 
-  // 2. Fallback: Dynamic ElevenLabs caching if API key configured
+  // 2. Fallback: Dynamic ElevenLabs caching only for players without pre-recorded CDN audio
   if (!userApiKey) return
 
   for (const playerName of players) {
     const details = playerDetails[playerName]
-    if (!details || details.turnAudio) continue
+    if (!details || details.turnAudio || (details.preloadedTurnAudios && details.preloadedTurnAudios.length > 0)) continue
 
     const audio = await fetchElevenLabsAudio(`${playerName}'s turn`, details.voiceId)
     if (audio) {
