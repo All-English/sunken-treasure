@@ -1038,7 +1038,7 @@ function updatePlayerDetails() {
 }
 
 const ELEVENLABS_PRONUNCIATION_DICT_ID = "sKcMTMc7IZdOIqGSuKGL"
-const ELEVENLABS_PRONUNCIATION_VERSION_ID = "mP7aeKcxpImcYdvw1JQt"
+const ELEVENLABS_PRONUNCIATION_VERSION_ID = "3mTzTQzzgwh88Eo3YcRd"
 
 async function fetchElevenLabsAudio(text, voiceId) {
   if (!userApiKey) return null
