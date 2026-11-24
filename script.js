@@ -122,7 +122,14 @@ function autoSaveCurrentClassUnitTreasureHunt() {
         profiles = JSON.parse(localStorage.getItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY) || "{}")
       } catch {}
       const existingUnits = (profiles[currentLoadedClassName] && profiles[currentLoadedClassName].units) || []
-      const unitSet = new Set(existingUnits)
+      const targetSeries = window.SharedClassSync.toSeriesSlug
+        ? window.SharedClassSync.toSeriesSlug(curId)
+        : curId
+      const sameSeriesUnits = existingUnits.filter((u) => {
+        const c = window.SharedClassSync.toCanonicalUnit(u)
+        return !c || c.series === targetSeries
+      })
+      const unitSet = new Set(sameSeriesUnits)
       unitSet.add(canonical.id)
       window.SharedClassSync.saveClassUnits(currentLoadedClassName, Array.from(unitSet), curId)
     } else if (typeof window.SharedClassSync.saveActiveUnits === "function") {
@@ -3687,13 +3694,47 @@ async function syncWithUpstashOnLoad() {
       // Priority 2: Outside class hours, fall back to active session & latest cross-app units
       const activeUnitsObj = window.SharedClassSync?.getActiveUnits?.()
       const activeSession = window.SharedClassSync?.getActiveSession?.()
-      if (!hasInitialUrlWordSet && !hasExplicitInitialUrl && activeUnitsObj && Array.isArray(activeUnitsObj.units) && activeUnitsObj.units.length > 0) {
-        applyHighestUnitToTreasureHunt(activeUnitsObj.units, activeUnitsObj.curriculumId)
-      }
+      let unitsToApply = null
+      let curIdToApply = null
       if (activeSession && activeSession.className) {
         currentLoadedClassName = activeSession.className
-        const playerSetDropdown = document.getElementById("player-set-dropdown")
-        if (playerSetDropdown) playerSetDropdown.value = activeSession.className
+        const playerSetSelect = document.getElementById("player-set-select")
+        if (playerSetSelect) playerSetSelect.value = activeSession.className
+        const deleteBtn = document.getElementById("delete-set-btn")
+        if (deleteBtn) deleteBtn.style.display = "inline-block"
+
+        try {
+          const rawProfiles = localStorage.getItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY)
+          const profiles = rawProfiles ? JSON.parse(rawProfiles) : {}
+          const prof = profiles[activeSession.className]
+          if (prof && Array.isArray(prof.units) && prof.units.length > 0) {
+            unitsToApply = prof.units
+            curIdToApply = prof.curriculumId || null
+          }
+          if (
+            activeUnitsObj &&
+            Array.isArray(activeUnitsObj.units) &&
+            activeUnitsObj.units.length > 0 &&
+            (activeUnitsObj.updatedAt || 0) > (prof?.updatedAt || 0) &&
+            (
+              activeUnitsObj.className === activeSession.className ||
+              (
+                !activeUnitsObj.className &&
+                window.SharedClassSync?.isTimestampInCurrentClassSession?.(activeUnitsObj.updatedAt, activeSession.className, prof)
+              )
+            )
+          ) {
+            unitsToApply = activeUnitsObj.units
+            curIdToApply = activeUnitsObj.curriculumId || curIdToApply
+          }
+        } catch {}
+      } else if (activeUnitsObj && Array.isArray(activeUnitsObj.units) && activeUnitsObj.units.length > 0) {
+        unitsToApply = activeUnitsObj.units
+        curIdToApply = activeUnitsObj.curriculumId || null
+      }
+
+      if (!hasInitialUrlWordSet && !hasExplicitInitialUrl && unitsToApply && unitsToApply.length > 0) {
+        applyHighestUnitToTreasureHunt(unitsToApply, curIdToApply)
       }
       if (activeSession && Array.isArray(activeSession.players) && activeSession.players.length > 0) {
         players = [...activeSession.players]
@@ -3749,7 +3790,12 @@ function populatePlayerSetSelect() {
     select.appendChild(opt)
   })
 
-  if (deleteBtn) deleteBtn.style.display = "none"
+  if (currentLoadedClassName && sets[currentLoadedClassName]) {
+    select.value = currentLoadedClassName
+    if (deleteBtn) deleteBtn.style.display = "inline-block"
+  } else if (deleteBtn) {
+    deleteBtn.style.display = "none"
+  }
 }
 
 function setupPlayerSetsSyncEventListeners() {
@@ -3800,20 +3846,50 @@ function setupPlayerSetsSyncEventListeners() {
       currentLoadedClassName = selectedSetName || null
       if (selectedSetName) {
         const sets = getPlayerSets()
-        const names = sets[selectedSetName]
-        if (names && Array.isArray(names)) {
+        let names = sets[selectedSetName]
+        if (!names && window.SharedClassSync?.getActiveSession) {
+          const session = window.SharedClassSync.getActiveSession()
+          if (session && session.className === selectedSetName && Array.isArray(session.players) && session.players.length > 0) {
+            names = session.players
+          }
+        }
+        if (names && Array.isArray(names) && names.length > 0) {
           const playersTextarea = document.getElementById("players-textarea")
           if (playersTextarea) {
             playersTextarea.value = names.join(", ")
           }
+          players = [...names]
+          saveActiveSessionPlayers(names, selectedSetName)
+          savePlayers()
+          updatePlayerDisplay()
         }
-        // Load highest unit for this class if available
+        // Load highest unit for this class if available (checking fresher active units for this class/session)
         if (typeof window.SharedClassSync !== "undefined") {
           try {
             const rawProfiles = localStorage.getItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY)
             const profiles = rawProfiles ? JSON.parse(rawProfiles) : {}
-            if (profiles[selectedSetName] && Array.isArray(profiles[selectedSetName].units) && profiles[selectedSetName].units.length > 0) {
-              applyHighestUnitToTreasureHunt(profiles[selectedSetName].units, profiles[selectedSetName].curriculumId)
+            const prof = profiles[selectedSetName]
+            const latestActiveUnits = window.SharedClassSync.getActiveUnits?.()
+            let unitsToApply = (prof && Array.isArray(prof.units) && prof.units.length > 0) ? prof.units : null
+            let curIdToApply = prof?.curriculumId || null
+            if (
+              latestActiveUnits &&
+              Array.isArray(latestActiveUnits.units) &&
+              latestActiveUnits.units.length > 0 &&
+              (latestActiveUnits.updatedAt || 0) > (prof?.updatedAt || 0) &&
+              (
+                latestActiveUnits.className === selectedSetName ||
+                (
+                  !latestActiveUnits.className &&
+                  window.SharedClassSync.isTimestampInCurrentClassSession?.(latestActiveUnits.updatedAt, selectedSetName, prof)
+                )
+              )
+            ) {
+              unitsToApply = latestActiveUnits.units
+              curIdToApply = latestActiveUnits.curriculumId || curIdToApply
+            }
+            if (unitsToApply && unitsToApply.length > 0) {
+              applyHighestUnitToTreasureHunt(unitsToApply, curIdToApply)
             }
           } catch (e) {
             console.warn("Error applying units in Treasure Hunt:", e)
@@ -3882,10 +3958,21 @@ function setupPlayerSetsSyncEventListeners() {
         } catch {}
 
         const seriesSelect = document.getElementById("series-select")
+        const selectedSeries = window.SharedClassSync.toSeriesSlug
+          ? window.SharedClassSync.toSeriesSlug(seriesSelect?.value || "smart-phonics")
+          : (seriesSelect?.value || "smart-phonics")
+        const existingUnits = Array.isArray(profiles[setName]?.units) ? profiles[setName].units : []
+        const preservedUnits = existingUnits.filter((u) => {
+          const c = window.SharedClassSync.toCanonicalUnit(u)
+          return !c || c.series === selectedSeries
+        })
+        const unitSet = new Set(preservedUnits)
+        canonicals.forEach((id) => unitSet.add(id))
+
         profiles[setName] = {
           schedule: sched,
-          units: canonicals.length > 0 ? canonicals : (profiles[setName]?.units || []),
-          curriculumId: seriesSelect?.value || "smart-phonics",
+          units: Array.from(unitSet),
+          curriculumId: selectedSeries,
           updatedAt: Date.now()
         }
         localStorage.setItem(window.SharedClassSync.SHARED_CLASS_PROFILES_KEY, JSON.stringify(profiles))
